@@ -1,0 +1,29 @@
+# Build output and dependencies (rebuilt inside the image)
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/*.tsbuildinfo
+**/TestResults/
+**/coverage/
+
+# Secrets and local data: never part of the build context
+.env
+.env.*
+tapeory-data/
+Tapeory.Api/local-storage/
+
+# Not needed to build the image
+.git/
+.github/
+**/.vs/
+**/.vscode/
+**/*.user
+Tapeory.Api.Tests/
+scripts/
+unraid/
+docker-compose*.yml
+*.md
+.gitignore
+.gitattributes
+.dockerignore

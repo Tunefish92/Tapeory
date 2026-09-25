@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Tapeory</Name>
+  <Repository>ghcr.io/tunefish92/tapeory:latest</Repository>
+  <Registry>https://github.com/Tunefish92/Tapeory/pkgs/container/tapeory</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Tunefish92/Tapeory/issues</Support>
+  <Project>https://github.com/Tunefish92/Tapeory</Project>
+  <Overview>Tapeory is a self-hosted web app for designing, storing, and printing Brother P-touch labels from your browser. This template needs a separate MySQL/MariaDB container (e.g. Unraid's official "mariadb" Community Applications template) reachable from this container.</Overview>
+  <Category>Productivity: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/Tapeory.Web/public/logo.svg</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>Tapeory is a self-hosted web app for designing, storing, and printing Brother P-touch labels from your browser (network, print-server, hostname, or USB-connected printers). One container serves both the web UI and the API; it needs a MySQL/MariaDB database (its connection details are entered in the web UI on first start) and a host folder for template/upload storage. See the project README for install, upgrade, backup, and restore instructions.</Description>
+
+  <Config Name="WebUI Port" Target="8080" Default="8080" Mode="tcp" Description="Port the Tapeory web UI and API are served on." Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+
+  <Config Name="Storage Path" Target="/data" Default="/mnt/user/appdata/tapeory" Mode="rw" Description="Host folder for templates, uploads, and rendered print output. Back this up regularly." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/tapeory</Config>
+
+  <Config Name="Database Connection String" Target="ConnectionStrings__Default" Default="" Mode="" Description="Optional. Leave empty to enter the database connection in the web UI on first start (it's saved to the storage path). If set, e.g. server=192.168.1.10;port=3306;database=tapeory;user=tapeory;password=CHANGE_ME; it overrides that and the setup screen is skipped." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User ID that owns the storage path; the app runs as this user. Unraid default: 99 (nobody)." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group ID that owns the storage path. Unraid default: 100 (users)." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+
+  <Config Name="ASPNETCORE_ENVIRONMENT" Target="ASPNETCORE_ENVIRONMENT" Default="Production" Mode="" Description="Runtime environment name." Type="Variable" Display="advanced" Required="false" Mask="false">Production</Config>
+
+  <Config Name="Auto Migrate Database" Target="TAPEORY_AUTO_MIGRATE" Default="true" Mode="" Description="Automatically apply pending database migrations on container start." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+</Container>

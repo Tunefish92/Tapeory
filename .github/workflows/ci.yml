@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore Tapeory.slnx
+
+      - name: Build
+        run: dotnet build Tapeory.slnx --no-restore -c Release
+
+      # Integration tests spin up MySQL via Testcontainers; the GitHub-hosted Ubuntu runners
+      # ship Docker preinstalled so this works without extra setup.
+      - name: Test
+        run: dotnet test Tapeory.slnx --no-build -c Release --logger "trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults
+
+  frontend:
+    name: Frontend build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Tapeory.Web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: Tapeory.Web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc -b
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  docker-build:
+    name: Docker image build & smoke test
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (not pushed)
+        run: docker build -f Tapeory.Api/Dockerfile -t tapeory:ci .
+
+      # Starts the image with a root-owned storage folder (what Docker creates for a missing bind
+      # mount) and checks that the entrypoint hands it to the app user and the app comes up.
+      # No database is needed: /api/health answers before the first-start setup.
+      - name: Smoke test
+        run: |
+          sudo mkdir -p /tmp/tapeory-data
+          docker run -d --name tapeory -p 8080:8080 -v /tmp/tapeory-data:/data tapeory:ci
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/api/health > /tmp/health.json; then break; fi
+            sleep 2
+          done
+          cat /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+
+          test "$(stat -c '%u:%g' /tmp/tapeory-data)" = "1000:1000"
+          test -d /tmp/tapeory-data/images
+          docker top tapeory -eo uid,args | grep -Eq '^\s*1000\s+dotnet Tapeory\.Api\.dll'
+          curl -fsS http://localhost:8080/ | grep -qi '<div id="root">'
+          docker exec tapeory sh -c 'ls /usr/share/fonts/truetype | grep -q liberation'
+
+      - name: Container logs
+        if: always()
+        run: docker logs tapeory || true
+
+  docker-publish:
+    name: Publish Docker image
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Optional second registry: set the DOCKERHUB_USERNAME variable and DOCKERHUB_TOKEN secret.
+      - name: Log in to Docker Hub
+        if: vars.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ vars.DOCKERHUB_USERNAME != '' && format('{0}/tapeory', vars.DOCKERHUB_USERNAME) || '' }}
+          # main → latest; tag v1.2.3 → 1.2.3 and 1.2; every build → sha-<commit>
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Tapeory.Api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

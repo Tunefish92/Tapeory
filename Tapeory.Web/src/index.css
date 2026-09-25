@@ -1,0 +1,508 @@
+:root {
+  color-scheme: light;
+
+  /* type */
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Space Grotesk", var(--font-body);
+  --fs-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --fs-sm: clamp(0.85rem, 0.81rem + 0.2vw, 0.9375rem);
+  --fs-base: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  --fs-lg: clamp(1.1rem, 1.03rem + 0.35vw, 1.25rem);
+  --fs-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.7rem);
+  --fs-2xl: clamp(1.6rem, 1.3rem + 1.5vw, 2.1rem);
+
+  /* shape / motion */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-full: 999px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 0.35s;
+
+  /* palette */
+  --color-bg: #f5f6f8;
+  --color-bg-elevated: #ffffff;
+  --color-bg-header: #12161f;
+  --color-bg-header-text: #ffffff;
+  --color-bg-subtle: #eef0f4;
+  --color-text: #14181f;
+  --color-text-muted: #62697a;
+  --color-text-on-header: #a7b0c0;
+  --color-border: #e4e7ec;
+  --color-input-border: #d7dbe3;
+  --color-primary: #2563eb;
+  --color-primary-ii: #06b6d4;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-soft: rgba(37, 99, 235, 0.1);
+  --color-primary-text: #ffffff;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #991b1b;
+  --color-danger-soft: rgba(220, 38, 38, 0.08);
+  --color-success-bg: #dcfce7;
+  --color-success-text: #166534;
+  --color-info-bg: #dbeafe;
+  --color-info-text: #1e40af;
+  --color-neutral-bg: #e5e7eb;
+  --color-neutral-text: #374151;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 12px 28px -14px rgba(15, 23, 42, 0.22);
+  --shadow-lg: 0 24px 56px -22px rgba(15, 23, 42, 0.3);
+  --color-shadow: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0a0c11;
+  --color-bg-elevated: #12151d;
+  --color-bg-header: #05070a;
+  --color-bg-header-text: #f3f4f6;
+  --color-bg-subtle: #161a23;
+  --color-text: #e7eaf0;
+  --color-text-muted: #8b93a5;
+  --color-text-on-header: #93a0b8;
+  --color-border: #232833;
+  --color-input-border: #2c323f;
+  --color-primary: #4f8bff;
+  --color-primary-ii: #22d3ee;
+  --color-primary-hover: #71a3ff;
+  --color-primary-soft: rgba(79, 139, 255, 0.16);
+  --color-primary-text: #06101f;
+  --color-danger: #f87171;
+  --color-danger-bg: #3a1414;
+  --color-danger-text: #fca5a5;
+  --color-danger-soft: rgba(248, 113, 113, 0.12);
+  --color-success-bg: #12301f;
+  --color-success-text: #86efac;
+  --color-info-bg: #1a2b4a;
+  --color-info-text: #93c5fd;
+  --color-neutral-bg: #232833;
+  --color-neutral-text: #c3c9d6;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 16px 34px -16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 32px 70px -26px rgba(0, 0, 0, 0.72);
+  --color-shadow: rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+
+    --color-bg: #0a0c11;
+    --color-bg-elevated: #12151d;
+    --color-bg-header: #05070a;
+    --color-bg-header-text: #f3f4f6;
+    --color-bg-subtle: #161a23;
+    --color-text: #e7eaf0;
+    --color-text-muted: #8b93a5;
+    --color-text-on-header: #93a0b8;
+    --color-border: #232833;
+    --color-input-border: #2c323f;
+    --color-primary: #4f8bff;
+    --color-primary-ii: #22d3ee;
+    --color-primary-hover: #71a3ff;
+    --color-primary-soft: rgba(79, 139, 255, 0.16);
+    --color-primary-text: #06101f;
+    --color-danger: #f87171;
+    --color-danger-bg: #3a1414;
+    --color-danger-text: #fca5a5;
+    --color-danger-soft: rgba(248, 113, 113, 0.12);
+    --color-success-bg: #12301f;
+    --color-success-text: #86efac;
+    --color-info-bg: #1a2b4a;
+    --color-info-text: #93c5fd;
+    --color-neutral-bg: #232833;
+    --color-neutral-text: #c3c9d6;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 16px 34px -16px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 32px 70px -26px rgba(0, 0, 0, 0.72);
+    --color-shadow: rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: var(--fs-xl);
+}
+
+h3 {
+  font-size: var(--fs-lg);
+}
+
+a {
+  color: var(--color-primary);
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+:where(button) {
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--r-full);
+  border: 1px solid var(--color-input-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    opacity var(--dur) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-ii));
+  border-color: transparent;
+  color: var(--color-primary-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover:not(:disabled) {
+  color: var(--color-primary-text);
+  box-shadow: 0 14px 30px -14px var(--color-primary-soft), var(--shadow-md);
+}
+
+.btn-sm {
+  padding: 0.35rem 0.8rem;
+  font-size: var(--fs-xs);
+}
+
+.btn-danger {
+  background: var(--color-danger-soft);
+  border-color: transparent;
+  color: var(--color-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Every plain <button> in the app that hasn't opted into .btn/.btn-primary/.btn-danger still
+   gets this shared look, rather than raw browser chrome — most action buttons across the
+   editor toolbar, properties panel, and printer cards rely on this default. Wrapped in :where()
+   (zero specificity) so any component-specific button style (icon toggles, the notification
+   close button, etc.) can override it with a single class, no !important needed. */
+:where(button:not(.btn):not([class*="btn-"])) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--r-full);
+  border: 1px solid var(--color-input-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), color var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+
+:where(button:not(.btn):not([class*="btn-"]):hover:not(:disabled)) {
+  transform: translateY(-1px);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+:where(button:not(.btn):not([class*="btn-"]):disabled) {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--r-sm);
+  padding: 0.45rem 0.6rem;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+/* ==========================================================================
+   Layout utilities
+   ========================================================================== */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: start;
+  padding: 0.6rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+th {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+tbody tr {
+  transition: background-color var(--dur) var(--ease);
+}
+
+tbody tr:hover {
+  background-color: var(--color-bg-subtle);
+}
+
+.card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--r-full);
+  font-family: var(--font-heading);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pill--success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.status-pill--danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.status-pill--info {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.status-pill--neutral {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+.status-pill--live::before {
+  animation: pulse-dot 2.4s infinite;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-header h2 {
+  margin: 0;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border-end-end-radius: var(--r-sm);
+}
+
+.skip-link:focus {
+  inset-inline-start: 0;
+}
+
+[role="alert"] {
+  color: var(--color-danger-text);
+}
+
+[role="status"] {
+  color: var(--color-success-text);
+}
+
+/* Lets a wide table scroll horizontally within its own box instead of overflowing the page or
+   clipping columns — wrap any <table> that might not fit a narrow viewport in this. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-scroll table {
+  min-width: 640px;
+  white-space: nowrap;
+}
+
+.card.table-scroll {
+  padding: 0.35rem 0.75rem;
+}
+
+.card.table-scroll tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: fade-in-up 0.45s var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-main {
+    padding: 1rem;
+  }
+}
+
+/* Hidden visually, still read by screen readers. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

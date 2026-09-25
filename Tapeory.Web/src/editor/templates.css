@@ -1,0 +1,625 @@
+/* ==========================================================================
+   View toggle (segmented control)
+   ========================================================================== */
+.view-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--r-full);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.9rem;
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.view-toggle button:hover {
+  transform: none;
+  box-shadow: none;
+  color: var(--color-text);
+}
+
+.view-toggle button[aria-pressed="true"] {
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==========================================================================
+   Search
+   ========================================================================== */
+.template-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.template-search__icon {
+  position: absolute;
+  inset-inline-start: 1rem;
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transition: color var(--dur) var(--ease);
+}
+
+.template-search input {
+  width: 100%;
+  padding: 0.75rem 2.75rem;
+  border-radius: var(--r-full);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--fs-base);
+}
+
+/* The browser's own clear button would duplicate ours. */
+.template-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.template-search:focus-within .template-search__icon {
+  color: var(--color-primary);
+}
+
+/* The glow plus the primary border is the focus indicator here, replacing the global outline. */
+.template-search input:focus,
+.template-search input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--color-primary-soft), var(--shadow-sm);
+}
+
+.template-search__clear {
+  position: absolute;
+  inset-inline-end: 0.6rem;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  animation: fade-in-up 0.25s var(--ease) both;
+}
+
+.template-search__clear:hover {
+  transform: none;
+  box-shadow: none;
+  color: var(--color-primary);
+}
+
+.template-search__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-input-border);
+  border-radius: var(--r-lg);
+  animation: fade-in-up 0.35s var(--ease) both;
+}
+
+.template-search__empty p {
+  margin: 0;
+}
+
+/* ==========================================================================
+   Groups — every color is derived from --group-hue (hashed from the group name)
+   ========================================================================== */
+:root {
+  --group-bg-l: 93%;
+  --group-fg-l: 30%;
+  --group-dot-l: 50%;
+}
+
+:root[data-theme="dark"] {
+  --group-bg-l: 20%;
+  --group-fg-l: 78%;
+  --group-dot-l: 62%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --group-bg-l: 20%;
+    --group-fg-l: 78%;
+    --group-dot-l: 62%;
+  }
+}
+
+.group-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: hsl(var(--group-hue, 220) 70% var(--group-dot-l));
+  box-shadow: 0 0 0 3px hsl(var(--group-hue, 220) 70% var(--group-dot-l) / 0.2);
+}
+
+.group-dot--none {
+  background: var(--color-input-border);
+  box-shadow: none;
+}
+
+.group-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--r-full);
+  font-family: var(--font-heading);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  background: hsl(var(--group-hue, 220) 70% var(--group-bg-l));
+  color: hsl(var(--group-hue, 220) 55% var(--group-fg-l));
+  border: 1px solid transparent;
+}
+
+.group-chip--button {
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.group-chip--button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 3px hsl(var(--group-hue, 220) 70% var(--group-dot-l) / 0.2);
+}
+
+.group-chip--empty {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-input-border);
+}
+
+.group-chip--empty:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
+.group-picker {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border-radius: var(--r-md);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  animation: fade-in-up 0.25s var(--ease) both;
+}
+
+.group-picker input {
+  width: 100%;
+  font-size: var(--fs-sm);
+}
+
+.group-picker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Filter pills */
+.group-filter {
+  display: flex;
+  gap: 0.5rem;
+  margin: -0.35rem 0 1.4rem;
+  overflow-x: auto;
+  padding: 0.35rem 0.1rem;
+  scrollbar-width: thin;
+}
+
+.group-filter button {
+  flex-shrink: 0;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+}
+
+.group-filter button[aria-pressed="true"] {
+  border-color: transparent;
+  background: hsl(var(--group-hue, 220) 70% var(--group-bg-l));
+  color: hsl(var(--group-hue, 220) 55% var(--group-fg-l));
+  box-shadow: 0 0 0 1px hsl(var(--group-hue, 220) 60% var(--group-dot-l) / 0.45);
+}
+
+.group-filter button:first-child[aria-pressed="true"] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.group-filter__count {
+  min-width: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: 0.72em;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Sections */
+.group-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.group-section__header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+  min-height: 2.2rem;
+}
+
+.group-section__header h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+
+.group-section__count {
+  padding: 0.05rem 0.55rem;
+  border-radius: var(--r-full);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-heading);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.group-section__rename {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.group-section__rename svg {
+  width: 15px;
+  height: 15px;
+}
+
+.group-section__header:hover .group-section__rename,
+.group-section__rename:focus-visible {
+  opacity: 1;
+}
+
+/* Touch screens have no hover, so keep the rename button visible there. */
+@media (hover: none) {
+  .group-section__rename {
+    opacity: 1;
+  }
+}
+
+.group-section__rename-input {
+  flex: 1;
+  max-width: 320px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Template cards
+   ========================================================================== */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.1rem;
+}
+
+.template-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  animation: fade-in-up 0.5s var(--ease) both;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.template-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--color-input-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.template-card__preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  padding: 1.25rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, var(--color-input-border) 1px, transparent 1.2px) 0 0 / 16px 16px,
+    var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.template-card__preview::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -60% -30%;
+  height: 70%;
+  background: radial-gradient(closest-side, var(--color-primary-soft), transparent);
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+  pointer-events: none;
+}
+
+.template-card:hover .template-card__preview::after {
+  opacity: 1;
+}
+
+.template-card__preview img {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
+  background: #ffffff;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 12px 28px -12px rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.45s var(--ease), transform 0.6s var(--ease);
+}
+
+.template-card__preview img.is-loaded {
+  opacity: 1;
+  transform: none;
+}
+
+.template-card:hover .template-card__preview img.is-loaded {
+  transform: scale(1.04) rotate(-0.6deg);
+}
+
+/* Label-shaped shimmer shown until the thumbnail arrives; the image is layered on top of it. */
+.template-card__skeleton {
+  position: absolute;
+  max-width: calc(100% - 2.5rem);
+  max-height: calc(100% - 2.5rem);
+  width: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-bg-elevated), var(--color-border), var(--color-bg-elevated));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.template-card__no-preview {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+.template-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  flex: 1;
+  padding: 1.1rem 1.2rem 1.2rem;
+}
+
+.template-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.template-card__title-row h3 {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.3;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.template-card__title-row h3 a {
+  color: var(--color-text);
+  text-decoration: none;
+  transition: color var(--dur) var(--ease);
+}
+
+.template-card__title-row h3 a:hover {
+  color: var(--color-primary);
+}
+
+.template-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.template-card__chip {
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--r-full);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.template-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.template-card__updated {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.template-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (max-width: 640px) {
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .template-card__preview {
+    height: 160px;
+  }
+}
+
+/* ==========================================================================
+   Height badge (card corner)
+   ========================================================================== */
+.template-card__height {
+  /* Same soft-tint recipe as .group-chip (and its light/dark lightness tokens), pinned to
+     green so it never reads as a button or collides with a group colour. */
+  --height-hue: 152;
+
+  position: absolute;
+  top: 0.6rem;
+  inset-inline-end: 0.6rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: baseline;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--r-full);
+  background: hsl(var(--height-hue) 70% var(--group-bg-l));
+  color: hsl(var(--height-hue) 55% var(--group-fg-l));
+  box-shadow: 0 0 0 1px hsl(var(--height-hue) 60% var(--group-dot-l) / 0.35);
+  font-family: var(--font-heading);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: transform var(--dur) var(--ease);
+}
+
+.template-card__height small {
+  margin-inline-start: 0.08rem;
+  font-size: 0.85em;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.template-card:hover .template-card__height {
+  transform: scale(1.05);
+}
+
+/* ==========================================================================
+   Templates data grid (list view) — shared grid styles live in components/dataGrid.css
+   ========================================================================== */
+.data-grid__name {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.data-grid__thumb {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 40px;
+  padding: 4px;
+  border-radius: var(--r-sm);
+  background:
+    radial-gradient(circle, var(--color-border) 1px, transparent 1.2px) 0 0 / 8px 8px,
+    var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.data-grid__thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.data-grid__thumb.is-loaded img {
+  opacity: 1;
+}
+
+.data-grid__thumb.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-primary-soft), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Size: width × height, with the height (tape width) tinted like the card badge. */
+.data-grid__size {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-grid__times {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.data-grid__height {
+  --height-hue: 152;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-full);
+  background: hsl(var(--height-hue) 70% var(--group-bg-l));
+  color: hsl(var(--height-hue) 55% var(--group-fg-l));
+}
+
+.data-grid__size small {
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 720px) {
+  /* "Ungrouped" is noise on a phone row. */
+  .data-grid tbody td.data-grid__col--group:has(.data-grid__empty) {
+    display: none;
+  }
+
+  .data-grid td.data-grid__col--size {
+    font-size: var(--fs-sm);
+  }
+}
