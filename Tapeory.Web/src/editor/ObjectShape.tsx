@@ -23,7 +23,7 @@ function handleDragEnd(e: KonvaEventObject<DragEvent>, onChange: (changes: Label
   onChange({ x: e.target.x(), y: e.target.y() });
 }
 
-/** Shared transform-end handler for box-shaped objects (text, rect, image): Konva's Transformer
+/** Shared transform-end handler for box-shaped objects (rect, image): Konva's Transformer
  * resizes by scaling the node, so we bake that scale into width/height and reset scale to 1 to
  * avoid it compounding on the next resize. */
 function handleBoxTransformEnd(
@@ -36,6 +36,35 @@ function handleBoxTransformEnd(
 
   node.scaleX(1);
   node.scaleY(1);
+
+  onChange({
+    x: node.x(),
+    y: node.y(),
+    rotation: node.rotation(),
+    width: Math.max(2, node.width() * scaleX),
+    height: Math.max(2, node.height() * scaleY),
+  });
+}
+
+/**
+ * Text is laid out in millimetres, so its font size is only a few units, and the browser would
+ * measure and position glyphs for that tiny size — the layer's zoom then magnifies the rounding
+ * into uneven letter spacing. Text nodes are therefore drawn this many times larger and scaled
+ * back down by the same factor.
+ */
+const TEXT_SCALE = 16;
+
+/** Like handleBoxTransformEnd, for text nodes at their base scale of 1 / TEXT_SCALE. */
+function handleTextTransformEnd(
+  e: KonvaEventObject<Event>,
+  onChange: (changes: LabelObjectPatch) => void,
+) {
+  const node = e.target;
+  const scaleX = node.scaleX();
+  const scaleY = node.scaleY();
+
+  node.scaleX(1 / TEXT_SCALE);
+  node.scaleY(1 / TEXT_SCALE);
 
   onChange({
     x: node.x(),
@@ -108,9 +137,11 @@ function TextShape({
       key={fontsVersion}
       {...common}
       text={fitted.lines.join("\n")}
-      width={object.width}
-      height={object.height}
-      fontSize={fitted.fontSize}
+      width={object.width * TEXT_SCALE}
+      height={object.height * TEXT_SCALE}
+      scaleX={1 / TEXT_SCALE}
+      scaleY={1 / TEXT_SCALE}
+      fontSize={fitted.fontSize * TEXT_SCALE}
       lineHeight={LINE_HEIGHT}
       // Line breaks come from fitText (or the typed text), exactly as the renderer does it.
       wrap="none"
@@ -118,7 +149,7 @@ function TextShape({
       fontStyle={bold ? "bold" : "normal"}
       align={object.align}
       fill={object.fill}
-      onTransformEnd={(e) => handleBoxTransformEnd(e, onChange)}
+      onTransformEnd={(e) => handleTextTransformEnd(e, onChange)}
     />
   );
 }
