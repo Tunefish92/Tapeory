@@ -6,6 +6,9 @@ on:
     tags: ["v*"]
   pull_request:
     branches: [main]
+  # "Run workflow" in the Actions tab: republishes the image from main without a new commit
+  # (e.g. after adding the Docker Hub settings). On other branches it only builds and tests.
+  workflow_dispatch:
 
 jobs:
   backend:
@@ -104,7 +107,7 @@ jobs:
     name: Publish Docker image
     runs-on: ubuntu-latest
     needs: [docker-build]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     permissions:
       contents: read
       packages: write
