@@ -1,4 +1,5 @@
 using Tapeory.Api;
+using Tapeory.Api.Backups;
 using Tapeory.Api.Data;
 using Tapeory.Api.Import;
 using Tapeory.Api.PrintJobs;
@@ -32,6 +33,10 @@ builder.Services.AddSingleton<PrinterConnectionTester>();
 builder.Services.AddSingleton<PrinterRawSocketSender>();
 builder.Services.AddSingleton<DatabaseConfigStore>();
 builder.Services.AddSingleton<DatabaseSetupService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<BackupStore>();
+builder.Services.AddSingleton<DatabaseBackupService>();
+builder.Services.AddScoped<LabelBackupService>();
 
 // The connection string is read per scope rather than once at startup: on a fresh install there
 // is none until the first-run setup saves one, and the app switches over without a restart.

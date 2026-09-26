@@ -20,7 +20,7 @@ $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
 
 if ($dockerCommand) {
     Write-Host "Starting local MySQL via Docker Compose..." -ForegroundColor Cyan
-    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait mysql
+    docker compose -f docker-compose.dev.yml up -d --wait mysql
 
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "Docker Compose failed to start MySQL. Continuing anyway -- if you have your own MySQL server, enter its details in the setup screen on first run (or set ConnectionStrings__Default yourself)."

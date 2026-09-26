@@ -16,7 +16,7 @@ public sealed class FontsController(FontCatalog fonts) : ControllerBase
     /// label uses. Only families from <see cref="List"/> are served.
     /// </summary>
     [HttpGet("file")]
-    public IActionResult File([FromQuery] string family, [FromQuery] string? weight)
+    public IActionResult GetFile([FromQuery] string family, [FromQuery] string? weight)
     {
         if (fonts.Find(family) is null)
         {
@@ -31,6 +31,6 @@ public sealed class FontsController(FontCatalog fonts) : ControllerBase
 
         // Installed fonts change rarely; a day of browser caching keeps the editor snappy.
         Response.Headers.CacheControl = "private, max-age=86400";
-        return base.File(file.Data, file.ContentType);
+        return File(file.Data, file.ContentType);
     }
 }

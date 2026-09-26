@@ -45,6 +45,7 @@ every template, upload, and print job stays on your own server.
 
 **App**
 - First-start setup screen for the database connection (no connection string needed)
+- Database and label backups created and restored from the Settings page, stored on the server
 - Dashboard with usage statistics
 - 12 UI languages: English, German, French, Italian, Spanish, Portuguese, Russian, Chinese,
   Hindi, Bengali, Arabic, and Indonesian
@@ -179,6 +180,26 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
 
 ## Backup and restore
 
+### From the app
+
+**Settings** has two backup cards. Both save their backups on the server, in the storage folder's
+`backups/` folder. Each backup can be downloaded, restored, or deleted there.
+
+| Card | What it contains | Restoring it |
+| --- | --- | --- |
+| **Database backup** | A full SQL dump of the database: templates with all versions, printers, print history, settings | Replaces the whole database. Any newer migrations are applied afterwards, so backups from older Tapeory versions work too. |
+| **Label backup** | A `.zip` of all templates (current version, fields, group, tags, status) plus their images, preview images and original `.lbx` files | Replaces all current templates with the ones in the backup. Print history is kept. |
+
+Before every restore, Tapeory backs up the current state and lists it as "Before restore", so you
+can undo a restore by restoring that backup. The database dump doesn't contain the files in the
+storage folder (images, `.lbx` originals); those are covered by the label backup, or by backing
+up the storage folder as described below.
+
+Backups stored in the storage folder are lost along with it, so download the important ones or
+back up the storage folder somewhere else as well.
+
+### Manually
+
 Back up two things:
 
 - the MySQL database
@@ -246,6 +267,17 @@ Two Windows scripts each start half of the app:
 .\scripts\run-frontend.ps1   # installs npm deps if needed, runs the Vite dev server
 ```
 
+On Linux or macOS, run the same steps directly, each in its own terminal:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --wait mysql
+dotnet run --project Tapeory.Api                # API on http://localhost:5215
+cd Tapeory.Web && npm install && npm run dev     # web app on http://localhost:5173
+```
+
+On Arch-based distributions, the .NET SDK packages don't include ASP.NET Core; install
+`dotnet-sdk`, `aspnet-runtime` and `aspnet-targeting-pack`.
+
 Run both at the same time: the frontend dev server proxies `/api/*` to `http://localhost:5215`
 (see `Tapeory.Web/vite.config.ts`). Open `http://localhost:5173`. On first run, enter the local
 MySQL container's details in the setup screen: server `localhost`, port `3306`, and `tapeory`
@@ -262,8 +294,8 @@ cd Tapeory.Web && npm test        # frontend
 On every push and pull request to `main`, GitHub Actions:
 
 1. runs both test suites and type-checks and builds the frontend
-2. builds the Docker image, starts it, and checks that it answers, fixed the storage folder
-   owner, and runs as the app user
+2. builds the Docker image, starts it, and checks that it answers, fixes the storage folder
+   owner, runs as the app user, and ships its fonts
 
 Pushes to `main` and version tags (`v*`) then publish a multi-arch image (`amd64`, `arm64`) to
 GitHub Container Registry. If the repository variable `DOCKERHUB_USERNAME` and the secret

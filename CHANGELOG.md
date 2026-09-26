@@ -14,7 +14,8 @@ The first public version. Everything below is new.
 
 **Setup and deployment**
 - One Docker image serves both the web UI and the API, next to a MySQL 8 container
-  (`docker-compose.yml`, `.env.example`), with health checks on both services.
+  (`docker-compose.yml`, `.env.example`), with health checks on both services. Compose stops
+  with an error instead of starting if `MYSQL_ROOT_PASSWORD` or `MYSQL_PASSWORD` is missing.
 - A first-start setup screen for the database connection. It tests the connection, creates the
   tables, and saves the details to `/data/config/database.json`. Setting
   `ConnectionStrings__Default` skips the screen.
@@ -65,6 +66,12 @@ The first public version. Everything below is new.
 - **Experimental:** sending rendered labels to network printers over a raw TCP socket.
 
 **App**
+- **Database backup** card in Settings: saves a full SQL dump of the database on the server, and
+  restores it. Newer migrations are applied after a restore.
+- **Label backup** card in Settings: saves all templates with their images, preview images and
+  `.lbx` originals as a `.zip` on the server, and restores it, replacing the current templates.
+- Both cards list their backups, which can be downloaded, restored or deleted. Every restore first
+  saves the current state as a "Before restore" backup, so a restore can be undone.
 - Dashboard with usage statistics, which can be reset and restored to all-time totals.
 - Settings for language, theme (light, dark, or system), and units (mm or inches), saved on the
   server.

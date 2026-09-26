@@ -38,6 +38,7 @@ public sealed class DatabaseConfigStoreTests : IDisposable
 
         var reloaded = CreateStore();
         Assert.Equal(store.ConnectionString, reloaded.ConnectionString);
+        Assert.NotNull(reloaded.ConnectionString);
 
         var parsed = new MySqlConnectionStringBuilder(reloaded.ConnectionString);
         Assert.Equal("db.local", parsed.Server);

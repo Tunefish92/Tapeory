@@ -92,7 +92,7 @@ jobs:
 
           test "$(stat -c '%u:%g' /tmp/tapeory-data)" = "1000:1000"
           test -d /tmp/tapeory-data/images
-          docker top tapeory -eo uid,args | grep -Eq '^\s*1000\s+dotnet Tapeory\.Api\.dll'
+          docker top tapeory -eo pid,uid,args | grep -Eq '^\s*[0-9]+\s+1000\s+dotnet Tapeory\.Api\.dll'
           curl -fsS http://localhost:8080/ | grep -qi '<div id="root">'
           docker exec tapeory sh -c 'ls /usr/share/fonts/truetype | grep -q liberation'
 

@@ -6,6 +6,7 @@ import { listPrinters, type PrinterResponse } from "../api/printers";
 import { getStoredTheme, setStoredTheme, type ThemePreference } from "../theme/theme";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
 import { StatisticsCard } from "./StatisticsCard";
+import { BackupCard } from "./BackupCard";
 import "./settings.css";
 
 // Each language in its own name, so people can find theirs whatever the UI is set to.
@@ -116,6 +117,27 @@ export function SettingsPage() {
         icon={
           <SectionIcon>
             <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+          </SectionIcon>
+        }
+      />
+
+      <BackupCard
+        kind="database"
+        icon={
+          <SectionIcon>
+            <ellipse cx="12" cy="5" rx="8" ry="3" />
+            <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+            <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+          </SectionIcon>
+        }
+      />
+
+      <BackupCard
+        kind="labels"
+        icon={
+          <SectionIcon>
+            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+            <path d="M7.5 7.5h.01" />
           </SectionIcon>
         }
       />

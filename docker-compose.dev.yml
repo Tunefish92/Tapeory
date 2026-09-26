@@ -1,13 +1,27 @@
-# Local-development override: exposes MySQL on localhost:3306 with database, user and password
-# all "tapeory" — enter those (server "localhost") in the setup screen on the API's first run.
-# Used via: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql
+# Local-development MySQL on localhost:3306 with database, user and password all "tapeory" —
+# enter those (server "localhost") in the setup screen on the API's first run.
+# Used via: docker compose -f docker-compose.dev.yml up -d mysql
+# Standalone rather than an override of docker-compose.yml, which requires the passwords from .env.
 # Not used in production — see docker-compose.yml and .env.example for that.
 services:
   mysql:
+    image: mysql:8.4
+    container_name: tapeory-mysql
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: tapeory-dev-root
       MYSQL_DATABASE: tapeory
       MYSQL_USER: tapeory
       MYSQL_PASSWORD: tapeory
+    volumes:
+      - mysql-data:/var/lib/mysql
     ports:
       - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ptapeory-dev-root"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql-data:
