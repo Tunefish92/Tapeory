@@ -17,6 +17,27 @@ every template, upload, and print job stays on your own server.
 > Proper Brother protocol support has not been tested on real hardware yet. See
 > [Known limitations](#known-limitations).
 
+![The label editor with a dynamic field selected](docs/screenshots/editor.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/dashboard.png" alt="Dashboard with usage statistics and system status"></td>
+    <td width="50%"><img src="docs/screenshots/templates.png" alt="Template library grouped by category, with rendered thumbnails"></td>
+  </tr>
+  <tr>
+    <td align="center">Dashboard</td>
+    <td align="center">Template library</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/print.png" alt="Print form with field values and the rendered label preview"></td>
+    <td width="50%"><img src="docs/screenshots/print-jobs.png" alt="Print history with job status"></td>
+  </tr>
+  <tr>
+    <td align="center">Printing with a rendered preview</td>
+    <td align="center">Print history</td>
+  </tr>
+</table>
+
 ## Features
 
 **Label editor**
@@ -122,6 +143,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-core
 On first start, Tapeory asks for its database connection in the browser. With the bundled
 `docker-compose.yml`, enter:
 
+<img src="docs/screenshots/setup.png" alt="First-start setup screen asking for the database connection" width="600">
+
 | Field | Value |
 | --- | --- |
 | Server | `mysql` |
@@ -184,6 +207,8 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
 
 **Settings** has two backup cards. Both save their backups on the server, in the storage folder's
 `backups/` folder. Each backup can be downloaded, restored, or deleted there.
+
+<img src="docs/screenshots/settings.png" alt="Settings page with the database and label backup cards" width="720">
 
 | Card | What it contains | Restoring it |
 | --- | --- | --- |
@@ -316,4 +341,5 @@ To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 &&
 - `Tapeory.Api.Tests/`: backend unit and integration tests
 - `scripts/`: local development launch scripts
 - `unraid/`: Unraid Community Applications template
+- `docs/screenshots/`: the screenshots in this README
 - `.github/workflows/`: CI pipeline
