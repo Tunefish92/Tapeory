@@ -86,7 +86,9 @@ docker compose up -d
 ```
 
 This runs the prebuilt image `ghcr.io/tunefish92/tapeory` (for `amd64` and `arm64`) next to a
-MySQL 8.4 container. To build the image from your checkout instead, run
+MySQL 8.4 container. The same image is on Docker Hub as
+[`tunefish92/tapeory`](https://hub.docker.com/r/tunefish92/tapeory); set
+`TAPEORY_IMAGE=tunefish92/tapeory:latest` in `.env` to pull from there instead. To build the image from your checkout instead, run
 `docker compose up -d --build`.
 
 The app (web UI and API together) runs at `http://localhost:8080`, or at whatever
@@ -124,7 +126,9 @@ user.
 | `0.1.0`, `0.1` | A release (from Git tags such as `v0.1.0`) |
 | `sha-<commit>` | One specific commit |
 
-For a stable install, pin a release tag with `TAPEORY_IMAGE` in `.env`.
+Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
+`tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
+in `.env`.
 
 ### Fonts
 
@@ -324,7 +328,8 @@ On every push and pull request to `main`, GitHub Actions:
 
 Pushes to `main` and version tags (`v*`) then publish a multi-arch image (`amd64`, `arm64`) to
 GitHub Container Registry. If the repository variable `DOCKERHUB_USERNAME` and the secret
-`DOCKERHUB_TOKEN` are set, the same image also goes to Docker Hub. To republish `main` without a
+`DOCKERHUB_TOKEN` are set, the same image also goes to Docker Hub. The Docker Hub page's
+description is kept in [`docs/dockerhub.md`](docs/dockerhub.md); paste it there when it changes. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
 To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 && git push --tags`.
