@@ -160,3 +160,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Docker Hub's overview and short description, from docs/dockerhub.md. Editing them needs a
+      # DOCKERHUB_TOKEN with the "Read, Write, Delete" scope.
+      - name: Update Docker Hub description
+        if: vars.DOCKERHUB_USERNAME != ''
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ vars.DOCKERHUB_USERNAME }}/tapeory
+          readme-filepath: ./docs/dockerhub.md
+          short-description: Self-hosted web app to design, store and print Brother P-touch labels from your browser.
