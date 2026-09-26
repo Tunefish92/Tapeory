@@ -119,6 +119,19 @@ public sealed class LabelRenderer
         }
     }
 
+    /// <summary>
+    /// Sizes are in millimetres on a canvas scaled up to the output resolution, so a font is often
+    /// only a few units tall. Hinting would snap each glyph's advance to whole units at that size,
+    /// and the scale-up turns the rounding into visibly uneven letter spacing; unhinted, linear
+    /// metrics keep the spacing true at any size.
+    /// </summary>
+    private static SKFont CreateFont(SKTypeface typeface, float size) => new(typeface, size)
+    {
+        Hinting = SKFontHinting.None,
+        Subpixel = true,
+        LinearMetrics = true
+    };
+
     private static void DrawText(
         SKCanvas canvas,
         string text,
@@ -152,13 +165,13 @@ public sealed class LabelRenderer
         // Measure at a fixed reference size and scale: glyph advances are linear in the size,
         // and it saves allocating a font per candidate size while fitting.
         const float referenceSize = 10f;
-        using var measuringFont = new SKFont(typeface, referenceSize);
+        using var measuringFont = CreateFont(typeface, referenceSize);
         var fitted = TextFitter.Fit(
             text, (float)widthMm, (float)heightMm, fontSizeMm, fit,
             (line, size) => measuringFont.MeasureText(line) * size / referenceSize);
 
         fontSizeMm = fitted.FontSize;
-        using var font = new SKFont(typeface, fontSizeMm);
+        using var font = CreateFont(typeface, fontSizeMm);
 
         if (fit != TextFitMode.None && widthMm > 0 && heightMm > 0)
         {
