@@ -1,0 +1,36 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Local data / storage
+/data/
+Tapeory.Api/local-storage/
+/tapeory-data/
+
+# Test results
+TestResults/
+coverage/

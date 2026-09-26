@@ -1,0 +1,241 @@
+.print-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.print-page > h2 {
+  margin: 0;
+}
+
+.print-form {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.print-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: 340px;
+  flex-shrink: 0;
+  padding: 1.4rem;
+}
+
+.print-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.print-preview {
+  flex: 1;
+  min-width: 0;
+  min-height: 260px;
+  padding: 1.5rem;
+  background:
+    linear-gradient(var(--color-border) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.print-preview img {
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+  animation: fade-in-up 0.45s var(--ease) both;
+}
+
+.print-job-summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.6rem 1.5rem;
+  padding: 1.4rem;
+  margin: 0;
+}
+
+.print-job-summary dt {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+.print-job-summary dd {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+
+.print-job-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.print-job-item {
+  padding: 1.1rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.print-job-item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.print-job-item p {
+  margin: 0 0 0.75rem;
+}
+
+.print-job-item img {
+  display: block;
+  max-width: 260px;
+  background: #ffffff;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--r-full);
+  font-family: var(--font-heading);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-badge--queued {
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+.status-badge--processing {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.status-badge--queued::before,
+.status-badge--processing::before {
+  animation: pulse-dot 1.4s infinite;
+}
+
+.status-badge--completed {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.status-badge--failed {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+@media (max-width: 720px) {
+  .print-form {
+    flex-direction: column;
+  }
+
+  .print-form__fields {
+    width: 100%;
+  }
+
+  .print-preview {
+    width: 100%;
+  }
+
+  .print-job-summary {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .print-job-summary dd {
+    margin-bottom: 0.6rem;
+  }
+
+  .print-job-item,
+  .print-job-item img {
+    max-width: 100%;
+  }
+}
+
+/* ==========================================================================
+   Print history grid — shared grid styles live in components/dataGrid.css
+   ========================================================================== */
+.job-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+/* Status-tinted printer tile, so a failed job stands out while scanning the list. */
+.job-cell__tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral-text);
+}
+
+.job-cell__tile svg {
+  width: 19px;
+  height: 19px;
+}
+
+.job-cell__tile--processing {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.job-cell__tile--completed {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.job-cell__tile--failed {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.data-grid__col--job .data-grid__title a {
+  font-variant-numeric: tabular-nums;
+}
+
+.print-history__delete-all svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* "Back" points the way the page reads from. */
+.back-arrow {
+  display: inline-block;
+}
+
+[dir="rtl"] .back-arrow {
+  transform: scaleX(-1);
+}

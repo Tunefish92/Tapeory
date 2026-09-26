@@ -1,0 +1,394 @@
+/* ==========================================================================
+   Data grid — sortable table, stacked rows on phones
+   ========================================================================== */
+.data-grid {
+  padding: 0;
+  overflow: hidden;
+}
+
+.data-grid__scroll {
+  overflow-x: auto;
+}
+
+.data-grid table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-grid th,
+.data-grid td {
+  padding: 0.7rem 1rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-grid th:first-child,
+.data-grid td:first-child {
+  padding-inline-start: 1.25rem;
+}
+
+.data-grid th:last-child,
+.data-grid td:last-child {
+  padding-inline-end: 1.25rem;
+}
+
+.data-grid thead th {
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-grid tbody tr {
+  cursor: pointer;
+}
+
+.data-grid tbody td {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.data-grid tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-grid tbody tr:hover td {
+  background: var(--color-primary-soft);
+}
+
+/* Accent bar on the hovered / focused row. */
+.data-grid tbody td:first-child {
+  box-shadow: inset 3px 0 0 transparent;
+}
+
+.data-grid tbody tr:hover td:first-child,
+.data-grid tbody tr:focus-within td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+/* The bar sits on the row's leading edge, which is the right one in right-to-left languages. */
+[dir="rtl"] .data-grid tbody tr:hover td:first-child,
+[dir="rtl"] .data-grid tbody tr:focus-within td:first-child {
+  box-shadow: inset -3px 0 0 var(--color-primary);
+}
+
+.data-grid .data-grid__primary {
+  width: 100%;
+}
+
+/* Common cell content */
+.data-grid__title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.data-grid__title a {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-grid__title a:hover,
+.data-grid tbody tr:hover .data-grid__title a {
+  color: var(--color-primary);
+}
+
+.data-grid__subtitle {
+  max-width: 32ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.data-grid__muted {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+.data-grid__empty {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.data-grid__with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.data-grid__with-icon svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.data-grid__number {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sortable header buttons */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: -0.25rem -0.4rem;
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.th-sort:hover {
+  color: var(--color-text);
+  background: var(--color-bg-elevated);
+}
+
+.th-sort:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.th-sort.is-sorted {
+  color: var(--color-primary);
+}
+
+.th-sort__icon {
+  width: 7px;
+  height: 11px;
+  flex: none;
+}
+
+.th-sort__icon path {
+  fill: currentColor;
+  opacity: 0.3;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.th-sort:hover .th-sort__icon path {
+  opacity: 0.55;
+}
+
+.th-sort__icon path.is-active {
+  opacity: 1;
+}
+
+/* Row actions */
+.data-grid .data-grid__actions-cell {
+  width: 1%;
+  text-align: end;
+}
+
+.data-grid__actions {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-full);
+  color: var(--color-text-muted);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease), transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.icon-link svg {
+  width: 17px;
+  height: 17px;
+}
+
+.icon-link:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  transform: translateY(-1px);
+}
+
+.icon-link--primary {
+  color: var(--color-primary);
+}
+
+.icon-link--primary:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-ii));
+  box-shadow: 0 6px 14px -6px var(--color-primary);
+}
+
+/* Row actions that do something (rather than navigate) are buttons; drop the shared button look. */
+button.icon-link {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+button.icon-link:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  background: none;
+  color: var(--color-text-muted);
+}
+
+.icon-link--danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.icon-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.data-grid__footer {
+  padding: 0.65rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+/* Only phones get the sort bar; desktop sorts via the header. */
+.data-grid__mobile-sort {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .data-grid__mobile-sort {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+  }
+
+  .data-grid__sort-field {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    font-size: var(--fs-xs);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .data-grid__sort-field select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .data-grid__direction {
+    flex: none;
+  }
+
+  .data-grid__direction .th-sort__icon {
+    width: 8px;
+    height: 12px;
+  }
+
+  /* Rows become stacked mini-cards: title + actions on top, metadata wrapping underneath. */
+  .data-grid table,
+  .data-grid tbody {
+    display: block;
+    min-width: 0;
+  }
+
+  .data-grid thead {
+    display: none;
+  }
+
+  .data-grid tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 0.5rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color var(--dur) var(--ease);
+  }
+
+  .data-grid tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .data-grid tbody tr:hover {
+    background: var(--color-primary-soft);
+  }
+
+  .data-grid tbody td,
+  .data-grid tbody td:first-child,
+  .data-grid tbody td:last-child {
+    order: 4;
+    margin-top: 0.55rem;
+    padding: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
+  }
+
+  .data-grid tbody tr:hover td {
+    background: none;
+  }
+
+  .data-grid tbody td.data-grid__primary {
+    order: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    margin-top: 0;
+  }
+
+  .data-grid tbody td.data-grid__actions-cell {
+    order: 2;
+    width: auto;
+    margin-top: 0;
+  }
+
+  /* Forces the metadata onto its own line. */
+  .data-grid tbody tr::after {
+    content: "";
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .data-grid tbody td.data-grid__end {
+    margin-inline-start: auto;
+  }
+
+  .data-grid tbody td.data-grid__hide-mobile {
+    display: none;
+  }
+
+  .data-grid__subtitle {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .data-grid .data-grid__hide-mobile-inline {
+    display: none;
+  }
+}

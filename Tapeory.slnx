@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Tapeory.Api/Tapeory.Api.csproj" />
+  <Project Path="Tapeory.Api.Tests/Tapeory.Api.Tests.csproj" />
+</Solution>
