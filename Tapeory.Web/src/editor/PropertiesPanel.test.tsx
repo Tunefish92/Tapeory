@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   createDynamicFieldObject,
@@ -8,6 +8,12 @@ import {
   createTextObject,
 } from "./document";
 import { PropertiesPanel } from "./PropertiesPanel";
+
+// The font picker lists the server's installed fonts.
+vi.mock("../api/fonts", () => ({
+  listFonts: vi.fn().mockResolvedValue(["Arial", "Helvetica"]),
+  ensureFontLoaded: vi.fn().mockResolvedValue(true),
+}));
 
 describe("PropertiesPanel", () => {
   it("shows a placeholder when nothing is selected", () => {
@@ -83,7 +89,7 @@ describe("PropertiesPanel", () => {
     expect(onChange).toHaveBeenCalledWith({ width: 30 });
   });
 
-  it("edits text font, alignment, color, and bold", () => {
+  it("edits text font, alignment, color, and bold", async () => {
     const onChange = vi.fn();
     const object = createTextObject({ fontFamily: "Arial", fontWeight: "normal", align: "left" });
 
@@ -100,7 +106,11 @@ describe("PropertiesPanel", () => {
     fireEvent.change(screen.getByLabelText("Font size (pt)"), { target: { value: "14" } });
     expect(onChange).toHaveBeenCalledWith({ fontSize: 14 });
 
-    fireEvent.change(screen.getByLabelText("Font family"), { target: { value: "Helvetica" } });
+    // The label also holds a font preview line, so match its name by prefix; the select stays
+    // disabled until the font list has loaded.
+    const fontFamily = screen.getByRole("combobox", { name: /^Font family/ });
+    await waitFor(() => expect(fontFamily).toBeEnabled());
+    fireEvent.change(fontFamily, { target: { value: "Helvetica" } });
     expect(onChange).toHaveBeenCalledWith({ fontFamily: "Helvetica" });
 
     fireEvent.click(screen.getByLabelText("Bold"));
