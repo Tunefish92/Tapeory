@@ -22,7 +22,8 @@ The first public version. Everything below is new.
 - Database migrations apply on startup; turn this off with `TAPEORY_AUTO_MIGRATE=false`.
 - `/api/health` endpoint that reports whether the database is reachable.
 - Prebuilt multi-arch images (`amd64`/`arm64`) on GitHub Container Registry
-  (`ghcr.io/tunefish92/tapeory`), tagged `latest`, by release version, and by commit.
+  (`ghcr.io/tunefish92/tapeory`) and Docker Hub (`tunefish92/tapeory`), tagged `latest`, by
+  release version, and by commit.
   `docker-compose.yml` uses this image by default and can still build from source.
 - `PUID`/`PGID` settings: the container gives the storage folder to that user on startup and
   runs the app as them. Folders that Docker creates as root, and Unraid's `99:100` appdata, work
