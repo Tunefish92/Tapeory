@@ -386,6 +386,17 @@ Ask questions and share ideas in [GitHub Discussions](https://github.com/Tunefis
 and report bugs as [issues](https://github.com/Tunefish92/Tapeory/issues). Please include your Tapeory
 version (Settings page), your printer model, and the container log.
 
+## Buy me a coffee
+
+Tapeory is free and open source, and it will stay that way. If it saves you some fiddling with
+labels and you'd like to say thanks, you can buy me a coffee:
+
+**☕ [paypal.me/tunefish92](https://paypal.me/tunefish92)**
+
+It's entirely voluntary and a thank-you only: it doesn't buy features, priority support or a
+warranty, and the software stays under the MIT license either way. Please don't send money as
+"Friends and Family" on PayPal.
+
 ## Known limitations
 
 - **Only Brother PT and QL printers with a published raster protocol can print** (34 models, see
