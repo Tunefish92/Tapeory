@@ -10,9 +10,10 @@ existing P-touch Editor `.lbx` files. It runs as a single Docker container next 
 every template, upload, and print job stays on your own server.
 
 > [!WARNING]
-> **Early development (0.x).** Designing, storing, importing, and rendering labels work and are
-> covered by tests. **Sending jobs to a real printer is experimental:** Tapeory sends the
-> rendered label as a PNG over a raw TCP socket (port 9100 style). Most Brother printers expect
+> **Early release (0.2).** This is the first stable release, but Tapeory is still young.
+> Designing, storing, importing, and rendering labels work and are covered by tests.
+> **Sending jobs to a real printer is experimental:** Tapeory sends the rendered label as a PNG
+> over a raw TCP socket (port 9100 style). Most Brother printers expect
 > their own raster command protocol, so a physical printer may ignore the job or print garbage.
 > Proper Brother protocol support has not been tested on real hardware yet. See
 > [Known limitations](#known-limitations).
@@ -123,7 +124,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `0.1.0`, `0.1` | A release (from Git tags such as `v0.1.0`) |
+| `0.2.0`, `0.2` | A release (from Git tags such as `v0.2.0`) |
 | `sha-<commit>` | One specific commit |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
@@ -326,7 +327,7 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.2.0 && git push --tags`.
 
 ### Tech stack
 

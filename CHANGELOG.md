@@ -8,7 +8,10 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
-The first public version. Everything below is new.
+## [0.2.0] - 2026-09-27
+
+The first public and first stable release. Tapeory is still early: expect rough edges and
+breaking changes between minor versions until 1.0. Everything below is new.
 
 ### Added
 
@@ -29,7 +32,8 @@ The first public version. Everything below is new.
   runs the app as them. Folders that Docker creates as root, and Unraid's `99:100` appdata, work
   without manual `chown`.
 - Fonts in the image (Liberation and DejaVu), so the editor and renderer have fonts to use.
-- Unraid Community Applications template (`unraid/tapeory.xml`) using the prebuilt image.
+- Unraid Community Applications template (`unraid/tapeory.xml`) using the prebuilt image, with
+  an icon, screenshots, and the `ca_profile.xml` that Community Applications requires.
 - GitHub Actions CI: backend and frontend build and tests, a Docker image build with a smoke
   test, image publishing to GitHub Container Registry, and optional publishing to Docker Hub.
 
@@ -100,4 +104,5 @@ The first public version. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/commits/main
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Tunefish92/Tapeory/releases/tag/v0.2.0
