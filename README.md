@@ -289,14 +289,7 @@ path belong to Unraid's usual `nobody:users`. To add it, use Unraid's "template 
 Requirements: .NET 10 SDK, Node.js 22+, and either Docker (for a local MySQL container) or a
 MySQL 8 server.
 
-Two Windows scripts each start half of the app:
-
-```powershell
-.\scripts\run-backend.ps1    # starts MySQL (docker compose), applies migrations, runs the API
-.\scripts\run-frontend.ps1   # installs npm deps if needed, runs the Vite dev server
-```
-
-On Linux or macOS, run the same steps directly, each in its own terminal:
+Run each step in its own terminal:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --wait mysql
@@ -346,7 +339,6 @@ To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 &&
 - `Tapeory.Api/`: ASP.NET Core backend (REST API, rendering, background print queue, EF Core migrations)
 - `Tapeory.Web/`: React + TypeScript frontend (Vite)
 - `Tapeory.Api.Tests/`: backend unit and integration tests
-- `scripts/`: local development launch scripts
 - `unraid/`: Unraid Community Applications template and icon
 - `ca_profile.xml`: repository profile for Unraid Community Applications
 - `docs/screenshots/`: the screenshots in this README

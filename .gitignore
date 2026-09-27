@@ -31,6 +31,9 @@ Thumbs.db
 Tapeory.Api/local-storage/
 /tapeory-data/
 
+# Local Windows dev scripts (kept locally, not published)
+/scripts/*.ps1
+
 # Test results
 TestResults/
 coverage/
