@@ -32,7 +32,7 @@ public static class BrotherLabelRaster
             canvas.Clear(SKColors.White);
             canvas.Translate(turned.Width, 0);
             canvas.RotateDegrees(90);
-            canvas.DrawBitmap(upright, 0, 0);
+            canvas.DrawBitmap(upright, SKRect.Create(upright.Width, upright.Height), new SKSamplingOptions(SKFilterMode.Nearest));
         }
 
         return (turned, media);

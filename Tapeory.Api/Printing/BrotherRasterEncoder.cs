@@ -272,7 +272,10 @@ public static class BrotherRasterEncoder
         var trimmed = new SKBitmap(length, label.Height);
         using var canvas = new SKCanvas(trimmed);
         canvas.Clear(SKColors.White);
-        canvas.DrawBitmap(label, (length - label.Width) / 2f, 0);
+        canvas.DrawBitmap(
+            label,
+            SKRect.Create((length - label.Width) / 2f, 0, label.Width, label.Height),
+            new SKSamplingOptions(SKFilterMode.Nearest));
         return trimmed;
     }
 
