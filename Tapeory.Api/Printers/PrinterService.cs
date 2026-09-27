@@ -28,6 +28,7 @@ public sealed class PrinterService(AppDbContext db)
             Port = request.Port ?? 9100,
             PrintServerAddress = request.PrintServerAddress,
             UsbIdentifier = request.UsbIdentifier,
+            QueueName = QueueNameFor(request.ConnectionType, request.QueueName),
             LabelMediaWidthMm = request.LabelMediaWidthMm,
             LabelMediaHeightMm = request.LabelMediaHeightMm,
             Enabled = request.Enabled,
@@ -56,6 +57,7 @@ public sealed class PrinterService(AppDbContext db)
         printer.Port = request.Port ?? 9100;
         printer.PrintServerAddress = request.PrintServerAddress;
         printer.UsbIdentifier = request.UsbIdentifier;
+        printer.QueueName = QueueNameFor(request.ConnectionType, request.QueueName);
         printer.LabelMediaWidthMm = request.LabelMediaWidthMm;
         printer.LabelMediaHeightMm = request.LabelMediaHeightMm;
         printer.Enabled = request.Enabled;
@@ -136,4 +138,11 @@ public sealed class PrinterService(AppDbContext db)
         Enum.TryParse<PrinterConnectionType>(value, true, out var parsed)
             ? parsed
             : throw new ArgumentException($"Unknown connection type '{value}'.");
+
+    /// <summary>A queue name only means something for a print server.</summary>
+    private static string? QueueNameFor(string connectionType, string? queueName) =>
+        ParseConnectionType(connectionType) == PrinterConnectionType.PrintServer
+        && !string.IsNullOrWhiteSpace(queueName)
+            ? queueName.Trim()
+            : null;
 }

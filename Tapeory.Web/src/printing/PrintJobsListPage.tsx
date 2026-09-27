@@ -26,7 +26,7 @@ const COLUMNS: { key: PrintJobSortKey; label: string }[] = [
 
 /** The server refuses to delete these: the print processor is about to work on them, or is. */
 function isStillPrinting(job: PrintJobResponse) {
-  return job.status === "Queued" || job.status === "Processing";
+  return ["Queued", "Processing", "Sending", "Printing"].includes(job.status);
 }
 
 export function PrintJobsListPage() {

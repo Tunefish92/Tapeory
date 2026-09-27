@@ -131,7 +131,11 @@
     },
     "confirmDelete": "¿Eliminar la plantilla «{{name}}»?\n\nSus trabajos de impresión se quedan en el historial y siguen contando en las estadísticas.",
     "deleted": "Plantilla «{{name}}» eliminada.",
-    "deleteErrorFallback": "No se pudo eliminar la plantilla."
+    "deleteErrorFallback": "No se pudo eliminar la plantilla.",
+    "duplicate": "Duplicar",
+    "copyName": "{{name}} (copia)",
+    "duplicated": "Se creó «{{name}}».",
+    "duplicateErrorFallback": "No se pudo duplicar la plantilla."
   },
   "editor": {
     "metadataName": "Nombre",
@@ -169,6 +173,10 @@
     },
     "properties": {
       "selectPrompt": "Selecciona un objeto para editar sus propiedades.",
+      "sectionContent": "Contenido",
+      "sectionFont": "Fuente",
+      "sectionLayout": "Tamaño y posición",
+      "sectionFit": "Ajuste del texto y opciones",
       "x": "X (mm)",
       "y": "Y (mm)",
       "rotation": "Rotación (°)",
@@ -234,11 +242,9 @@
       "optionDisabledSuffix": " (deshabilitada)",
       "manualOption": "Manual / sin impresora configurada",
       "printerNameOptional": "Nombre de la impresora (opcional)",
-      "updatePreview": "Actualizar vista previa",
       "rendering": "Generando…",
       "submit": "Enviar trabajo de impresión",
       "submitting": "Enviando…",
-      "previewPlaceholder": "Haz clic en \"Actualizar vista previa\" para generar la etiqueta con estos valores.",
       "previewImageAlt": "Vista previa de la etiqueta",
       "loading": "Cargando plantilla…",
       "loadErrorFallback": "No se pudo cargar la plantilla.",
@@ -285,6 +291,7 @@
     },
     "printJobDetail": {
       "title": "Trabajo de impresión n.º {{id}}",
+      "backToTemplates": "Volver a las plantillas",
       "backToHistory": "Volver al historial",
       "template": "Plantilla",
       "printer": "Impresora",
@@ -301,7 +308,26 @@
       "queued": "En cola",
       "processing": "Procesando",
       "completed": "Completado",
-      "failed": "Fallido"
+      "failed": "Fallido",
+      "sending": "Enviando a la impresora",
+      "printing": "Imprimiendo"
+    },
+    "quality": {
+      "label": "Calidad de impresión",
+      "standard": "Estándar",
+      "high": "Alta",
+      "option": "{{name}} ({{vertical}} × {{horizontal}} ppp)"
+    },
+    "cutMode": {
+      "label": "Corte",
+      "AutoCut": "Corte automático",
+      "AutoCutHint": "Corta cada etiqueta por completo.",
+      "HalfCut": "Medio corte",
+      "HalfCutHint": "Corta la etiqueta pero no el soporte, así las etiquetas quedan unidas y se despegan fácilmente. La tira se corta después de la última etiqueta.",
+      "CutAtEnd": "Cortar al final",
+      "CutAtEndHint": "Sin cortes entre etiquetas; un corte después de la última.",
+      "ChainPrinting": "Impresión en cadena",
+      "ChainPrintingHint": "Corta entre etiquetas pero deja la última en la impresora hasta la siguiente impresión o el botón de avance. Ahorra la cinta en blanco que la impresora avanza al inicio de cada trabajo."
     }
   },
   "printers": {
@@ -309,6 +335,8 @@
     "addPrinter": "Añadir impresora",
     "editPrinter": "Editar impresora",
     "saveChanges": "Guardar cambios",
+    "sectionPrinter": "Impresora",
+    "sectionConnection": "Conexión",
     "name": "Nombre",
     "model": "Modelo",
     "modelPlaceholder": "p. ej. Brother QL-820NWB",
@@ -318,11 +346,18 @@
     "connectionTypePrintServer": "Servidor de impresión",
     "connectionTypeUsb": "USB",
     "printServerAddress": "Dirección del servidor de impresión",
+    "printServerNote": "Para CUPS: en los ajustes de la cola (Administración → Modificar impresora), elige la conexión «AppSocket/HP JetDirect» con socket://<IP o nombre de host de la impresora>:9100. Las colas encontradas automáticamente (dnssd://… .local) a menudo no llegan a la impresora, sobre todo si CUPS se ejecuta en un contenedor.",
+    "queueName": "Nombre de la cola (opcional)",
+    "queueNameHint": "Nombre de la impresora en un servidor de impresión CUPS o IPP, como en http://servidor:631/printers/<nombre>. Déjalo vacío para enviar al puerto raw del servidor.",
     "usbIdentifier": "Identificador USB",
     "usbIdentifierPlaceholder": "Identificador de dispositivo opcional",
     "port": "Puerto",
-    "labelWidth": "Ancho de etiqueta (mm)",
-    "labelHeight": "Alto de etiqueta (mm)",
+    "labelWidth": "Ancho (mm)",
+    "labelHeight": "Alto (mm)",
+    "testPrintSize": "Tamaño de la impresión de prueba (opcional)",
+    "testPrintSizeHint": "Solo lo usa el botón Impresión de prueba. Los trabajos de impresión usan el tamaño de la plantilla.",
+    "portHint": "Puerto de impresión raw, normalmente 9100.",
+    "portHintIpp": "Puerto IPP, normalmente 631.",
     "enabled": "Habilitada",
     "loading": "Cargando impresoras…",
     "empty": "Todavía no hay impresoras configuradas.",

@@ -112,7 +112,9 @@ describe("PrintersPage", () => {
 
     fireEvent.change(screen.getByLabelText("Connection type"), { target: { value: "PrintServer" } });
     expect(screen.getByLabelText("Print server address")).toBeInTheDocument();
-    expect(screen.getByLabelText("Port")).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent("AppSocket/HP JetDirect");
+    expect(screen.getByLabelText("Port")).toHaveAccessibleDescription("Raw printing port, usually 9100.");
+    expect(screen.getByRole("group", { name: "Test print size (optional)" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Connection type"), { target: { value: "Usb" } });
     expect(screen.getByLabelText("USB identifier")).toBeInTheDocument();

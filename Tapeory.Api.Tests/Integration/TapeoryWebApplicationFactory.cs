@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Tapeory.Api.Printing;
 using Testcontainers.MySql;
 
 namespace Tapeory.Api.Tests.Integration;
@@ -50,5 +52,15 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
                 ["TAPEORY_AUTO_MIGRATE"] = "true"
             });
         });
+
+        // The fake printers in these tests are plain TCP listeners with no SNMP agent; answering
+        // "no status" straight away skips the SNMP timeout on every print.
+        builder.ConfigureServices(services => services.AddSingleton<IPrinterStatusReader, NoStatusReader>());
+    }
+
+    private sealed class NoStatusReader : IPrinterStatusReader
+    {
+        public Task<PrinterStatusSnapshot?> ReadAsync(string host, CancellationToken cancellationToken) =>
+            Task.FromResult<PrinterStatusSnapshot?>(null);
     }
 }

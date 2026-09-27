@@ -266,6 +266,42 @@ public sealed class TemplateService(AppDbContext db, FileStorageService fileStor
         return SetPreviewImageResult.Success;
     }
 
+    /// <summary>
+    /// Copies a template's current design, fields, size, group, tags, description and preview
+    /// image into a new draft with its own version history. Uploaded images are shared, which is
+    /// safe because they're never deleted along with a template; the original .lbx is not, since
+    /// it belongs to (and is deleted with) the source template.
+    /// </summary>
+    public async Task<Template?> DuplicateAsync(int id, string name, CancellationToken cancellationToken)
+    {
+        var source = await GetByIdAsync(id, cancellationToken);
+
+        if (source?.CurrentVersion is not { } version)
+        {
+            return null;
+        }
+
+        var copy = await CreateAsync(
+            new CreateTemplateRequest(
+                name,
+                source.Description,
+                source.Category,
+                TemplateMapper.ParseTags(source.TagsCsv),
+                version.WidthMm,
+                version.HeightMm,
+                version.EditorJson,
+                [.. version.Fields.Select(TemplateMapper.ToDto)]),
+            cancellationToken);
+
+        if (version.PreviewImageFileId is not null)
+        {
+            copy.CurrentVersion!.PreviewImageFileId = version.PreviewImageFileId;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return copy;
+    }
+
     public async Task<Template> ImportAsync(NativeTemplateExport export, CancellationToken cancellationToken)
     {
         var request = new CreateTemplateRequest(

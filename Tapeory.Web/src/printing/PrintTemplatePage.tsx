@@ -1,12 +1,15 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getTemplate, type TemplateDetailResponse } from "../api/templates";
-import { createPrintJob, previewTemplate } from "../api/printJobs";
-import { listPrinters, type PrinterResponse } from "../api/printers";
+import { createPrintJob, CUT_MODES, previewTemplate, type CutMode } from "../api/printJobs";
+import { listPrinters, type PrinterResponse, type PrintQuality } from "../api/printers";
 import "./printing.css";
 
 const MANUAL_PRINTER_OPTION = "manual";
+
+/** How long typing must pause before the preview re-renders. */
+const PREVIEW_DELAY_MS = 300;
 
 export function PrintTemplatePage() {
   const { t } = useTranslation();
@@ -23,6 +26,8 @@ export function PrintTemplatePage() {
   const [printers, setPrinters] = useState<PrinterResponse[]>([]);
   const [printerSelection, setPrinterSelection] = useState<string>(MANUAL_PRINTER_OPTION);
   const [manualPrinterName, setManualPrinterName] = useState("");
+  const [quality, setQuality] = useState<PrintQuality>("Standard");
+  const [cutMode, setCutMode] = useState<CutMode>("AutoCut");
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -84,22 +89,42 @@ export function PrintTemplatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleRefreshPreview() {
-    setPreviewLoading(true);
-    setPreviewError(null);
+  // Live preview: re-render on the server whenever the field values change, once typing pauses.
+  // The request counter drops responses that arrive after a newer request was started.
+  const previewRequest = useRef(0);
 
-    try {
-      const blob = await previewTemplate(templateId, fieldValues, "png");
-      setPreviewUrl((old) => {
-        if (old) URL.revokeObjectURL(old);
-        return URL.createObjectURL(blob);
-      });
-    } catch (err) {
-      setPreviewError(err instanceof Error ? err.message : t("printing.printTemplate.previewErrorFallback"));
-    } finally {
-      setPreviewLoading(false);
-    }
-  }
+  useEffect(() => {
+    if (!template) return;
+
+    const request = ++previewRequest.current;
+    const timer = setTimeout(async () => {
+      setPreviewLoading(true);
+
+      try {
+        const blob = await previewTemplate(templateId, fieldValues, "png");
+        if (request !== previewRequest.current) return;
+        setPreviewError(null);
+        setPreviewUrl((old) => {
+          if (old) URL.revokeObjectURL(old);
+          return URL.createObjectURL(blob);
+        });
+      } catch (err) {
+        if (request !== previewRequest.current) return;
+        setPreviewError(err instanceof Error ? err.message : t("printing.printTemplate.previewErrorFallback"));
+      } finally {
+        if (request === previewRequest.current) setPreviewLoading(false);
+      }
+    }, PREVIEW_DELAY_MS);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, templateId, fieldValues]);
+
+  // The resolutions the selected printer's model supports; a choice the newly selected printer
+  // can't do falls back to Standard.
+  const selectedPrinter = printers.find((printer) => String(printer.id) === printerSelection);
+  const resolutions = selectedPrinter?.resolutions ?? [];
+  const effectiveQuality = resolutions.some((resolution) => resolution.quality === quality) ? quality : "Standard";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -113,6 +138,8 @@ export function PrintTemplatePage() {
         printerId,
         printerName: printerId === null ? manualPrinterName.trim() || null : null,
         items: [{ fieldValues, quantity }],
+        quality: printerId === null ? undefined : effectiveQuality,
+        cutMode: printerId === null ? undefined : cutMode,
       });
       navigate(`/print-jobs/${job.id}`);
     } catch (err) {
@@ -173,6 +200,49 @@ export function PrintTemplatePage() {
             </select>
           </label>
 
+          {resolutions.length > 0 && (
+            <label className="properties-field">
+              {t("printing.quality.label")}
+              <select
+                value={effectiveQuality}
+                onChange={(e) => setQuality(e.target.value as PrintQuality)}
+                disabled={resolutions.length === 1}
+              >
+                {resolutions.map((resolution) => (
+                  <option key={resolution.quality} value={resolution.quality}>
+                    {t("printing.quality.option", {
+                      name: t(`printing.quality.${resolution.quality.toLowerCase()}`),
+                      horizontal: resolution.horizontalDpi,
+                      vertical: resolution.verticalDpi,
+                    })}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {selectedPrinter && (
+            <div className="print-form__field">
+              <label className="properties-field">
+                {t("printing.cutMode.label")}
+                <select
+                  value={cutMode}
+                  onChange={(e) => setCutMode(e.target.value as CutMode)}
+                  aria-describedby="print-cut-mode-hint"
+                >
+                  {CUT_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {t(`printing.cutMode.${mode}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span id="print-cut-mode-hint" className="print-form__hint">
+                {t(`printing.cutMode.${cutMode}Hint`)}
+              </span>
+            </div>
+          )}
+
           {printerSelection === MANUAL_PRINTER_OPTION && (
             <label className="properties-field">
               {t("printing.printTemplate.printerNameOptional")}
@@ -181,9 +251,6 @@ export function PrintTemplatePage() {
           )}
 
           <div className="print-form__actions">
-            <button type="button" onClick={handleRefreshPreview} disabled={previewLoading}>
-              {previewLoading ? t("printing.printTemplate.rendering") : t("printing.printTemplate.updatePreview")}
-            </button>
             <button type="submit" className="btn btn-primary" disabled={submitting}>
               {submitting ? t("printing.printTemplate.submitting") : t("printing.printTemplate.submit")}
             </button>
@@ -193,11 +260,14 @@ export function PrintTemplatePage() {
           {submitError && <p role="alert">{submitError}</p>}
         </div>
 
-        <div className="print-preview">
+        <div className="print-preview" aria-busy={previewLoading}>
           {previewUrl ? (
             <img src={previewUrl} alt={t("printing.printTemplate.previewImageAlt")} />
           ) : (
-            <p>{t("printing.printTemplate.previewPlaceholder")}</p>
+            !previewError && <p>{t("printing.printTemplate.rendering")}</p>
+          )}
+          {previewUrl && previewLoading && (
+            <span className="print-preview__status">{t("printing.printTemplate.rendering")}</span>
           )}
         </div>
       </form>

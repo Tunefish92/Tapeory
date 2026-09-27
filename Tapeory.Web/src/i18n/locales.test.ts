@@ -45,13 +45,10 @@ describe.each(SUPPORTED_LANGUAGES)("locale %s", (lng) => {
   });
 });
 
-describe("text direction", () => {
-  it("lays Arabic out right-to-left and everything else left-to-right", async () => {
-    await i18n.changeLanguage("ar");
-    expect(document.documentElement.dir).toBe("rtl");
-    expect(document.documentElement.lang).toBe("ar");
-
-    await i18n.changeLanguage("ru");
+describe("document language", () => {
+  it("follows the UI language", async () => {
+    await i18n.changeLanguage("de");
+    expect(document.documentElement.lang).toBe("de");
     expect(document.documentElement.dir).toBe("ltr");
 
     await i18n.changeLanguage("en");

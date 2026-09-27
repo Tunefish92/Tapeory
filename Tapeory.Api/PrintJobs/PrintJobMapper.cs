@@ -26,6 +26,8 @@ public static class PrintJobMapper
             job.TemplateVersionNumber,
             job.PrinterId,
             job.PrinterName,
+            job.Quality.ToString(),
+            job.CutMode.ToString(),
             job.Status.ToString(),
             job.ErrorMessage,
             job.CreatedAt,

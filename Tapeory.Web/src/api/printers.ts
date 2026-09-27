@@ -2,6 +2,15 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 export type PrinterConnectionType = "IpAddress" | "Hostname" | "PrintServer" | "Usb";
 
+export type PrintQuality = "Standard" | "High";
+
+/** A print resolution the printer's model supports; horizontal is along the tape. */
+export interface PrintResolution {
+  quality: PrintQuality;
+  horizontalDpi: number;
+  verticalDpi: number;
+}
+
 export interface PrinterResponse {
   id: number;
   name: string;
@@ -11,6 +20,8 @@ export interface PrinterResponse {
   port: number;
   printServerAddress: string | null;
   usbIdentifier: string | null;
+  /** For a print server: the printer's queue on it (CUPS/IPP); null sends to its raw port. */
+  queueName: string | null;
   labelMediaWidthMm: number | null;
   labelMediaHeightMm: number | null;
   isDefault: boolean;
@@ -18,6 +29,7 @@ export interface PrinterResponse {
   lastConnectionStatus: "Unknown" | "Success" | "Failed";
   lastConnectionCheckedAt: string | null;
   lastErrorMessage: string | null;
+  resolutions: PrintResolution[];
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +42,7 @@ export interface PrinterRequest {
   port?: number | null;
   printServerAddress?: string | null;
   usbIdentifier?: string | null;
+  queueName?: string | null;
   labelMediaWidthMm?: number | null;
   labelMediaHeightMm?: number | null;
   enabled: boolean;

@@ -123,11 +123,11 @@ export function BackupCard({ kind, icon }: { kind: BackupKind; icon: ReactNode }
           {backups.map((backup) => (
             <li key={backup.fileName} className="settings-backup__item">
               <div className="settings-backup__info">
-                <span className="settings-backup__date">{formatDate(backup.createdAt)}</span>
-                <span className="settings-backup__meta">
-                  {formatSize(backup.sizeBytes, locale)}
-                  {backup.beforeRestore && <span className="settings-backup__badge">{t("settings.backupBeforeRestore")}</span>}
+                <span className="settings-backup__date">
+                  {formatDate(backup.createdAt)}{" "}
+                  <span className="settings-backup__size">({formatSize(backup.sizeBytes, locale)})</span>
                 </span>
+                {backup.beforeRestore && <span className="settings-backup__badge">{t("settings.backupBeforeRestore")}</span>}
               </div>
               <div className="settings-backup__actions">
                 <a className="btn btn-sm" href={backupDownloadUrl(kind, backup.fileName)} download={backup.fileName}>

@@ -21,7 +21,7 @@ public sealed class AppSettingsService(AppDbContext db)
     public const string ThemeKey = "ui.theme";
     public const string UnitKey = "ui.unit";
 
-    public static readonly IReadOnlyList<string> Languages = ["en", "de", "it", "es", "zh", "hi", "ar", "fr", "bn", "pt", "ru", "id"];
+    public static readonly IReadOnlyList<string> Languages = ["en", "de", "it", "fr", "es"];
     public static readonly IReadOnlyList<string> Themes = ["light", "dark", "system"];
     public static readonly IReadOnlyList<string> Units = ["mm", "inch"];
 

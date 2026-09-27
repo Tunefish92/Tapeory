@@ -10,17 +10,12 @@ using Microsoft.EntityFrameworkCore;
 namespace Tapeory.Api.PrintJobs;
 
 /// <summary>
-/// Polls for queued print jobs, renders each item to PNG, and — when the job has an enabled
-/// printer attached — sends the rendered bytes over a raw socket. This is the "Tapeory template
-/// provider" from the project's printer-provider abstraction (renders native templates, replaces
-/// dynamic fields, produces printer-compatible output). A job with no printer attached (or a
-/// disabled one) just renders and stops there, same as before printer management existed.
-///
-/// See PrinterRawSocketSender's remarks: the socket transport is verified, but whether a real
-/// Brother printer interprets the bytes it receives as a valid print job is not — that would
-/// need a proper Brother command encoder tested against actual hardware (the "Brother
-/// compatibility provider" from the project plan), which is a separate, more involved piece of
-/// work this phase does not attempt.
+/// Polls for queued print jobs and renders each item to a PNG preview. When the job has an
+/// enabled printer attached, it also prints each item (as many copies as its quantity) through
+/// BrotherPtPrinterDriver, and records the stages as they happen: Sending while the data goes
+/// out, Printing while the printer works, then Completed once the printer confirms the labels
+/// came out, or Failed with the printer's reason. A job with no printer attached (or a disabled
+/// one) just renders and stops there.
 /// </summary>
 public sealed class PrintJobProcessor(
     IServiceScopeFactory scopeFactory,
@@ -71,7 +66,29 @@ public sealed class PrintJobProcessor(
         var renderer = scope.ServiceProvider.GetRequiredService<LabelRenderer>();
         var fileStorage = scope.ServiceProvider.GetRequiredService<FileStorageService>();
         var imageResolver = scope.ServiceProvider.GetRequiredService<UploadedFileImageResolver>();
-        var rawSender = scope.ServiceProvider.GetRequiredService<PrinterRawSocketSender>();
+        var driver = scope.ServiceProvider.GetRequiredService<BrotherPtPrinterDriver>();
+
+        var nextJobId = await db.PrintJobs
+            .Where(j => j.Status == PrintJobStatus.Queued)
+            .OrderBy(j => j.CreatedAt)
+            .Select(j => (int?)j.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (nextJobId is null)
+        {
+            return false;
+        }
+
+        // Claim the job with one conditional UPDATE, so that when several instances poll the same
+        // database only the one whose update changes the row prints it; the others move on.
+        var claimed = await db.PrintJobs
+            .Where(j => j.Id == nextJobId && j.Status == PrintJobStatus.Queued)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(j => j.Status, PrintJobStatus.Processing), cancellationToken);
+
+        if (claimed == 0)
+        {
+            return true; // another instance got there first; look for the next job
+        }
 
         var job = await db.PrintJobs
             .Include(j => j.Template!)
@@ -79,21 +96,7 @@ public sealed class PrintJobProcessor(
                     .ThenInclude(version => version.Fields)
             .Include(j => j.Items)
             .Include(j => j.Printer)
-            .Where(j => j.Status == PrintJobStatus.Queued)
-            .OrderBy(j => j.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (job is null)
-        {
-            return false;
-        }
-
-        // Assumes a single API instance/replica. Multiple instances polling the same database
-        // could both pick up this job before either commits the Processing status below — there
-        // is no row-level locking here. Fine for the single-container deployment this project
-        // ships today; would need addressing before running more than one API replica.
-        job.Status = PrintJobStatus.Processing;
-        await db.SaveChangesAsync(cancellationToken);
+            .SingleAsync(j => j.Id == nextJobId, cancellationToken);
 
         var version = job.Template?.Versions.SingleOrDefault(v => v.VersionNumber == job.TemplateVersionNumber);
 
@@ -143,16 +146,40 @@ public sealed class PrintJobProcessor(
 
                     if (job.Printer is { Enabled: true })
                     {
-                        var sendResult = await rawSender.SendAsync(job.Printer, pngBytes, cancellationToken);
+                        var resolution = PrinterCapabilities.Resolve(job.Printer.Model, job.Quality);
+                        using var label = renderer.RenderBitmap(
+                            document, resolvedValues, imageResolver.AsDelegate(),
+                            resolution.HorizontalDpi, resolution.VerticalDpi);
 
-                        if (!sendResult.IsSuccess)
+                        var outcome = await driver.PrintAsync(
+                            job.Printer,
+                            Enumerable.Repeat(label, item.Quantity).ToList(),
+                            BrotherPtTape.ForLabelHeight(document.HeightMm),
+                            resolution,
+                            job.CutMode,
+                            async stage =>
+                            {
+                                var status = stage == PrintStage.Sending ? PrintJobStatus.Sending : PrintJobStatus.Printing;
+                                item.Status = status;
+                                job.Status = status;
+                                await db.SaveChangesAsync(cancellationToken);
+                            },
+                            cancellationToken);
+
+                        if (!outcome.IsSuccess)
                         {
                             // Rendering succeeded (and is kept, so the user can inspect/download
-                            // it) even though delivery to the printer failed.
+                            // it) even though printing failed.
                             anyItemFailed = true;
                             item.Status = PrintJobStatus.Failed;
-                            item.ErrorMessage = $"Rendered successfully but could not send to the printer: {sendResult.ErrorMessage}";
+                            item.ErrorMessage = $"Rendered successfully but printing failed: {outcome.ErrorMessage}";
                             continue;
+                        }
+
+                        if (!outcome.Confirmed)
+                        {
+                            item.ErrorMessage =
+                                "Sent to the printer. It doesn't report its status, so Tapeory can't confirm the labels came out.";
                         }
                     }
 
@@ -168,7 +195,7 @@ public sealed class PrintJobProcessor(
             }
 
             job.Status = anyItemFailed ? PrintJobStatus.Failed : PrintJobStatus.Completed;
-            job.ErrorMessage = anyItemFailed ? "One or more items failed to render." : null;
+            job.ErrorMessage = anyItemFailed ? "One or more items failed. See each item for details." : null;
             job.CompletedAt = DateTimeOffset.UtcNow;
         }
         catch (Exception ex)

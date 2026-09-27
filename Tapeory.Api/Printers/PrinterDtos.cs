@@ -10,7 +10,8 @@ public sealed record CreatePrinterRequest(
     string? UsbIdentifier,
     decimal? LabelMediaWidthMm,
     decimal? LabelMediaHeightMm,
-    bool Enabled);
+    bool Enabled,
+    string? QueueName = null);
 
 public sealed record UpdatePrinterRequest(
     string Name,
@@ -22,7 +23,8 @@ public sealed record UpdatePrinterRequest(
     string? UsbIdentifier,
     decimal? LabelMediaWidthMm,
     decimal? LabelMediaHeightMm,
-    bool Enabled);
+    bool Enabled,
+    string? QueueName = null);
 
 public sealed record PrinterResponse(
     int Id,
@@ -33,6 +35,7 @@ public sealed record PrinterResponse(
     int Port,
     string? PrintServerAddress,
     string? UsbIdentifier,
+    string? QueueName,
     decimal? LabelMediaWidthMm,
     decimal? LabelMediaHeightMm,
     bool IsDefault,
@@ -40,8 +43,12 @@ public sealed record PrinterResponse(
     string LastConnectionStatus,
     DateTimeOffset? LastConnectionCheckedAt,
     string? LastErrorMessage,
+    // The print resolutions this model supports, as Brother documents them; always at least Standard.
+    List<PrintResolutionResponse> Resolutions,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
+
+public sealed record PrintResolutionResponse(string Quality, int HorizontalDpi, int VerticalDpi);
 
 public sealed record TestConnectionResponse(bool IsSuccess, string? ErrorMessage);
 

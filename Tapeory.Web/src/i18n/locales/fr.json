@@ -131,7 +131,11 @@
     },
     "confirmDelete": "Supprimer le modèle « {{name}} » ?\n\nSes impressions restent dans l’historique et continuent de compter dans les statistiques.",
     "deleted": "Modèle « {{name}} » supprimé.",
-    "deleteErrorFallback": "Impossible de supprimer le modèle."
+    "deleteErrorFallback": "Impossible de supprimer le modèle.",
+    "duplicate": "Dupliquer",
+    "copyName": "{{name}} (copie)",
+    "duplicated": "« {{name}} » créé.",
+    "duplicateErrorFallback": "Impossible de dupliquer le modèle."
   },
   "editor": {
     "metadataName": "Nom",
@@ -169,6 +173,10 @@
     },
     "properties": {
       "selectPrompt": "Sélectionnez un objet pour modifier ses propriétés.",
+      "sectionContent": "Contenu",
+      "sectionFont": "Police",
+      "sectionLayout": "Taille et position",
+      "sectionFit": "Ajustement du texte et options",
       "x": "X (mm)",
       "y": "Y (mm)",
       "rotation": "Rotation (°)",
@@ -234,11 +242,9 @@
       "optionDisabledSuffix": " (désactivée)",
       "manualOption": "Manuelle / aucune imprimante configurée",
       "printerNameOptional": "Nom de l’imprimante (facultatif)",
-      "updatePreview": "Actualiser l’aperçu",
       "rendering": "Rendu…",
       "submit": "Lancer l’impression",
       "submitting": "Envoi…",
-      "previewPlaceholder": "Cliquez sur « Actualiser l’aperçu » pour afficher l’étiquette avec ces valeurs.",
       "previewImageAlt": "Aperçu de l’étiquette",
       "loading": "Chargement du modèle…",
       "loadErrorFallback": "Impossible de charger le modèle.",
@@ -285,6 +291,7 @@
     },
     "printJobDetail": {
       "title": "Impression n° {{id}}",
+      "backToTemplates": "Retour aux modèles",
       "backToHistory": "Retour à l’historique",
       "template": "Modèle",
       "printer": "Imprimante",
@@ -301,7 +308,26 @@
       "queued": "En attente",
       "processing": "En cours",
       "completed": "Terminée",
-      "failed": "Échec"
+      "failed": "Échec",
+      "sending": "Envoi à l’imprimante",
+      "printing": "Impression"
+    },
+    "quality": {
+      "label": "Qualité d’impression",
+      "standard": "Standard",
+      "high": "Haute",
+      "option": "{{name}} ({{vertical}} × {{horizontal}} ppp)"
+    },
+    "cutMode": {
+      "label": "Coupe",
+      "AutoCut": "Coupe automatique",
+      "AutoCutHint": "Coupe entièrement chaque étiquette.",
+      "HalfCut": "Demi-coupe",
+      "HalfCutHint": "Coupe l’étiquette sans le support : les étiquettes restent ensemble et se décollent facilement. La bande est coupée après la dernière étiquette.",
+      "CutAtEnd": "Coupe à la fin",
+      "CutAtEndHint": "Aucune coupe entre les étiquettes, une seule après la dernière.",
+      "ChainPrinting": "Impression en chaîne",
+      "ChainPrintingHint": "Coupe entre les étiquettes mais garde la dernière dans l’imprimante jusqu’à la prochaine impression ou la touche d’avance. Économise le ruban vierge avancé au début de chaque tâche."
     }
   },
   "printers": {
@@ -309,6 +335,8 @@
     "addPrinter": "Ajouter une imprimante",
     "editPrinter": "Modifier l’imprimante",
     "saveChanges": "Enregistrer les modifications",
+    "sectionPrinter": "Imprimante",
+    "sectionConnection": "Connexion",
     "name": "Nom",
     "model": "Modèle",
     "modelPlaceholder": "p. ex. Brother QL-820NWB",
@@ -318,11 +346,18 @@
     "connectionTypePrintServer": "Serveur d’impression",
     "connectionTypeUsb": "USB",
     "printServerAddress": "Adresse du serveur d’impression",
+    "printServerNote": "Pour CUPS : dans les réglages de la file (Administration → Modifier l’imprimante), choisissez la connexion « AppSocket/HP JetDirect » avec socket://<IP ou nom d’hôte de l’imprimante>:9100. Les files trouvées automatiquement (dnssd://… .local) n’atteignent souvent pas l’imprimante, surtout si CUPS tourne dans un conteneur.",
+    "queueName": "Nom de la file (facultatif)",
+    "queueNameHint": "Nom de l’imprimante sur un serveur d’impression CUPS ou IPP, comme dans http://serveur:631/printers/<nom>. Laissez vide pour envoyer au port d’impression brute du serveur.",
     "usbIdentifier": "Identifiant USB",
     "usbIdentifierPlaceholder": "Identifiant d’appareil facultatif",
     "port": "Port",
-    "labelWidth": "Largeur d’étiquette (mm)",
-    "labelHeight": "Hauteur d’étiquette (mm)",
+    "labelWidth": "Largeur (mm)",
+    "labelHeight": "Hauteur (mm)",
+    "testPrintSize": "Taille de l’impression test (facultatif)",
+    "testPrintSizeHint": "Utilisé uniquement par le bouton « Impression de test ». Les tâches d’impression utilisent la taille du modèle.",
+    "portHint": "Port d’impression brute, généralement 9100.",
+    "portHintIpp": "Port IPP, généralement 631.",
     "enabled": "Activée",
     "loading": "Chargement des imprimantes…",
     "empty": "Aucune imprimante configurée pour l’instant.",

@@ -23,6 +23,7 @@ const EMPTY_FORM: PrinterRequest = {
   port: 9100,
   printServerAddress: "",
   usbIdentifier: "",
+  queueName: "",
   labelMediaWidthMm: null,
   labelMediaHeightMm: null,
   enabled: true,
@@ -37,6 +38,7 @@ function toFormState(printer: PrinterResponse): PrinterRequest {
     port: printer.port,
     printServerAddress: printer.printServerAddress ?? "",
     usbIdentifier: printer.usbIdentifier ?? "",
+    queueName: printer.queueName ?? "",
     labelMediaWidthMm: printer.labelMediaWidthMm,
     labelMediaHeightMm: printer.labelMediaHeightMm,
     enabled: printer.enabled,
@@ -50,7 +52,22 @@ function buildRequestPayload(form: PrinterRequest): PrinterRequest {
     address: form.address?.trim() || null,
     printServerAddress: form.printServerAddress?.trim() || null,
     usbIdentifier: form.usbIdentifier?.trim() || null,
+    queueName: form.queueName?.trim() || null,
   };
+}
+
+/** Where the printer is reached: address and port, print server, or USB identifier. */
+function connectionTarget(printer: PrinterResponse): string {
+  switch (printer.connectionType) {
+    case "PrintServer":
+      return printer.queueName
+        ? `${printer.printServerAddress ?? "—"}:${printer.port}/printers/${printer.queueName}`
+        : `${printer.printServerAddress ?? "—"}:${printer.port}`;
+    case "Usb":
+      return printer.usbIdentifier ?? "—";
+    default:
+      return `${printer.address ?? "—"}:${printer.port}`;
+  }
 }
 
 export function PrintersPage() {
@@ -228,6 +245,22 @@ export function PrintersPage() {
   const isIpOrHostname = form.connectionType === "IpAddress" || form.connectionType === "Hostname";
   const isPrintServer = form.connectionType === "PrintServer";
   const isUsb = form.connectionType === "Usb";
+  const usesQueue = isPrintServer && Boolean(form.queueName?.trim());
+
+  // A queue is reached over IPP (port 631) rather than the raw port (9100); switch the port
+  // along with it unless the user has set a custom one.
+  function handleQueueNameChange(queueName: string) {
+    setForm((prev) => {
+      const hadQueue = Boolean(prev.queueName?.trim());
+      const hasQueue = Boolean(queueName.trim());
+      let port = prev.port;
+
+      if (!hadQueue && hasQueue && port === 9100) port = 631;
+      if (hadQueue && !hasQueue && port === 631) port = 9100;
+
+      return { ...prev, queueName, port };
+    });
+  }
 
   return (
     <section className="page-enter">
@@ -246,128 +279,169 @@ export function PrintersPage() {
         <form className="card printer-form" onSubmit={handleSubmit}>
           <h3>{editingId === null ? t("printers.addPrinter") : t("printers.editPrinter")}</h3>
 
-          <label className="properties-field">
-            {t("printers.name")}
-            <input
-              value={form.name}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              required
-            />
-          </label>
+          <div className="printer-form__sections">
+            <fieldset className="printer-form__section">
+              <legend>{t("printers.sectionPrinter")}</legend>
+              <label className="properties-field">
+                {t("printers.name")}
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </label>
 
-          <label className="properties-field">
-            {t("printers.model")}
-            <input
-              value={form.model ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
-              placeholder={t("printers.modelPlaceholder")}
-            />
-          </label>
+              <label className="properties-field">
+                {t("printers.model")}
+                <input
+                  value={form.model ?? ""}
+                  onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
+                  placeholder={t("printers.modelPlaceholder")}
+                />
+              </label>
 
-          <label className="properties-field">
-            {t("printers.connectionType")}
-            <select
-              value={form.connectionType}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, connectionType: e.target.value as PrinterConnectionType }))
-              }
-            >
-              {(Object.keys(CONNECTION_TYPE_LABELS) as PrinterConnectionType[]).map((type) => (
-                <option key={type} value={type}>
-                  {CONNECTION_TYPE_LABELS[type]}
-                </option>
-              ))}
-            </select>
-          </label>
+              <label className="properties-field properties-field--inline">
+                <input
+                  type="checkbox"
+                  checked={form.enabled}
+                  onChange={(e) => setForm((prev) => ({ ...prev, enabled: e.target.checked }))}
+                />
+                {t("printers.enabled")}
+              </label>
+            </fieldset>
 
-          {isIpOrHostname && (
-            <label className="properties-field">
-              {form.connectionType === "IpAddress"
-                ? t("printers.connectionTypeIpAddress")
-                : t("printers.connectionTypeHostname")}
-              <input
-                value={form.address ?? ""}
-                onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
-                placeholder={form.connectionType === "IpAddress" ? "192.168.1.50" : "printer.local"}
-              />
-            </label>
-          )}
+            <fieldset className="printer-form__section">
+              <legend>{t("printers.sectionConnection")}</legend>
+              <label className="properties-field">
+                {t("printers.connectionType")}
+                <select
+                  value={form.connectionType}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, connectionType: e.target.value as PrinterConnectionType }))
+                  }
+                >
+                  {(Object.keys(CONNECTION_TYPE_LABELS) as PrinterConnectionType[]).map((type) => (
+                    <option key={type} value={type}>
+                      {CONNECTION_TYPE_LABELS[type]}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          {isPrintServer && (
-            <label className="properties-field">
-              {t("printers.printServerAddress")}
-              <input
-                value={form.printServerAddress ?? ""}
-                onChange={(e) => setForm((prev) => ({ ...prev, printServerAddress: e.target.value }))}
-              />
-            </label>
-          )}
+              {isPrintServer && (
+                <p className="printer-form__note" role="note">
+                  {t("printers.printServerNote")}
+                </p>
+              )}
 
-          {isUsb && (
-            <label className="properties-field">
-              {t("printers.usbIdentifier")}
-              <input
-                value={form.usbIdentifier ?? ""}
-                onChange={(e) => setForm((prev) => ({ ...prev, usbIdentifier: e.target.value }))}
-                placeholder={t("printers.usbIdentifierPlaceholder")}
-              />
-            </label>
-          )}
+              {isIpOrHostname && (
+                <label className="properties-field">
+                  {form.connectionType === "IpAddress"
+                    ? t("printers.connectionTypeIpAddress")
+                    : t("printers.connectionTypeHostname")}
+                  <input
+                    value={form.address ?? ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
+                    placeholder={form.connectionType === "IpAddress" ? "192.168.1.50" : "printer.local"}
+                  />
+                </label>
+              )}
 
-          {!isUsb && (
-            <label className="properties-field">
-              {t("printers.port")}
-              <input
-                type="number"
-                min={1}
-                max={65535}
-                value={form.port ?? 9100}
-                onChange={(e) => setForm((prev) => ({ ...prev, port: Number(e.target.value) }))}
-              />
-            </label>
-          )}
+              {isPrintServer && (
+                <label className="properties-field">
+                  {t("printers.printServerAddress")}
+                  <input
+                    value={form.printServerAddress ?? ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, printServerAddress: e.target.value }))}
+                  />
+                </label>
+              )}
 
-          <div className="printer-form__row">
-            <label className="properties-field">
-              {t("printers.labelWidth")}
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={form.labelMediaWidthMm ?? ""}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    labelMediaWidthMm: e.target.value === "" ? null : Number(e.target.value),
-                  }))
-                }
-              />
-            </label>
-            <label className="properties-field">
-              {t("printers.labelHeight")}
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={form.labelMediaHeightMm ?? ""}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    labelMediaHeightMm: e.target.value === "" ? null : Number(e.target.value),
-                  }))
-                }
-              />
-            </label>
+              {isPrintServer && (
+                <div className="printer-form__field">
+                  <label className="properties-field">
+                    {t("printers.queueName")}
+                    <input
+                      value={form.queueName ?? ""}
+                      onChange={(e) => handleQueueNameChange(e.target.value)}
+                      placeholder="Brother_PT-P750W"
+                      aria-describedby="printer-queue-hint"
+                    />
+                  </label>
+                  <span id="printer-queue-hint" className="printer-form__hint">
+                    {t("printers.queueNameHint")}
+                  </span>
+                </div>
+              )}
+
+              {isUsb && (
+                <label className="properties-field">
+                  {t("printers.usbIdentifier")}
+                  <input
+                    value={form.usbIdentifier ?? ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, usbIdentifier: e.target.value }))}
+                    placeholder={t("printers.usbIdentifierPlaceholder")}
+                  />
+                </label>
+              )}
+
+              {!isUsb && (
+                <div className="printer-form__field">
+                  <label className="properties-field">
+                    {t("printers.port")}
+                    <input
+                      type="number"
+                      min={1}
+                      max={65535}
+                      value={form.port ?? 9100}
+                      onChange={(e) => setForm((prev) => ({ ...prev, port: Number(e.target.value) }))}
+                      aria-describedby="printer-port-hint"
+                    />
+                  </label>
+                  <span id="printer-port-hint" className="printer-form__hint">
+                    {usesQueue ? t("printers.portHintIpp") : t("printers.portHint")}
+                  </span>
+                </div>
+              )}
+            </fieldset>
+
+            <fieldset className="printer-form__section">
+              <legend>{t("printers.testPrintSize")}</legend>
+              <span className="printer-form__hint">{t("printers.testPrintSizeHint")}</span>
+              <div className="printer-form__row">
+                <label className="properties-field">
+                  {t("printers.labelWidth")}
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={form.labelMediaWidthMm ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        labelMediaWidthMm: e.target.value === "" ? null : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+                <label className="properties-field">
+                  {t("printers.labelHeight")}
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={form.labelMediaHeightMm ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        labelMediaHeightMm: e.target.value === "" ? null : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+            </fieldset>
           </div>
-
-          <label className="properties-field properties-field--inline">
-            <input
-              type="checkbox"
-              checked={form.enabled}
-              onChange={(e) => setForm((prev) => ({ ...prev, enabled: e.target.checked }))}
-            />
-            {t("printers.enabled")}
-          </label>
 
           {formError && <p role="alert">{formError}</p>}
 
@@ -406,36 +480,43 @@ export function PrintersPage() {
                     </svg>
                   </span>
                   <div className="printer-card__info">
-                    <span className="printer-card__name">
+                    <span className="printer-card__name" title={printer.name}>
                       {printer.name}
+                    </span>
+                    <span className="printer-card__badges">
                       {printer.isDefault && <span className="badge badge--default">{t("printers.default")}</span>}
                       {!printer.enabled && <span className="badge badge--disabled">{t("printers.disabled")}</span>}
                       <span className={`badge badge--${printer.lastConnectionStatus.toLowerCase()}`}>
                         {STATUS_LABELS[printer.lastConnectionStatus]}
                       </span>
                     </span>
-                    <span className="printer-card__meta">
-                      {printer.model ?? t("printers.unknownModel")} — {CONNECTION_TYPE_LABELS[printer.connectionType]}
-                      {printer.connectionType === "PrintServer"
-                        ? `: ${printer.printServerAddress ?? "—"}`
-                        : printer.connectionType === "Usb"
-                          ? printer.usbIdentifier
-                            ? `: ${printer.usbIdentifier}`
-                            : ""
-                          : `: ${printer.address ?? "—"}:${printer.port}`}
-                    </span>
-                    {printer.lastErrorMessage && (
-                      <span className="printer-card__meta">
-                        {t("printers.lastError", { message: printer.lastErrorMessage })}
-                      </span>
-                    )}
                   </div>
                 </div>
 
+                <dl className="printer-card__details">
+                  <div>
+                    <dt>{t("printers.model")}</dt>
+                    <dd title={printer.model ?? undefined}>{printer.model ?? t("printers.unknownModel")}</dd>
+                  </div>
+                  <div>
+                    <dt>{CONNECTION_TYPE_LABELS[printer.connectionType]}</dt>
+                    <dd title={connectionTarget(printer)}>{connectionTarget(printer)}</dd>
+                  </div>
+                </dl>
+
+                {printer.lastErrorMessage && (
+                  <p className="printer-card__error">
+                    {t("printers.lastError", { message: printer.lastErrorMessage })}
+                  </p>
+                )}
+
+                {result && (
+                  <p className="printer-card__result" role={result.success ? "status" : "alert"}>
+                    {result.message}
+                  </p>
+                )}
+
                 <div className="printer-card__actions">
-                  <button type="button" onClick={() => openEditForm(printer)} disabled={rowBusy}>
-                    {t("common.edit")}
-                  </button>
                   <button
                     type="button"
                     onClick={() => handleTestConnection(printer)}
@@ -446,26 +527,25 @@ export function PrintersPage() {
                   <button type="button" onClick={() => handleTestPrint(printer)} disabled={rowBusy}>
                     {t("printers.testPrint")}
                   </button>
-                  {!printer.isDefault && (
-                    <button type="button" onClick={() => handleSetDefault(printer)} disabled={rowBusy}>
-                      {t("printers.setDefault")}
+                  <div className="printer-card__secondary-actions">
+                    <button type="button" onClick={() => openEditForm(printer)} disabled={rowBusy}>
+                      {t("common.edit")}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(printer)}
-                    disabled={rowBusy}
-                  >
-                    {t("common.delete")}
-                  </button>
+                    {!printer.isDefault && (
+                      <button type="button" onClick={() => handleSetDefault(printer)} disabled={rowBusy}>
+                        {t("printers.setDefault")}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleDelete(printer)}
+                      disabled={rowBusy}
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
                 </div>
-
-                {result && (
-                  <p className="printer-card__result" role={result.success ? "status" : "alert"}>
-                    {result.message}
-                  </p>
-                )}
               </div>
             );
           })}

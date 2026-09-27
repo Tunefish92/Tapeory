@@ -28,6 +28,26 @@ public sealed class UploadsController(AppDbContext db, FileStorageService fileSt
         }
 
         Stream contentStream = file.OpenReadStream();
+        var contentType = file.ContentType;
+        var fileName = file.FileName;
+
+        if (ImageUploadValidator.NeedsConversionToPng(file.ContentType))
+        {
+            using var buffer = new MemoryStream();
+            await contentStream.CopyToAsync(buffer, cancellationToken);
+            await contentStream.DisposeAsync();
+
+            var png = RasterImageConverter.ToPng(buffer.ToArray());
+
+            if (png is null)
+            {
+                return Problem("The image could not be read.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            contentStream = new MemoryStream(png);
+            contentType = "image/png";
+            fileName = Path.ChangeExtension(file.FileName, ".png");
+        }
 
         if (string.Equals(file.ContentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase))
         {
@@ -46,13 +66,13 @@ public sealed class UploadsController(AppDbContext db, FileStorageService fileSt
         }
 
         await using var stream = contentStream;
-        var stored = await fileStorage.SaveAsync(stream, file.FileName, FileStorageCategory.Image, cancellationToken);
+        var stored = await fileStorage.SaveAsync(stream, fileName, FileStorageCategory.Image, cancellationToken);
 
         var uploadedFile = new UploadedFile
         {
             FileName = stored.FileName,
-            OriginalFileName = file.FileName,
-            ContentType = file.ContentType,
+            OriginalFileName = fileName,
+            ContentType = contentType,
             SizeBytes = stored.SizeBytes,
             Category = FileStorageCategory.Image,
             RelativePath = stored.RelativePath

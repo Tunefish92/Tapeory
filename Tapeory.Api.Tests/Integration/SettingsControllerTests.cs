@@ -45,11 +45,9 @@ public sealed class SettingsControllerTests(TapeoryWebApplicationFactory factory
     }
 
     [Theory]
-    [InlineData("zh")]
-    [InlineData("ar")]
-    [InlineData("ru")]
-    [InlineData("id")]
-    public async Task Update_AcceptsLanguagesBeyondTheOriginalFour(string language)
+    [InlineData("fr")]
+    [InlineData("es")]
+    public async Task Update_AcceptsEverySupportedLanguage(string language)
     {
         var response = await _client.PutAsJsonAsync("/api/settings", new { language });
 

@@ -1,8 +1,7 @@
 .printer-form {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  max-width: 460px;
+  gap: 1.1rem;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   animation: fade-in-up 0.4s var(--ease) both;
@@ -12,6 +11,57 @@
   margin: 0 0 0.25rem;
 }
 
+.printer-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.printer-form__hint {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.printer-form__note {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--color-info-text);
+  background: var(--color-info-bg);
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+/* The form's sections sit side by side on wide screens and stack on narrow ones. */
+.printer-form__sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem 2rem;
+  align-items: start;
+}
+
+.printer-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.printer-form__section legend {
+  width: 100%;
+  padding: 0 0 0.4rem;
+  margin-bottom: 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-heading);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .printer-form__row {
   display: flex;
   gap: 0.75rem;
@@ -19,13 +69,19 @@
 
 .printer-form__row .properties-field {
   flex: 1;
+  min-width: 0;
+}
+
+.printer-form__row .properties-field input {
+  width: 100%;
 }
 
 .printer-form__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
 }
 
 .printer-list {
@@ -80,7 +136,7 @@
 
 .printer-card__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.9rem;
 }
 
@@ -116,27 +172,77 @@
 }
 
 .printer-card__name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: var(--fs-base);
 }
 
-.printer-card__meta {
+.printer-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Label/value rows; long values are cut with an ellipsis (the full text is in the tooltip), so
+   every card keeps the same height. */
+.printer-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
   font-size: var(--fs-sm);
+}
+
+.printer-card__details > div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.printer-card__details dt {
   color: var(--color-text-muted);
+}
+
+.printer-card__details dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.printer-card__error {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-danger-text);
   word-break: break-word;
 }
 
+/* Pinned to the bottom, so the buttons line up across cards of different content. Every card
+   has the same two rows: the tests, then edit/default/delete. */
 .printer-card__actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.4rem;
+  margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);
+}
+
+.printer-card__actions > button {
+  justify-content: center;
+}
+
+.printer-card__secondary-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.printer-card__secondary-actions > .btn-danger {
+  margin-left: auto;
 }
 
 .printer-card__result {
@@ -205,10 +311,6 @@
 }
 
 @media (max-width: 640px) {
-  .printer-form {
-    max-width: none;
-  }
-
   .printer-form__row {
     flex-direction: column;
   }
@@ -217,8 +319,7 @@
     grid-template-columns: 1fr;
   }
 
-  .printer-card__actions > * {
-    flex: 1 1 calc(50% - 0.4rem);
-    justify-content: center;
+  .printer-card__secondary-actions {
+    flex-wrap: wrap;
   }
 }

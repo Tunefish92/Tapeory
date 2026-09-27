@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   deleteTemplate,
+  duplicateTemplate,
   importLbxTemplate,
   listTemplates,
   renameTemplateGroup,
@@ -14,7 +15,7 @@ import { useNotifications } from "../notifications/NotificationsContext";
 import { collectGroups, groupHue, groupKey, normalizeText, type GroupSummary } from "./groups";
 import { formatRelativeTime } from "../relativeTime";
 import { DataGrid, DataGridRow, useUrlSort } from "../components/DataGrid";
-import { ImportedFileIcon, PencilIcon, PrinterIcon, TagIcon, TrashIcon } from "../components/icons";
+import { CopyIcon, ImportedFileIcon, PencilIcon, PrinterIcon, TagIcon, TrashIcon } from "../components/icons";
 import {
   isSortKey,
   sortTemplates,
@@ -211,15 +212,40 @@ function DeleteTemplateButton({ template, deleting, onDelete }: DeleteTemplateBu
   );
 }
 
+interface DuplicateTemplateButtonProps {
+  template: TemplateSummaryResponse;
+  duplicating: boolean;
+  onDuplicate: (template: TemplateSummaryResponse) => void;
+}
+
+function DuplicateTemplateButton({ template, duplicating, onDuplicate }: DuplicateTemplateButtonProps) {
+  const { t } = useTranslation();
+
+  return (
+    <button
+      type="button"
+      className="icon-link"
+      onClick={() => onDuplicate(template)}
+      disabled={duplicating}
+      aria-label={`${t("templates.duplicate")}: ${template.name}`}
+      title={t("templates.duplicate")}
+    >
+      <CopyIcon />
+    </button>
+  );
+}
+
 interface TemplateCardProps {
   template: TemplateSummaryResponse;
   index: number;
   onChangeGroup: (template: TemplateSummaryResponse, group: string) => Promise<void>;
   deleting: boolean;
   onDelete: (template: TemplateSummaryResponse) => void;
+  duplicating: boolean;
+  onDuplicate: (template: TemplateSummaryResponse) => void;
 }
 
-function TemplateCard({ template, index, onChangeGroup, deleting, onDelete }: TemplateCardProps) {
+function TemplateCard({ template, index, onChangeGroup, deleting, onDelete, duplicating, onDuplicate }: TemplateCardProps) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -253,6 +279,7 @@ function TemplateCard({ template, index, onChangeGroup, deleting, onDelete }: Te
           </span>
           <div className="template-card__actions">
             <DeleteTemplateButton template={template} deleting={deleting} onDelete={onDelete} />
+            <DuplicateTemplateButton template={template} duplicating={duplicating} onDuplicate={onDuplicate} />
             <Link className="btn btn-sm" to={`/templates/${template.id}/edit`}>
               {t("common.edit")}
             </Link>
@@ -378,9 +405,19 @@ interface TemplatesTableProps {
   onSortChange: (sort: TemplateSort | null) => void;
   deletingId: number | null;
   onDelete: (template: TemplateSummaryResponse) => void;
+  duplicatingId: number | null;
+  onDuplicate: (template: TemplateSummaryResponse) => void;
 }
 
-function TemplatesTable({ templates, sort, onSortChange, deletingId, onDelete }: TemplatesTableProps) {
+function TemplatesTable({
+  templates,
+  sort,
+  onSortChange,
+  deletingId,
+  onDelete,
+  duplicatingId,
+  onDuplicate,
+}: TemplatesTableProps) {
   const { t, i18n } = useTranslation();
   const rows = useMemo(
     () => (sort ? sortTemplates(templates, sort.key, sort.direction, i18n.language) : templates),
@@ -469,6 +506,11 @@ function TemplatesTable({ templates, sort, onSortChange, deletingId, onDelete }:
                 >
                   <PrinterIcon />
                 </Link>
+                <DuplicateTemplateButton
+                  template={template}
+                  duplicating={duplicatingId === template.id}
+                  onDuplicate={onDuplicate}
+                />
                 <DeleteTemplateButton template={template} deleting={deletingId === template.id} onDelete={onDelete} />
               </span>
             </td>
@@ -490,6 +532,7 @@ export function TemplatesListPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null);
   const [view, setView] = useState<ViewMode>(readStoredView);
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
@@ -608,6 +651,21 @@ export function TemplatesListPage() {
       notify(err instanceof Error ? err.message : t("templates.deleteErrorFallback"), "error");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleDuplicate(template: TemplateSummaryResponse) {
+    setDuplicatingId(template.id);
+
+    try {
+      const copy = await duplicateTemplate(template.id, t("templates.copyName", { name: template.name }));
+      // Newest first, like the list the server returns.
+      setTemplates((prev) => (prev ? [copy, ...prev] : [copy]));
+      notify(t("templates.duplicated", { name: copy.name }), "success");
+    } catch (err) {
+      notify(err instanceof Error ? err.message : t("templates.duplicateErrorFallback"), "error");
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
@@ -805,6 +863,8 @@ export function TemplatesListPage() {
                     onChangeGroup={handleChangeGroup}
                     deleting={deletingId === template.id}
                     onDelete={(item) => void handleDelete(item)}
+                    duplicating={duplicatingId === template.id}
+                    onDuplicate={(item) => void handleDuplicate(item)}
                   />
                 ))}
               </div>
@@ -823,6 +883,8 @@ export function TemplatesListPage() {
               onChangeGroup={handleChangeGroup}
               deleting={deletingId === template.id}
               onDelete={(item) => void handleDelete(item)}
+              duplicating={duplicatingId === template.id}
+              onDuplicate={(item) => void handleDuplicate(item)}
             />
           ))}
         </div>
@@ -835,6 +897,8 @@ export function TemplatesListPage() {
           onSortChange={setSort}
           deletingId={deletingId}
           onDelete={(item) => void handleDelete(item)}
+          duplicatingId={duplicatingId}
+          onDuplicate={(item) => void handleDuplicate(item)}
         />
       )}
     </section>

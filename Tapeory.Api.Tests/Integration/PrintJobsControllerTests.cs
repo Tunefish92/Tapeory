@@ -133,6 +133,35 @@ public sealed class PrintJobsControllerTests(TapeoryWebApplicationFactory factor
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("Brother PT-P750W", "High", HttpStatusCode.Created)]
+    [InlineData("Brother PT-H110", "High", HttpStatusCode.BadRequest)]
+    [InlineData("Brother PT-P750W", "Ultra", HttpStatusCode.BadRequest)]
+    public async Task CreatePrintJob_AcceptsOnlyAQualityThePrinterSupports(
+        string model, string quality, HttpStatusCode expected)
+    {
+        var printerResponse = await _client.PostAsJsonAsync(
+            "/api/printers",
+            new CreatePrinterRequest(UniqueName("Printer"), model, "IpAddress", "127.0.0.1", 9100, null, null, null, null, false),
+            JsonOptions);
+        var printer = await printerResponse.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
+        var template = await CreateTemplateWithFieldAsync(required: false);
+
+        var response = await _client.PostAsJsonAsync(
+            "/api/print-jobs",
+            new CreatePrintJobRequest(
+                template.Id, printer!.Id, null, [new PrintJobItemRequest(new Dictionary<string, string>(), 1)], quality),
+            JsonOptions);
+
+        Assert.Equal(expected, response.StatusCode);
+
+        if (expected == HttpStatusCode.Created)
+        {
+            var created = await response.Content.ReadFromJsonAsync<PrintJobResponse>(JsonOptions);
+            Assert.Equal(quality, created!.Quality);
+        }
+    }
+
     [Fact]
     public async Task GetPrintJob_ReturnsNotFound_ForAnUnknownId()
     {
@@ -215,7 +244,7 @@ public sealed class PrintJobsControllerTests(TapeoryWebApplicationFactory factor
     }
 
     [Fact]
-    public async Task EndToEnd_AJobWithAConfiguredPrinter_ActuallySendsTheRenderedLabelOverTheSocket()
+    public async Task EndToEnd_AJobWithAConfiguredPrinter_SendsABrotherRasterJobOverTheSocket()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -225,7 +254,7 @@ public sealed class PrintJobsControllerTests(TapeoryWebApplicationFactory factor
         var printerResponse = await _client.PostAsJsonAsync(
             "/api/printers",
             new CreatePrinterRequest(
-                UniqueName("Printer"), "Brother QL-800", "IpAddress", "127.0.0.1", port,
+                UniqueName("Printer"), "Brother PT-P750W", "IpAddress", "127.0.0.1", port,
                 null, null, 40m, 20m, true),
             JsonOptions);
         var printer = await printerResponse.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
@@ -244,11 +273,11 @@ public sealed class PrintJobsControllerTests(TapeoryWebApplicationFactory factor
         Assert.Equal(printer.Name, created.PrinterName);
 
         using var serverClient = await acceptTask;
-        var buffer = new byte[8];
-        var read = await serverClient.GetStream().ReadAsync(buffer);
+        var header = new byte[102];
+        await serverClient.GetStream().ReadExactlyAsync(header);
 
-        Assert.True(read > 0);
-        Assert.Equal([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], buffer); // PNG signature
+        Assert.All(header[..100], b => Assert.Equal(0, b)); // Brother "invalidate"
+        Assert.Equal([0x1B, 0x40], header[100..]);           // ESC @
 
         var completed = await WaitForTerminalStatusAsync(created.Id, TimeSpan.FromSeconds(30));
 

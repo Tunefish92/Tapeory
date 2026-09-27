@@ -9,8 +9,18 @@ public static class ImageUploadValidator
         "image/png",
         "image/jpeg",
         "image/webp",
-        "image/svg+xml"
+        "image/svg+xml",
+        "image/tiff",
+        "image/bmp",
+        "image/x-ms-bmp"
     };
+
+    /// <summary>Formats browsers can't display; they're stored as PNG instead.</summary>
+    public static bool NeedsConversionToPng(string? contentType) =>
+        contentType is not null
+        && (contentType.Equals("image/tiff", StringComparison.OrdinalIgnoreCase)
+            || contentType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase)
+            || contentType.Equals("image/x-ms-bmp", StringComparison.OrdinalIgnoreCase));
 
     public static ImageUploadValidationResult Validate(string? contentType, long sizeBytes)
     {

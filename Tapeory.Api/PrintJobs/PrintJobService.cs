@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Printing;
 using Tapeory.Api.Rendering;
 using Tapeory.Api.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +59,27 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
             }
         }
 
+        var quality = PrintQuality.Standard;
+
+        if (request.Quality is not null
+            && (!Enum.TryParse(request.Quality, ignoreCase: true, out quality) || !Enum.IsDefined(quality)))
+        {
+            errors.Add($"Unknown print quality '{request.Quality}'.");
+        }
+        else if (printer is not null
+                 && PrinterCapabilities.Resolutions(printer.Model).All(resolution => resolution.Quality != quality))
+        {
+            errors.Add($"Printer '{printer.Name}' doesn't support {quality} print quality.");
+        }
+
+        var cutMode = CutMode.AutoCut;
+
+        if (request.CutMode is not null
+            && (!Enum.TryParse(request.CutMode, ignoreCase: true, out cutMode) || !Enum.IsDefined(cutMode)))
+        {
+            errors.Add($"Unknown cut mode '{request.CutMode}'.");
+        }
+
         if (errors.Count > 0)
         {
             return CreatePrintJobResult.Invalid(errors);
@@ -68,7 +90,9 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
             TemplateId = template.Id,
             TemplateVersionNumber = template.CurrentVersion.VersionNumber,
             PrinterId = printer?.Id,
-            PrinterName = printer?.Name ?? request.PrinterName
+            PrinterName = printer?.Name ?? request.PrinterName,
+            Quality = quality,
+            CutMode = cutMode
         };
 
         foreach (var item in request.Items)
@@ -138,10 +162,12 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
         return new DeleteAllPrintJobsResponse(finished.Count, jobs.Count - finished.Count);
     }
 
-    // Queued jobs are about to be picked up by PrintJobProcessor and Processing ones are being
-    // worked on right now; changing either underneath it would race the processor.
+    // Queued jobs are about to be picked up by PrintJobProcessor, and Processing, Sending and
+    // Printing ones are being worked on right now; changing them underneath it would race the
+    // processor.
     private static bool IsInProgress(PrintJob job) =>
-        job.Status is PrintJobStatus.Queued or PrintJobStatus.Processing;
+        job.Status is PrintJobStatus.Queued or PrintJobStatus.Processing
+            or PrintJobStatus.Sending or PrintJobStatus.Printing;
 
     /// <summary>Hides the jobs from the history and drops what they printed (field values and
     /// rendered images), keeping only what the statistics need. Returns the image files to

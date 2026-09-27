@@ -31,9 +31,9 @@ LABEL org.opencontainers.image.title="Tapeory" \
 
 # - curl: container health check
 # - libfontconfig1: SkiaSharp's font matching (label rendering)
-# - fonts-*: the base image ships no fonts at all, and the editor and renderer can only offer
-#   fonts installed here. Liberation is metric-compatible with Arial, Times New Roman and
-#   Courier New, which most imported .lbx files use; DejaVu covers a wide range of scripts.
+# - fonts-*: the base image ships no fonts at all. Liberation is metric-compatible with Arial,
+#   Times New Roman and Courier New, which most imported .lbx files use; DejaVu covers a wide
+#   range of scripts. Tapeory's own Google Fonts (Tapeory.Api/Fonts) come with the app itself.
 #   Add more font packages in a derived image if you need them.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl libfontconfig1 fonts-liberation fonts-dejavu-core \

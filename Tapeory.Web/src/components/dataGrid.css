@@ -68,12 +68,6 @@
   box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
-/* The bar sits on the row's leading edge, which is the right one in right-to-left languages. */
-[dir="rtl"] .data-grid tbody tr:hover td:first-child,
-[dir="rtl"] .data-grid tbody tr:focus-within td:first-child {
-  box-shadow: inset -3px 0 0 var(--color-primary);
-}
-
 .data-grid .data-grid__primary {
   width: 100%;
 }

@@ -98,15 +98,24 @@ describe("PrintTemplatePage", () => {
     expect(screen.getByLabelText(/name \*/i)).toHaveValue("Default Name");
   });
 
-  it("renders a preview image after clicking Update Preview", async () => {
+  it("renders the preview on its own and re-renders it with the typed values", async () => {
     stubFetchRouter();
 
     renderPage();
     await screen.findByText("Print: Shipping Label");
 
-    fireEvent.click(screen.getByRole("button", { name: "Update Preview" }));
-
     await waitFor(() => expect(screen.getByAltText("Label preview")).toHaveAttribute("src", "blob:mock"));
+
+    const previewBodies = () =>
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([input]) => String(input).endsWith("/api/templates/5/preview"))
+        .map(([, init]) => JSON.parse(String(init?.body)));
+    expect(previewBodies()).toEqual([{ fieldValues: { name: "Default Name" }, format: "png" }]);
+
+    fireEvent.change(screen.getByLabelText(/name \*/i), { target: { value: "Ada" } });
+
+    await waitFor(() => expect(previewBodies().at(-1)).toEqual({ fieldValues: { name: "Ada" }, format: "png" }));
   });
 
   it("submits the print job and navigates to the job detail page", async () => {
@@ -128,6 +137,10 @@ describe("PrintTemplatePage", () => {
 
         if (url.endsWith("/api/templates/5") && (!init || init.method === undefined)) {
           return { ok: true, json: async () => templateDetail } as Response;
+        }
+
+        if (url.endsWith("/api/templates/5/preview")) {
+          return { ok: true, blob: async () => new Blob(["png-bytes"], { type: "image/png" }) } as Response;
         }
 
         if (url.endsWith("/api/printers")) {
@@ -159,6 +172,61 @@ describe("PrintTemplatePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit Print Job" }));
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/print-jobs/99"));
+  });
+
+  it("offers the selected printer's resolutions and submits the chosen quality", async () => {
+    let submitted: Record<string, unknown> | null = null;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+
+        if (url.endsWith("/api/templates/5") && (!init || init.method === undefined)) {
+          return { ok: true, json: async () => templateDetail } as Response;
+        }
+
+        if (url.endsWith("/api/templates/5/preview")) {
+          return { ok: true, blob: async () => new Blob(["png-bytes"], { type: "image/png" }) } as Response;
+        }
+
+        if (url.endsWith("/api/printers")) {
+          return {
+            ok: true,
+            json: async () => [
+              {
+                id: 1,
+                name: "P750W",
+                isDefault: true,
+                enabled: true,
+                resolutions: [
+                  { quality: "Standard", horizontalDpi: 180, verticalDpi: 180 },
+                  { quality: "High", horizontalDpi: 360, verticalDpi: 180 },
+                ],
+              },
+            ],
+          } as Response;
+        }
+
+        if (url.endsWith("/api/print-jobs")) {
+          submitted = JSON.parse((init?.body as string) ?? "{}");
+          return { ok: true, json: async () => ({ id: 99 }) } as Response;
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderPage();
+    await screen.findByText("Print: Shipping Label");
+
+    const qualitySelect = await screen.findByLabelText("Print quality");
+    expect(screen.getByRole("option", { name: "High (180 × 360 dpi)" })).toBeInTheDocument();
+    fireEvent.change(qualitySelect, { target: { value: "High" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Print Job" }));
+
+    expect(screen.getByLabelText("Cutting")).toHaveValue("AutoCut");
+    await waitFor(() => expect(submitted).toMatchObject({ printerId: 1, quality: "High", cutMode: "AutoCut" }));
   });
 
   it("shows a load error when the template can't be fetched", async () => {

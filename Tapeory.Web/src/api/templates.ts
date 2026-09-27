@@ -144,6 +144,17 @@ export async function createTemplateVersion(
 }
 
 /** Removes the template. Print jobs that used it stay in the print history. */
+/** Copies the template's current version into a new draft called `name`. */
+export async function duplicateTemplate(id: number, name: string): Promise<TemplateSummaryResponse> {
+  const response = await fetch(`${API_BASE_URL}/templates/${id}/duplicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+
+  return parseJsonOrThrow<TemplateSummaryResponse>(response);
+}
+
 export async function deleteTemplate(id: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/templates/${id}`, { method: "DELETE" });
 

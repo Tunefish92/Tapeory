@@ -68,7 +68,7 @@ export function Toolbar({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/tiff,image/bmp,.tif,.tiff,.bmp"
           data-testid="image-file-input"
           hidden
           onChange={(e) => {
