@@ -25,6 +25,8 @@ public sealed record CreateTemplateVersionRequest(
 
 public sealed record SetPreviewImageRequest(int UploadedFileId);
 
+public sealed record SetVisibilityRequest(bool IsPublic);
+
 /// <summary>Name is the copy's name; omitted, it's the original's name plus " (copy)".</summary>
 public sealed record DuplicateTemplateRequest(string? Name);
 

@@ -113,3 +113,11 @@
     flex: 1;
   }
 }
+
+.setup-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}

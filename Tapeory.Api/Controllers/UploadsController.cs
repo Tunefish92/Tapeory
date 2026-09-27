@@ -1,6 +1,9 @@
+using Tapeory.Api.Auth;
+using Tapeory.Api.Backups;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
 using Tapeory.Api.Storage;
+using Tapeory.Api.Templates;
 using Tapeory.Api.Uploads;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -75,7 +78,8 @@ public sealed class UploadsController(AppDbContext db, FileStorageService fileSt
             ContentType = contentType,
             SizeBytes = stored.SizeBytes,
             Category = FileStorageCategory.Image,
-            RelativePath = stored.RelativePath
+            RelativePath = stored.RelativePath,
+            OwnerUserId = AuthClaims.UserId(User)
         };
 
         db.UploadedFiles.Add(uploadedFile);
@@ -93,13 +97,38 @@ public sealed class UploadsController(AppDbContext db, FileStorageService fileSt
         var uploadedFile = await db.UploadedFiles
             .SingleOrDefaultAsync(f => f.Id == id && f.Category == FileStorageCategory.Image, cancellationToken);
 
-        if (uploadedFile is null)
+        var access = TemplateAccess.For(User);
+
+        if (uploadedFile is null
+            || !(access.IsAdmin || uploadedFile.OwnerUserId == access.UserId || await IsInVisibleTemplateAsync(id, access, cancellationToken)))
         {
             return NotFound();
         }
 
         var stream = fileStorage.OpenRead(uploadedFile.RelativePath);
         return File(stream, uploadedFile.ContentType, uploadedFile.OriginalFileName);
+    }
+
+    /// <summary>Whether image <paramref name="id"/> is part of a template the account can see:
+    /// in any of its versions' designs, or as a preview image.</summary>
+    private async Task<bool> IsInVisibleTemplateAsync(int id, TemplateAccess access, CancellationToken cancellationToken)
+    {
+        var versions = access.Visible(db.Templates.Where(template => template.DeletedAt == null))
+            .SelectMany(template => template.Versions);
+
+        if (await versions.AnyAsync(version => version.PreviewImageFileId == id, cancellationToken))
+        {
+            return true;
+        }
+
+        // The database narrows it down; parsing the design decides (id 12 isn't id 123).
+        var marker = id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var designs = await versions
+            .Where(version => version.EditorJson.Contains(marker))
+            .Select(version => version.EditorJson)
+            .ToListAsync(cancellationToken);
+
+        return designs.Any(design => LabelDocumentImages.FindImageFileIds(design).Contains(id));
     }
 
     private static UploadedImageResponse ToResponse(UploadedFile file) => new(

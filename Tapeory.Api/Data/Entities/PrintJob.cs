@@ -22,6 +22,16 @@ public sealed class PrintJob
     /// deleted.</summary>
     public string? PrinterName { get; set; }
 
+    /// <summary>The account that submitted the job; null when Tapeory had no accounts yet, or the
+    /// account was deleted since.</summary>
+    public int? PrintedByUserId { get; set; }
+
+    public User? PrintedByUser { get; set; }
+
+    /// <summary>Snapshotted display name of <see cref="PrintedByUser"/>, so the history keeps it
+    /// after the account is renamed or deleted.</summary>
+    public string? PrintedByName { get; set; }
+
     public PrintJobStatus Status { get; set; } = PrintJobStatus.Queued;
 
     public PrintQuality Quality { get; set; } = PrintQuality.Standard;

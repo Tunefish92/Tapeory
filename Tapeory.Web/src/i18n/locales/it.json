@@ -135,7 +135,17 @@
     "duplicate": "Duplica",
     "copyName": "{{name}} (copia)",
     "duplicated": "Creato «{{name}}».",
-    "duplicateErrorFallback": "Impossibile duplicare il modello."
+    "duplicateErrorFallback": "Impossibile duplicare il modello.",
+    "public": "Pubblico",
+    "private": "Privato",
+    "byOwner": "di {{name}}",
+    "shared": "condiviso",
+    "ownershipLabel": "Mostra modelli",
+    "ownership": {
+      "all": "Tutti",
+      "mine": "Miei",
+      "public": "Pubblici"
+    }
   },
   "editor": {
     "metadataName": "Nome",
@@ -258,7 +268,11 @@
       "datamatrix": "Data Matrix",
       "pdf417": "PDF417",
       "aztec": "Aztec"
-    }
+    },
+    "visibility": "Visibilità",
+    "readOnlyOwned": "Questo è un modello di {{name}}. Puoi stamparlo o crearne una tua copia; solo {{name}} o un amministratore possono modificarlo.",
+    "readOnlyShared": "Questo modello condiviso può essere modificato solo da un amministratore. Puoi stamparlo o crearne una tua copia.",
+    "duplicateToEdit": "Duplica per modificare"
   },
   "printing": {
     "printTemplate": {
@@ -316,7 +330,8 @@
       "confirmDeleteAll_many": "Eliminare tutti i {{count}} lavori di stampa dalla cronologia?\n\nLe anteprime delle etichette e i valori dei campi vengono rimossi definitivamente. I lavori ancora in stampa vengono mantenuti. Le etichette continuano a contare nelle statistiche; per azzerarle usa \"Azzera statistiche\" nelle Impostazioni.",
       "allDeleted_many": "{{count}} lavori di stampa eliminati.",
       "keptStillPrinting_many": "{{count}} lavori ancora in stampa sono stati mantenuti.",
-      "templateDeleted": "Modello eliminato"
+      "templateDeleted": "Modello eliminato",
+      "printedBy": "di {{name}}"
     },
     "printJobDetail": {
       "title": "Lavoro di stampa n. {{id}}",
@@ -331,7 +346,8 @@
       "quantity": "Quantità: {{count}}",
       "loading": "Caricamento del lavoro di stampa…",
       "loadErrorFallback": "Impossibile caricare il lavoro di stampa.",
-      "itemPreviewAlt": "Anteprima dell'elemento {{id}} del lavoro di stampa"
+      "itemPreviewAlt": "Anteprima dell'elemento {{id}} del lavoro di stampa",
+      "printedBy": "Stampato da"
     },
     "status": {
       "queued": "In coda",
@@ -483,14 +499,39 @@
     "backupRestore": "Ripristina",
     "backupRestoring": "Ripristino in corso…",
     "backupRestoreConfirm": "Sì, ripristina",
-    "backupRestoreDatabaseConfirmText": "Sostituire l’intero database con il backup del {{date}}? Tutte le modifiche fatte da allora andranno perse. Prima viene salvato lo stato attuale, quindi puoi tornare indietro.",
+    "backupRestoreDatabaseConfirmText": "Sostituire l’intero database con il backup del {{date}}? Tutte le modifiche fatte da allora andranno perse. Prima viene salvato lo stato attuale, quindi puoi tornare indietro. Vengono ripristinati anche gli account: dopo, accedi con un account del backup.",
     "backupRestoreLabelsConfirmText": "Sostituire tutti i modelli di etichetta attuali con quelli del backup del {{date}}? Prima vengono salvati i modelli attuali, quindi puoi tornare indietro. La cronologia di stampa resta.",
     "backupRestored": "Backup ripristinato.",
     "backupRestoredLabels": "Backup ripristinato. Modelli ripristinati: {{templates}}.",
     "backupDeleteConfirmText": "Eliminare definitivamente il backup del {{date}}?",
     "backupDeleteConfirm": "Sì, elimina",
     "backupDeleted": "Backup eliminato.",
-    "backupError": "Operazione non riuscita. Riprova."
+    "backupError": "Operazione non riuscita. Riprova.",
+    "users": "Utenti",
+    "usersIntro": "Gli amministratori gestiscono stampanti, backup, statistiche e utenti. Gli utenti progettano e stampano etichette.",
+    "usersLoadError": "Impossibile caricare gli utenti.",
+    "usersActionError": "Non ha funzionato. Riprova.",
+    "usersTemporaryPassword": "Password temporanea per {{name}}:",
+    "usersTemporaryHint": "Comunicala alla persona: al primo accesso sceglierà la propria password. Non verrà mostrata di nuovo.",
+    "usersCopy": "Copia",
+    "usersDisplayName": "Nome visualizzato",
+    "usersDisplayNameOptional": "Nome visualizzato (facoltativo)",
+    "usersUserName": "Nome utente",
+    "usersRole": "Ruolo",
+    "usersDisabled": "Disattivato",
+    "usersYou": "(tu)",
+    "usersLastLogin": "ultimo accesso {{when}}",
+    "usersNeverSignedIn": "mai effettuato l’accesso",
+    "usersTemporary": "Password temporanea",
+    "usersResetPassword": "Reimposta password",
+    "usersResetConfirm": "Dare a {{name}} una nuova password temporanea? La persona viene disconnessa ovunque.",
+    "usersDeleteConfirm": "Eliminare l’account di {{name}}? I suoi lavori di stampa restano nella cronologia.",
+    "usersAdd": "Aggiungi utente",
+    "usersDeleteTitle": "Elimina {{name}}",
+    "usersDeleteTemplates": "I suoi modelli",
+    "usersDeleteTransfer": "Trasferiscili a me (restano privati)",
+    "usersDeleteTemplatesToo": "Eliminali anche",
+    "usersDeleteAction": "Elimina account"
   },
   "setup": {
     "title": "Benvenuto in Tapeory",
@@ -510,5 +551,37 @@
     "saving": "Configurazione del database…",
     "failedFallback": "Impossibile connettersi al database.",
     "completed": "Database connesso. Tapeory è pronto."
+  },
+  "auth": {
+    "signInTitle": "Accedi",
+    "signInIntro": "Accedi con il tuo account Tapeory.",
+    "userName": "Nome utente",
+    "password": "Password",
+    "rememberMe": "Resta connesso su questo dispositivo",
+    "signIn": "Accedi",
+    "signingIn": "Accesso in corso…",
+    "forgotPassword": "Password dimenticata? Un amministratore può reimpostarla in Impostazioni → Utenti.",
+    "createTitle": "Crea il tuo account",
+    "createIntro": "Questo primo account è l’amministratore: gestisce stampanti, backup e altri utenti. Una volta creato, Tapeory chiede a tutti di accedere.",
+    "displayNameOptional": "Nome visualizzato (facoltativo)",
+    "repeatPassword": "Ripeti la password",
+    "createNote": "Usa almeno 8 caratteri. Conserva la password in un luogo sicuro: senza un altro amministratore si può reimpostare solo sul server.",
+    "create": "Crea account",
+    "creating": "Creazione account…",
+    "currentPassword": "Password attuale",
+    "newPassword": "Nuova password",
+    "changePassword": "Cambia password",
+    "saving": "Salvataggio…",
+    "passwordChanged": "Password cambiata.",
+    "forcedTitle": "Scegli una nuova password",
+    "forcedIntro": "Hai effettuato l’accesso con una password temporanea. Scegline una tua per continuare.",
+    "signOut": "Esci",
+    "passwordTooShort": "Usa almeno {{count}} caratteri.",
+    "passwordsDiffer": "Le password non coincidono.",
+    "failedFallback": "Non ha funzionato. Riprova.",
+    "roleAdmin": "Amministratore",
+    "roleUser": "Utente",
+    "openBanner": "Chiunque nella tua rete può usare Tapeory. Crea un account amministratore per richiedere l’accesso.",
+    "openBannerAction": "Crea account"
   }
 }

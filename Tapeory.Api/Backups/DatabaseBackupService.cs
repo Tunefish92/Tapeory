@@ -1,3 +1,4 @@
+using Tapeory.Api.Auth;
 using Tapeory.Api.Data;
 using Tapeory.Api.Setup;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,7 @@ public sealed class DatabaseBackupService(
     BackupStore store,
     IServiceScopeFactory scopeFactory,
     IConfiguration configuration,
+    UserDirectory users,
     ILogger<DatabaseBackupService> logger)
 {
     public Task<BackupInfo> CreateAsync(bool beforeRestore, CancellationToken cancellationToken) =>
@@ -58,6 +60,9 @@ public sealed class DatabaseBackupService(
         });
 
         logger.LogInformation("Database restored from {Path}.", path);
+
+        // The restored database brings its own accounts, or none if it predates them.
+        users.Reset();
 
         if (configuration.GetValue("TAPEORY_AUTO_MIGRATE", true))
         {

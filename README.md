@@ -10,7 +10,7 @@ existing P-touch Editor `.lbx` files. It runs as a single Docker container next 
 every template, upload, and print job stays on your own server.
 
 > [!WARNING]
-> **Early release (0.3).** Tapeory is still young: expect rough edges between minor versions.
+> **Early release (0.4).** Tapeory is still young: expect rough edges between minor versions.
 > Designing, storing, importing, and rendering labels work and are covered by tests.
 > **Printing** works with Brother P-touch (PT) and QL label printers in Brother's raster format:
 > 34 models, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. See
@@ -21,7 +21,7 @@ every template, upload, and print job stays on your own server.
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots/dashboard.png" alt="Dashboard with usage statistics and system status"></td>
-    <td width="50%"><img src="docs/screenshots/templates.png" alt="Template library grouped by category, with rendered thumbnails"></td>
+    <td width="50%"><img src="docs/screenshots/templates.png" alt="Template library grouped by category, with rendered thumbnails and private/public badges"></td>
   </tr>
   <tr>
     <td align="center">Dashboard</td>
@@ -29,7 +29,7 @@ every template, upload, and print job stays on your own server.
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/print.png" alt="Print form with field values and the rendered label preview"></td>
-    <td width="50%"><img src="docs/screenshots/print-jobs.png" alt="Print history with job status"></td>
+    <td width="50%"><img src="docs/screenshots/print-jobs.png" alt="Print history with job status and who printed each job"></td>
   </tr>
   <tr>
     <td align="center">Printing with a rendered preview</td>
@@ -84,6 +84,9 @@ every template, upload, and print job stays on your own server.
 
 **App**
 - First-start setup screen for the database connection (no connection string needed)
+- User accounts with two roles (administrator and user); everyone can change their own password
+- Private templates by default, shared with everyone when made public; each account sees its own
+  print history
 - Database and label backups created and restored from the Settings page, stored on the server
 - Dashboard with usage statistics
 - Update check: Settings shows when a newer release is out on GitHub
@@ -141,7 +144,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.3.0`, `0.2.1`, … | One specific release (from Git tags such as `v0.3.0`) |
+| `0.4.0`, `0.3.0`, … | One specific release (from Git tags such as `v0.4.0`) |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
 `tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
@@ -185,6 +188,9 @@ the container. After a connection is saved, the setup endpoints stop accepting n
 
 If `ConnectionStrings__Default` is set (as an environment variable or in `appsettings*.json`),
 it takes precedence over the file and Tapeory skips the setup screen.
+
+Right after the database, Tapeory asks you to **create your account**. This first account is the
+administrator; from then on, everyone has to sign in. See [Users](#users).
 
 ### Configuration
 
@@ -235,6 +241,49 @@ a small label centred on the tape; its size can be set in the printer's settings
 
 <img src="docs/screenshots/printers.png" alt="Printers page with a PT-P750W, a QL-820NWB and a PT-P950NW behind a CUPS server" width="720">
 
+## Users
+
+The first account, created right after the database setup, is the **administrator**. Once it
+exists, everyone has to sign in. Administrators add more accounts in **Settings → Users** and give
+each one a role:
+
+| Role | Can do |
+| --- | --- |
+| **Administrator** | Everything: printers, backups, statistics, and managing accounts |
+| **User** | Design, import and print labels, and see their own print history |
+
+**Templates are private by default:** only the account that created, imported or duplicated a
+template sees it. Its owner can make it **public** (the Private/Public switch in the editor), and
+then every account sees it and can print it or duplicate it into a private copy of their own; only
+the owner and administrators can change it. Administrators see and change every template. The
+templates page filters by **Mine · Public · All** and marks whose each template is. Templates from
+before accounts existed stay shared with everyone, and only administrators can change them.
+Images in a private template can't be loaded by other accounts either.
+
+**Print history:** each account sees its own print jobs; administrators see everyone's. The
+dashboard's label and tape totals cover the whole installation.
+
+A new account gets a temporary password, shown once to the administrator who created it. On first
+sign-in, the account has to choose its own password. Everyone can change their own password from
+the account menu in the header; that signs them out on their other devices. Administrators can
+change an account's role or name, disable it (its sessions end straight away), reset its password
+to a new temporary one, or delete it; deleting asks whether its templates move to you (staying
+private) or are deleted with it. Tapeory always keeps at least one active administrator. The
+print history shows who printed each job.
+
+**Upgrading from 0.3 or older:** existing installs stay open, as before, until someone creates
+the first account. A banner at the top of every page offers to create it.
+
+**Locked out?** If the only administrator's password is lost, set a temporary one on the server:
+
+```bash
+docker exec tapeory tapeory reset-password <user name>
+```
+
+Sign in with the printed password; Tapeory then asks for a new one. Sessions are cookies that last
+30 days with "Stay signed in", or until the browser closes. After 5 wrong passwords for an account
+(or 20 from one address), signing in pauses for 15 minutes.
+
 ## Upgrading
 
 **Settings → About** shows next to the version whether a newer release is out. To find out, the
@@ -261,12 +310,15 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
 **Settings** has two backup cards. Both save their backups on the server, in the storage folder's
 `backups/` folder. Each backup can be downloaded, restored, or deleted there.
 
-<img src="docs/screenshots/settings.png" alt="Settings page with the backup cards and the update check next to the version" width="720">
+<img src="docs/screenshots/settings.png" alt="Settings page with the backup cards, user management and the update check" width="720">
 
 | Card | What it contains | Restoring it |
 | --- | --- | --- |
 | **Database backup** | A full SQL dump of the database: templates with all versions, printers, print history, settings | Replaces the whole database. Any newer migrations are applied afterwards, so backups from older Tapeory versions work too. |
 | **Label backup** | A `.zip` of all templates (current version, fields, group, tags, status) plus their images, preview images and original `.lbx` files | Replaces all current templates with the ones in the backup. Print history is kept. |
+
+Restoring a database backup also restores the accounts it contains (or none, for a backup from
+before 0.4), so sign in with an account from the backup afterwards.
 
 Before every restore, Tapeory backs up the current state and lists it as "Before restore", so you
 can undo a restore by restoring that backup. The database dump doesn't contain the files in the
@@ -352,8 +404,11 @@ version (Settings page), your printer model, and the container log.
 - **`.lbx` import** converts text, merge fields, images, barcodes, rectangles, ellipses, lines,
   and frames (as simple borders). Free-form shapes and a few rare barcode types are reported as
   warnings instead of being converted.
-- **No user accounts or authentication.** Anyone who can reach the port can use the app, so
-  keep it on a trusted network or behind a reverse proxy that adds authentication.
+- **Sign-in is built in, but runs over plain HTTP** unless you put Tapeory behind a reverse proxy
+  with HTTPS; on an untrusted network, use one. Until the first account is created, anyone who
+  can reach the port can use the app.
+- **Two roles only** (administrator and user). Templates are private or public, with no sharing
+  with just some accounts; printers are shared by all.
 
 ## Local development
 
@@ -397,7 +452,7 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.3.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.4.0 && git push --tags`.
 
 ### Tech stack
 

@@ -2,6 +2,29 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { EditorPage } from "./EditorPage";
+import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
+
+const signedIn: AuthContextValue = {
+  hasUsers: true,
+  user: { id: 2, userName: "ada", displayName: "Ada", role: "User", mustChangePassword: false },
+  openAccess: false,
+  canAdminister: false,
+  signOut: async () => {},
+  startCreatingAccount: () => {},
+  refresh: async () => {},
+};
+
+function renderSignedIn(path: string) {
+  return render(
+    <AuthContext.Provider value={signedIn}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/templates/:id/edit" element={<EditorPage />} />
+        </Routes>
+      </MemoryRouter>
+    </AuthContext.Provider>,
+  );
+}
 
 const mockNavigate = vi.fn();
 
@@ -248,5 +271,48 @@ describe("EditorPage", () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(await screen.findByText("Unsupported content type.")).toBeInTheDocument();
+  });
+  it("opens someone else's public template read-only, with a way to duplicate it", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/templates/5/duplicate") && init?.method === "POST") return jsonResponse({ ...templateDetail, id: 9 });
+      if (url.endsWith("/templates/5")) return jsonResponse({ ...templateDetail, isPublic: true, ownerName: "Grace", canEdit: false });
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderSignedIn("/templates/5/edit");
+
+    expect(await screen.findByText(/This is Grace's template/)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Shipping Label")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Text" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Visibility" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate to edit" }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/templates/9/edit"));
+  });
+
+  it("lets the owner make a template public", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/templates/5/visibility")) {
+        return jsonResponse({ ...templateDetail, isPublic: JSON.parse(String(init?.body)).isPublic, ownerName: "Ada", canEdit: true });
+      }
+      if (url.endsWith("/templates/5")) return jsonResponse({ ...templateDetail, isPublic: false, ownerName: "Ada", canEdit: true, isMine: true });
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderSignedIn("/templates/5/edit");
+
+    const visibility = await screen.findByRole("group", { name: "Visibility" });
+    expect(screen.getByRole("button", { name: "Private" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Public" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Public" })).toHaveAttribute("aria-pressed", "true"));
+    expect(visibility).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/visibility"));
+    expect(call?.[1]?.method).toBe("PUT");
   });
 });

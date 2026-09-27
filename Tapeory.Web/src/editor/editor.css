@@ -332,3 +332,8 @@
     width: 100%;
   }
 }
+
+/* Private / public switch next to the Print button */
+.editor-visibility {
+  align-self: flex-end;
+}

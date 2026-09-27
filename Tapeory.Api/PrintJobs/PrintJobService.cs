@@ -1,3 +1,4 @@
+using Tapeory.Api.Templates;
 using System.Text.Json;
 using Tapeory.Api.Barcodes;
 using Tapeory.Api.Data;
@@ -9,11 +10,39 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Tapeory.Api.PrintJobs;
 
-public sealed class PrintJobService(AppDbContext db, FileStorageService fileStorage, ILogger<PrintJobService> logger)
+public sealed class PrintJobService(
+    AppDbContext db,
+    FileStorageService fileStorage,
+    ILogger<PrintJobService> logger,
+    IHttpContextAccessor? http = null)
 {
-    public async Task<CreatePrintJobResult> CreateAsync(CreatePrintJobRequest request, CancellationToken cancellationToken)
+    /// <summary>The signed-in account. Outside a request (background work) it sees everything.</summary>
+    private TemplateAccess Viewer => TemplateAccess.For(http?.HttpContext?.User ?? new System.Security.Claims.ClaimsPrincipal());
+
+    /// <summary>The print history the signed-in account may see: users their own jobs,
+    /// administrators all of them (including jobs from before accounts existed).</summary>
+    private IQueryable<PrintJob> VisibleJobs()
     {
-        var template = await db.Templates
+        var viewer = Viewer;
+        var jobs = db.PrintJobs.Where(job => job.DeletedAt == null);
+        return viewer.IsAdmin ? jobs : jobs.Where(job => job.PrintedByUserId == viewer.UserId);
+    }
+
+    /// <summary>The rendered label of a print job item, if the signed-in account may see the job.</summary>
+    public Task<UploadedFile?> GetItemPreviewFileAsync(int itemId, CancellationToken cancellationToken) =>
+        VisibleJobs()
+            .SelectMany(job => job.Items)
+            .Where(item => item.Id == itemId)
+            .Select(item => item.RenderedImageFile)
+            .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<CreatePrintJobResult> CreateAsync(
+        CreatePrintJobRequest request,
+        CancellationToken cancellationToken,
+        PrintAuthor? author = null)
+    {
+        // Someone else's private template can't be printed; it answers as if it didn't exist.
+        var template = await Viewer.Visible(db.Templates)
             .Include(t => t.CurrentVersion!)
                 .ThenInclude(version => version.Fields)
             .SingleOrDefaultAsync(t => t.Id == request.TemplateId && t.DeletedAt == null, cancellationToken);
@@ -115,6 +144,8 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
             TemplateVersionNumber = template.CurrentVersion.VersionNumber,
             PrinterId = printer?.Id,
             PrinterName = printer?.Name ?? request.PrinterName,
+            PrintedByUserId = author?.UserId,
+            PrintedByName = author?.Name,
             Quality = quality,
             CutMode = cutMode
         };
@@ -239,14 +270,15 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
     }
 
     private IQueryable<PrintJob> PrintJobsWithRenderedFiles() =>
-        db.PrintJobs
-            .Where(job => job.DeletedAt == null)
+        VisibleJobs()
             .Include(job => job.Items)
                 .ThenInclude(item => item.RenderedImageFile);
 
     private IQueryable<PrintJob> PrintJobsWithDetails() =>
-        db.PrintJobs
-            .Where(job => job.DeletedAt == null)
+        VisibleJobs()
             .Include(job => job.Template)
             .Include(job => job.Items);
 }
+
+/// <summary>The signed-in account submitting a print job.</summary>
+public sealed record PrintAuthor(int UserId, string Name);

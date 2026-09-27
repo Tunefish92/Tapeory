@@ -27,4 +27,8 @@ public sealed class UploadedFile
     public required string RelativePath { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>The account that uploaded it. Others only get an image that's part of a template
+    /// they can see; null for files from before accounts existed, or restored from a backup.</summary>
+    public int? OwnerUserId { get; set; }
 }

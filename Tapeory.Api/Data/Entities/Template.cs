@@ -38,4 +38,14 @@ public sealed class Template
     /// print history and statistics (which need each job's label size) stay intact, and so jobs
     /// already queued still print; everywhere else the template no longer exists.</summary>
     public DateTimeOffset? DeletedAt { get; set; }
+
+    /// <summary>The account that created it; null for templates from before accounts existed
+    /// (shown as shared).</summary>
+    public int? OwnerUserId { get; set; }
+
+    public User? Owner { get; set; }
+
+    /// <summary>Visible to every account. Private templates are only seen by their owner and
+    /// administrators.</summary>
+    public bool IsPublic { get; set; }
 }

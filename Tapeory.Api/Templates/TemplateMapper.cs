@@ -32,7 +32,8 @@ public static class TemplateMapper
         PreviewImageUrl(version.PreviewImageFileId),
         version.CreatedAt);
 
-    public static TemplateSummaryResponse ToSummary(Template template)
+    /// <param name="access">The viewer, for <c>CanEdit</c>; omitted, the viewer may edit.</param>
+    public static TemplateSummaryResponse ToSummary(Template template, TemplateAccess? access = null)
     {
         var current = template.CurrentVersion
             ?? throw new InvalidOperationException($"Template {template.Id} has no current version loaded.");
@@ -50,10 +51,14 @@ public static class TemplateMapper
             PreviewImageUrl(current.PreviewImageFileId),
             SourceLbxUrl(template),
             template.CreatedAt,
-            template.UpdatedAt);
+            template.UpdatedAt,
+            template.IsPublic,
+            template.Owner?.DisplayName,
+            access?.CanEdit(template) ?? true,
+            access?.UserId is { } userId && template.OwnerUserId == userId);
     }
 
-    public static TemplateDetailResponse ToDetail(Template template)
+    public static TemplateDetailResponse ToDetail(Template template, TemplateAccess? access = null)
     {
         var current = template.CurrentVersion
             ?? throw new InvalidOperationException($"Template {template.Id} has no current version loaded.");
@@ -69,7 +74,11 @@ public static class TemplateMapper
             [.. template.ConversionWarnings.Select(warning => warning.Message)],
             template.CreatedAt,
             template.UpdatedAt,
-            ToVersionResponse(current));
+            ToVersionResponse(current),
+            template.IsPublic,
+            template.Owner?.DisplayName,
+            access?.CanEdit(template) ?? true,
+            access?.UserId is { } userId && template.OwnerUserId == userId);
     }
 
     public static NativeTemplateExport ToExport(Template template)

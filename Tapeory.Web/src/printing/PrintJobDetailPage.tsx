@@ -76,6 +76,12 @@ export function PrintJobDetailPage() {
         </dd>
         <dt>{t("printing.printJobDetail.printer")}</dt>
         <dd>{job.printerName ?? "—"}</dd>
+        {job.printedBy && (
+          <>
+            <dt>{t("printing.printJobDetail.printedBy")}</dt>
+            <dd>{job.printedBy}</dd>
+          </>
+        )}
         {job.quality && (
           <>
             <dt>{t("printing.quality.label")}</dt>

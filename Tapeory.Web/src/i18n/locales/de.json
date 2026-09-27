@@ -134,7 +134,17 @@
     "duplicate": "Duplizieren",
     "copyName": "{{name}} (Kopie)",
     "duplicated": "„{{name}}“ erstellt.",
-    "duplicateErrorFallback": "Die Vorlage konnte nicht dupliziert werden."
+    "duplicateErrorFallback": "Die Vorlage konnte nicht dupliziert werden.",
+    "public": "Öffentlich",
+    "private": "Privat",
+    "byOwner": "von {{name}}",
+    "shared": "geteilt",
+    "ownershipLabel": "Vorlagen anzeigen",
+    "ownership": {
+      "all": "Alle",
+      "mine": "Meine",
+      "public": "Öffentliche"
+    }
   },
   "editor": {
     "metadataName": "Name",
@@ -256,7 +266,11 @@
       "datamatrix": "Data Matrix",
       "pdf417": "PDF417",
       "aztec": "Aztec"
-    }
+    },
+    "visibility": "Sichtbarkeit",
+    "readOnlyOwned": "Das ist eine Vorlage von {{name}}. Du kannst sie drucken oder eine eigene Kopie anlegen; ändern können sie nur {{name}} oder ein Administrator.",
+    "readOnlyShared": "Diese geteilte Vorlage kann nur ein Administrator ändern. Du kannst sie drucken oder eine eigene Kopie anlegen.",
+    "duplicateToEdit": "Zum Bearbeiten duplizieren"
   },
   "printing": {
     "printTemplate": {
@@ -309,7 +323,8 @@
       "keptStillPrinting_one": "{{count}} Auftrag, der noch gedruckt wird, wurde behalten.",
       "keptStillPrinting_other": "{{count}} Aufträge, die noch gedruckt werden, wurden behalten.",
       "deleteErrorFallback": "Der Druckauftrag konnte nicht gelöscht werden.",
-      "templateDeleted": "Vorlage gelöscht"
+      "templateDeleted": "Vorlage gelöscht",
+      "printedBy": "von {{name}}"
     },
     "printJobDetail": {
       "title": "Druckauftrag Nr. {{id}}",
@@ -324,7 +339,8 @@
       "quantity": "Menge: {{count}}",
       "loading": "Druckauftrag wird geladen…",
       "loadErrorFallback": "Druckauftrag konnte nicht geladen werden.",
-      "itemPreviewAlt": "Vorschau von Druckauftragsposition {{id}}"
+      "itemPreviewAlt": "Vorschau von Druckauftragsposition {{id}}",
+      "printedBy": "Gedruckt von"
     },
     "status": {
       "queued": "In Warteschlange",
@@ -476,14 +492,39 @@
     "backupRestore": "Wiederherstellen",
     "backupRestoring": "Wird wiederhergestellt…",
     "backupRestoreConfirm": "Ja, wiederherstellen",
-    "backupRestoreDatabaseConfirmText": "Die gesamte Datenbank durch das Backup vom {{date}} ersetzen? Alle Änderungen seitdem gehen verloren. Der aktuelle Stand wird vorher gesichert, du kannst also zurück.",
+    "backupRestoreDatabaseConfirmText": "Die gesamte Datenbank durch das Backup vom {{date}} ersetzen? Alle Änderungen seitdem gehen verloren. Der aktuelle Stand wird vorher gesichert, du kannst also zurück. Auch die Konten werden wiederhergestellt: Melde dich danach mit einem Konto aus dem Backup an.",
     "backupRestoreLabelsConfirmText": "Alle aktuellen Etikettenvorlagen durch die aus dem Backup vom {{date}} ersetzen? Die aktuellen Vorlagen werden vorher gesichert, du kannst also zurück. Der Druckverlauf bleibt erhalten.",
     "backupRestored": "Backup wiederhergestellt.",
     "backupRestoredLabels": "Backup wiederhergestellt. Wiederhergestellte Vorlagen: {{templates}}.",
     "backupDeleteConfirmText": "Backup vom {{date}} endgültig löschen?",
     "backupDeleteConfirm": "Ja, löschen",
     "backupDeleted": "Backup gelöscht.",
-    "backupError": "Das hat nicht geklappt. Bitte erneut versuchen."
+    "backupError": "Das hat nicht geklappt. Bitte erneut versuchen.",
+    "users": "Benutzer",
+    "usersIntro": "Administratoren verwalten Drucker, Backups, Statistiken und Benutzer. Benutzer gestalten und drucken Etiketten.",
+    "usersLoadError": "Die Benutzer konnten nicht geladen werden.",
+    "usersActionError": "Das hat nicht geklappt. Bitte versuche es noch einmal.",
+    "usersTemporaryPassword": "Temporäres Passwort für {{name}}:",
+    "usersTemporaryHint": "Gib es weiter: Beim ersten Anmelden wird ein eigenes Passwort gewählt. Es wird nicht noch einmal angezeigt.",
+    "usersCopy": "Kopieren",
+    "usersDisplayName": "Anzeigename",
+    "usersDisplayNameOptional": "Anzeigename (optional)",
+    "usersUserName": "Benutzername",
+    "usersRole": "Rolle",
+    "usersDisabled": "Deaktiviert",
+    "usersYou": "(du)",
+    "usersLastLogin": "zuletzt angemeldet {{when}}",
+    "usersNeverSignedIn": "noch nie angemeldet",
+    "usersTemporary": "Temporäres Passwort",
+    "usersResetPassword": "Passwort zurücksetzen",
+    "usersResetConfirm": "{{name}} ein neues temporäres Passwort geben? Die Person wird überall abgemeldet.",
+    "usersDeleteConfirm": "Das Konto von {{name}} löschen? Die Druckaufträge bleiben im Verlauf.",
+    "usersAdd": "Benutzer hinzufügen",
+    "usersDeleteTitle": "{{name}} löschen",
+    "usersDeleteTemplates": "Vorlagen der Person",
+    "usersDeleteTransfer": "An mich übertragen (bleiben privat)",
+    "usersDeleteTemplatesToo": "Ebenfalls löschen",
+    "usersDeleteAction": "Konto löschen"
   },
   "setup": {
     "title": "Willkommen bei Tapeory",
@@ -503,5 +544,37 @@
     "saving": "Datenbank wird eingerichtet…",
     "failedFallback": "Keine Verbindung zur Datenbank möglich.",
     "completed": "Datenbank verbunden. Tapeory ist bereit."
+  },
+  "auth": {
+    "signInTitle": "Anmelden",
+    "signInIntro": "Melde dich mit deinem Tapeory-Konto an.",
+    "userName": "Benutzername",
+    "password": "Passwort",
+    "rememberMe": "Auf diesem Gerät angemeldet bleiben",
+    "signIn": "Anmelden",
+    "signingIn": "Anmelden…",
+    "forgotPassword": "Passwort vergessen? Ein Administrator kann es unter Einstellungen → Benutzer zurücksetzen.",
+    "createTitle": "Konto erstellen",
+    "createIntro": "Dieses erste Konto ist der Administrator: Es verwaltet Drucker, Backups und weitere Benutzer. Sobald es existiert, müssen sich alle anmelden.",
+    "displayNameOptional": "Anzeigename (optional)",
+    "repeatPassword": "Passwort wiederholen",
+    "createNote": "Mindestens 8 Zeichen. Bewahre das Passwort sicher auf: Ohne weiteren Administrator lässt es sich nur auf dem Server zurücksetzen.",
+    "create": "Konto erstellen",
+    "creating": "Konto wird erstellt…",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "changePassword": "Passwort ändern",
+    "saving": "Speichern…",
+    "passwordChanged": "Passwort geändert.",
+    "forcedTitle": "Neues Passwort wählen",
+    "forcedIntro": "Du hast dich mit einem temporären Passwort angemeldet. Wähle ein eigenes, um weiterzumachen.",
+    "signOut": "Abmelden",
+    "passwordTooShort": "Mindestens {{count}} Zeichen.",
+    "passwordsDiffer": "Die Passwörter stimmen nicht überein.",
+    "failedFallback": "Das hat nicht geklappt. Bitte versuche es noch einmal.",
+    "roleAdmin": "Administrator",
+    "roleUser": "Benutzer",
+    "openBanner": "Jeder in deinem Netzwerk kann Tapeory verwenden. Erstelle ein Administratorkonto, damit eine Anmeldung nötig ist.",
+    "openBannerAction": "Konto erstellen"
   }
 }

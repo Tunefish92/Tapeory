@@ -13,7 +13,7 @@
 &#xD;
 Requires a MySQL 8 or MariaDB database, for example Unraid's "mariadb" template. Create an empty database and a user, then enter the connection in the web UI on first start.&#xD;
 &#xD;
-Printing supports 34 Brother P-touch (PT) and QL label printers, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. Tapeory has no user accounts yet, so keep it on a trusted network.</Overview>
+Printing supports 34 Brother P-touch (PT) and QL label printers, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. After the database setup you create the first account, the administrator; more accounts can be added as administrators or users.</Overview>
   <Category>Productivity: Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:8080]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/unraid/tapeory.xml</TemplateURL>

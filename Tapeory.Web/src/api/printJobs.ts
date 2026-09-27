@@ -36,6 +36,8 @@ export interface PrintJobResponse {
   templateVersionNumber: number;
   printerId: number | null;
   printerName: string | null;
+  /** Who submitted the job; null from before accounts existed. */
+  printedBy?: string | null;
   quality?: string;
   cutMode?: string;
   status: string;

@@ -1,3 +1,4 @@
+using Tapeory.Api.Auth;
 using System.IO.Compression;
 using System.Text.Json;
 using Tapeory.Api.Data;
@@ -25,7 +26,8 @@ public sealed class LabelBackupService(
     FileStorageService fileStorage,
     BackupStore store,
     TimeProvider time,
-    ILogger<LabelBackupService> logger)
+    ILogger<LabelBackupService> logger,
+    IHttpContextAccessor? http = null)
 {
     private const string FilesFolder = "files/";
 
@@ -37,6 +39,7 @@ public sealed class LabelBackupService(
             .Include(template => template.CurrentVersion!)
                 .ThenInclude(version => version.Fields)
             .Include(template => template.ConversionWarnings)
+            .Include(template => template.Owner)
             .OrderBy(template => template.Id)
             .ToListAsync(cancellationToken);
 
@@ -150,6 +153,23 @@ public sealed class LabelBackupService(
             var newFileIds = restoredFiles.ToDictionary(pair => pair.Key, pair => pair.Value.Id);
             int? NewFileId(int? oldId) => oldId is { } id && newFileIds.TryGetValue(id, out var newId) ? newId : null;
 
+            // Owners are matched by user name. A template whose owner no longer exists goes to
+            // whoever restores it; without accounts (or an owner), templates are shared.
+            var userIds = (await db.Users.Select(user => new { user.Id, user.UserName }).ToListAsync())
+                .ToDictionary(user => user.UserName, user => user.Id, StringComparer.OrdinalIgnoreCase);
+            var restoringUserId = AuthClaims.UserId(http?.HttpContext?.User ?? new System.Security.Claims.ClaimsPrincipal());
+
+            (int? Owner, bool IsPublic) OwnerOf(LabelBackupTemplate backup)
+            {
+                if (backup.OwnerUserName is null || backup.IsPublic is null)
+                {
+                    return (backup.OwnerUserName is { } name && userIds.TryGetValue(name, out var known) ? known : null, true);
+                }
+
+                var owner = userIds.TryGetValue(backup.OwnerUserName, out var id) ? id : restoringUserId;
+                return owner is null ? (null, true) : (owner, backup.IsPublic.Value);
+            }
+
             // 2. Retire the current templates, like deleting them from the templates page does.
             var now = time.GetUtcNow();
             var current = await db.Templates
@@ -201,7 +221,9 @@ public sealed class LabelBackupService(
                     SourceLbxFileId = NewFileId(backup.SourceLbxFileId),
                     ConversionWarnings = [.. backup.ConversionWarnings.Select(message => new TemplateConversionWarning { Message = message })],
                     CreatedAt = backup.CreatedAt,
-                    UpdatedAt = backup.UpdatedAt
+                    UpdatedAt = backup.UpdatedAt,
+                    OwnerUserId = OwnerOf(backup).Owner,
+                    IsPublic = OwnerOf(backup).IsPublic
                 };
 
                 template.Versions.Add(version);
@@ -277,7 +299,9 @@ public sealed class LabelBackupService(
             template.SourceLbxFileId,
             [.. template.ConversionWarnings.Select(warning => warning.Message)],
             template.CreatedAt,
-            template.UpdatedAt);
+            template.UpdatedAt,
+            template.Owner?.UserName,
+            template.IsPublic);
     }
 
     private void DeleteFiles(IEnumerable<string> relativePaths)

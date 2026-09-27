@@ -623,3 +623,25 @@
     font-size: var(--fs-sm);
   }
 }
+
+/* ==========================================================================
+   Ownership: Mine / Public / All, and the private/public badge
+   ========================================================================== */
+.template-ownership {
+  margin-bottom: 1rem;
+}
+
+.template-access--public {
+  background: var(--color-info-bg);
+  border-color: transparent;
+  color: var(--color-info-text);
+}
+
+.template-access__owner {
+  opacity: 0.85;
+}
+
+.data-grid__title .template-access {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+}
