@@ -103,6 +103,43 @@ describe("PrintersPage", () => {
     ));
   });
 
+  it("offers the supported models in a dropdown, with a text field for other models", async () => {
+    const models = [
+      { name: "PT-P750W", family: "Pt180", network: true, dpi: 180, highResolution: true, twoColor: false, cutModes: ["AutoCut"] },
+      { name: "QL-700", family: "Ql720", network: false, dpi: 300, highResolution: true, twoColor: false, cutModes: ["AutoCut"] },
+    ];
+    let created: Record<string, unknown> | null = null;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/api/printers/models")) return jsonResponse(models);
+        if (url.endsWith("/api/printers") && init?.method === "POST") {
+          created = JSON.parse(String(init.body));
+          return jsonResponse({ ...printerA, id: 3 });
+        }
+        return jsonResponse([]);
+      }),
+    );
+
+    renderPage();
+    await screen.findByText(/no printers configured yet/i);
+    fireEvent.click(screen.getByRole("button", { name: "Add Printer" }));
+
+    const model = screen.getByLabelText("Model");
+    await screen.findByRole("option", { name: "QL-700" });
+    fireEvent.change(model, { target: { value: "QL-700" } });
+    expect(screen.getByText(/QL-700 \(300 dpi\) connects by USB/)).toBeInTheDocument();
+
+    fireEvent.change(model, { target: { value: "__other__" } });
+    fireEvent.change(screen.getByLabelText("Model name"), { target: { value: "Brother PT-P750W" } });
+    expect(screen.getByText(/PT-P750W \(180 dpi\) prints directly/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Desk" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Printer" }));
+    await waitFor(() => expect(created).toMatchObject({ model: "Brother PT-P750W" }));
+  });
+
   it("shows the print server or USB fields depending on the selected connection type", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
 

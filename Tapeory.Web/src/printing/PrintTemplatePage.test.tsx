@@ -203,6 +203,7 @@ describe("PrintTemplatePage", () => {
                   { quality: "Standard", horizontalDpi: 180, verticalDpi: 180 },
                   { quality: "High", horizontalDpi: 360, verticalDpi: 180 },
                 ],
+                cutModes: ["AutoCut", "CutAtEnd", "CutMarks"],
               },
             ],
           } as Response;
@@ -236,6 +237,9 @@ describe("PrintTemplatePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit Print Job" }));
 
     expect(screen.getByLabelText("Cutting")).toHaveValue("AutoCut");
+    // Only the options this printer's model offers.
+    expect(screen.queryByRole("option", { name: "Half cut" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Cut marks" })).toBeInTheDocument();
     await waitFor(() => expect(submitted).toMatchObject({ printerId: 1, quality: "High", cutMode: "AutoCut" }));
   });
 

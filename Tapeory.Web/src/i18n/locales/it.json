@@ -169,7 +169,9 @@
       "backToEditing": "Torna alla modifica",
       "save": "Salva",
       "saving": "Salvataggio…",
-      "publish": "Pubblica"
+      "publish": "Pubblica",
+      "addEllipse": "Aggiungi ellisse",
+      "addBarcode": "Aggiungi codice a barre"
     },
     "properties": {
       "selectPrompt": "Seleziona un oggetto per modificarne le proprietà.",
@@ -220,7 +222,19 @@
       "fitWrap": "A capo automatico",
       "fixedSizeHint": "Il testo viene disegnato alla dimensione scelta e può uscire dal riquadro.",
       "fitShrinkHint": "Il testo mantiene le sue interruzioni di riga e si riduce finché non entra nel riquadro.",
-      "fitWrapHint": "Il testo va a capo sugli spazi e si riduce solo se ancora non entra."
+      "fitWrapHint": "Il testo va a capo sugli spazi e si riduce solo se ancora non entra.",
+      "typeEllipse": "Ellisse",
+      "typeBarcode": "Codice a barre",
+      "barcodeType": "Tipo",
+      "barcodeSource": "Contenuto",
+      "barcodeSourceFixed": "Valore fisso",
+      "barcodeSourceField": "Da un campo",
+      "barcodeValue": "Valore",
+      "barcodeFieldHint": "Il valore si inserisce al momento della stampa. Usa il nome di un campo di testo per stampare lo stesso valore come testo e come codice a barre.",
+      "barcodeShowText": "Mostra il valore sotto le barre",
+      "barcodeSizeHint": "Mantieni i codici abbastanza grandi da essere letti: le barre sono allineate ai punti della stampante, un codice troppo fitto perde dettagli.",
+      "sectionAppearance": "Aspetto",
+      "sectionOptions": "Opzioni"
     },
     "mediaCustom": "Personalizzato · {{size}}",
     "widthFixedByLabel": "Le etichette fustellate hanno una larghezza fissa.",
@@ -230,7 +244,21 @@
       "dkContinuous": "Rotolo continuo DK",
       "dkDieCut": "Etichette fustellate DK"
     },
-    "warningsHeading_many": "{{count}} elementi non sono stati convertiti completamente:"
+    "warningsHeading_many": "{{count}} elementi non sono stati convertiti completamente:",
+    "barcode": {
+      "code128": "Code 128",
+      "code39": "Code 39",
+      "ean13": "EAN-13",
+      "ean8": "EAN-8",
+      "upca": "UPC-A",
+      "upce": "UPC-E",
+      "itf": "ITF (Interleaved 2 of 5)",
+      "codabar": "Codabar",
+      "qr": "Codice QR",
+      "datamatrix": "Data Matrix",
+      "pdf417": "PDF417",
+      "aztec": "Aztec"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -343,6 +371,15 @@
     "name": "Nome",
     "model": "Modello",
     "modelPlaceholder": "es. Brother QL-820NWB",
+    "modelChoose": "Scegli un modello…",
+    "modelOther": "Altro modello…",
+    "modelCustom": "Nome del modello",
+    "modelGroupPt": "P-touch (PT)",
+    "modelGroupQl": "QL",
+    "modelHintEmpty": "Modello Brother P-touch (PT) o QL.",
+    "modelHintNetwork": "{{model}} ({{dpi}} dpi) stampa direttamente in rete: aggiungila tramite indirizzo IP o nome host.",
+    "modelHintUsb": "{{model}} ({{dpi}} dpi) si collega via USB: condividila da un server CUPS e aggiungi qui quel server come server di stampa con il nome della coda.",
+    "modelHintUnknown": "Tapeory non conosce questo modello; stampa come una PT-P750W (180 dpi, nastro fino a 24 mm).",
     "connectionType": "Tipo di connessione",
     "connectionTypeIpAddress": "Indirizzo IP",
     "connectionTypeHostname": "Nome host",
@@ -394,9 +431,7 @@
     "unknownModel": "Modello sconosciuto"
   },
   "footer": {
-    "copyright": "© {{year}} Tapeory",
-    "tagline": "Stampa di etichette self-hosted",
-    "editorPublisher": "Editore e redazione: {{name}}"
+    "copyright": "© {{year}} di"
   },
   "settings": {
     "title": "Impostazioni",
@@ -410,6 +445,12 @@
     "managePrinters": "Gestisci stampanti",
     "about": "Informazioni",
     "version": "Versione",
+    "updateChecking": "Ricerca aggiornamenti…",
+    "updateUpToDate": "Aggiornato",
+    "updateAvailable": "Versione {{version}} disponibile",
+    "updateReleaseNotes": "Novità",
+    "updateCheck": "Cerca aggiornamenti",
+    "updateFailed": "Impossibile cercare aggiornamenti",
     "storage": "Archiviazione",
     "storagePath": "Percorso di archiviazione",
     "apiConnection": "Connessione API",

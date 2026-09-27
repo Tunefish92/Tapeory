@@ -1,5 +1,7 @@
 import type {
+  BarcodeObject,
   DynamicFieldObject,
+  EllipseObject,
   ImageObject,
   LabelDocument,
   LabelObject,
@@ -102,6 +104,44 @@ export function createRectObject(overrides: Partial<RectObject> = {}): RectObjec
     stroke: "#000000",
     strokeWidth: 0.5,
     cornerRadius: 0,
+    ...overrides,
+  };
+}
+
+export function createEllipseObject(overrides: Partial<EllipseObject> = {}): EllipseObject {
+  return {
+    id: generateId(),
+    type: "ellipse",
+    x: 5,
+    y: 5,
+    width: 12,
+    height: 12,
+    rotation: 0,
+    locked: false,
+    hidden: false,
+    fill: "transparent",
+    stroke: "#000000",
+    strokeWidth: 0.5,
+    ...overrides,
+  };
+}
+
+export function createBarcodeObject(overrides: Partial<BarcodeObject> = {}): BarcodeObject {
+  return {
+    id: generateId(),
+    type: "barcode",
+    x: 2,
+    y: 1,
+    width: 30,
+    height: 8,
+    rotation: 0,
+    locked: false,
+    hidden: false,
+    symbology: "code128",
+    data: "12345678",
+    fieldName: "",
+    showText: true,
+    fill: "#000000",
     ...overrides,
   };
 }
@@ -216,23 +256,28 @@ export interface ExtractedField {
   required: boolean;
 }
 
-/** Dynamic-field objects placed on the canvas, deduplicated by field name for the backend's
- * TemplateField list. */
+/** The template fields: every dynamic field on the canvas, plus fields that only a barcode uses,
+ * deduplicated by name. A barcode sharing a dynamic field's name uses that field (and its label
+ * and default), so one value fills both. */
 export function extractFields(document: LabelDocument): ExtractedField[] {
   const seen = new Map<string, ExtractedField>();
 
   for (const object of document.objects) {
-    if (object.type !== "dynamicField") {
-      continue;
-    }
-
-    if (!seen.has(object.fieldName)) {
+    if (object.type === "dynamicField" && !seen.has(object.fieldName)) {
       seen.set(object.fieldName, {
         name: object.fieldName,
         label: object.label || null,
         defaultValue: object.defaultValue || null,
         required: object.required,
       });
+    }
+  }
+
+  for (const object of document.objects) {
+    const name = object.type === "barcode" ? object.fieldName.trim() : "";
+
+    if (object.type === "barcode" && name && !seen.has(name)) {
+      seen.set(name, { name, label: null, defaultValue: object.data || null, required: false });
     }
   }
 

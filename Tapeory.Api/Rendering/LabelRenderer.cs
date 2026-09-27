@@ -1,4 +1,5 @@
 using SkiaSharp;
+using Tapeory.Api.Barcodes;
 using Svg.Skia;
 
 namespace Tapeory.Api.Rendering;
@@ -58,7 +59,7 @@ public sealed class LabelRenderer
         {
             canvas.Clear(SKColors.White);
             canvas.Scale(pxPerMmX, pxPerMmY);
-            DrawObjects(canvas, document, fieldValues, resolveImage);
+            DrawObjects(canvas, document, fieldValues, resolveImage, snapToPixels: true);
         }
 
         return bitmap;
@@ -77,7 +78,7 @@ public sealed class LabelRenderer
         {
             using var canvas = pdfDocument.BeginPage(widthPt, heightPt);
             canvas.Scale(PtPerMm);
-            DrawObjects(canvas, document, fieldValues, resolveImage);
+            DrawObjects(canvas, document, fieldValues, resolveImage, snapToPixels: false);
             pdfDocument.EndPage();
             pdfDocument.Close();
         }
@@ -89,7 +90,8 @@ public sealed class LabelRenderer
         SKCanvas canvas,
         RenderableDocument document,
         IReadOnlyDictionary<string, string> fieldValues,
-        ImageResolver resolveImage)
+        ImageResolver resolveImage,
+        bool snapToPixels)
     {
         foreach (var obj in document.Objects)
         {
@@ -127,6 +129,14 @@ public sealed class LabelRenderer
 
                 case RenderableImage image:
                     DrawImage(canvas, image, resolveImage);
+                    break;
+
+                case RenderableEllipse ellipse:
+                    DrawEllipse(canvas, ellipse);
+                    break;
+
+                case RenderableBarcode barcode:
+                    DrawBarcode(canvas, barcode, barcode.ValueFor(fieldValues), snapToPixels);
                     break;
             }
 
@@ -251,6 +261,149 @@ public sealed class LabelRenderer
             };
             canvas.DrawRoundRect(skRect, radius, radius, strokePaint);
         }
+    }
+
+    private static void DrawEllipse(SKCanvas canvas, RenderableEllipse ellipse)
+    {
+        if (ellipse.Width <= 0 || ellipse.Height <= 0)
+        {
+            return;
+        }
+
+        var bounds = SKRect.Create((float)ellipse.Width, (float)ellipse.Height);
+        var fill = ColorParser.Parse(ellipse.Fill, SKColors.Transparent);
+
+        if (fill.Alpha > 0)
+        {
+            using var fillPaint = new SKPaint { Color = fill, Style = SKPaintStyle.Fill, IsAntialias = true };
+            canvas.DrawOval(bounds, fillPaint);
+        }
+
+        if (ellipse.StrokeWidth > 0)
+        {
+            using var strokePaint = new SKPaint
+            {
+                Color = ColorParser.Parse(ellipse.Stroke, SKColors.Black),
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = (float)ellipse.StrokeWidth,
+                IsAntialias = true
+            };
+            canvas.DrawOval(bounds, strokePaint);
+        }
+    }
+
+    /// <summary>
+    /// Draws the barcode's modules into its box: 1D bars span the height (less the text line when
+    /// shown), 2D modules stay square and are centred. Each module is snapped to a whole number of
+    /// output pixels and drawn without anti-aliasing, so bars keep exactly equal widths at the
+    /// printer's 180 dpi — uneven bars are what makes low-resolution barcodes unreadable (PDF output,
+    /// which has no pixels, keeps the exact size instead). A value
+    /// the symbology can't encode draws a crossed-out box instead.
+    /// </summary>
+    private static void DrawBarcode(SKCanvas canvas, RenderableBarcode barcode, string value, bool snapToPixels)
+    {
+        var width = (float)barcode.Width;
+        var height = (float)barcode.Height;
+
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        var result = BarcodeEncoder.Encode(barcode.Symbology, value);
+
+        if (result.Matrix is not { } matrix)
+        {
+            DrawBarcodePlaceholder(canvas, width, height);
+            return;
+        }
+
+        var matrixTransform = canvas.TotalMatrix;
+        var pxPerUnit = MathF.Sqrt(matrixTransform.ScaleX * matrixTransform.ScaleX + matrixTransform.SkewY * matrixTransform.SkewY);
+        var textHeight = !matrix.IsTwoDimensional && barcode.ShowText ? BarcodeLayout.TextHeight(height) : 0f;
+        var barsHeight = height - textHeight;
+
+        var fitColumns = width / matrix.Columns;
+        var fitRows = matrix.IsTwoDimensional ? barsHeight / matrix.Rows : float.MaxValue;
+        var fit = MathF.Min(fitColumns, fitRows);
+        var module = snapToPixels ? Snap(fit, pxPerUnit) : fit;
+        var moduleHeight = matrix.IsTwoDimensional ? module : barsHeight;
+        var left = (width - module * matrix.Columns) / 2f;
+        var top = matrix.IsTwoDimensional ? (barsHeight - module * matrix.Rows) / 2f : 0f;
+
+        using var paint = new SKPaint
+        {
+            Color = ColorParser.Parse(barcode.Fill, SKColors.Black),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = !snapToPixels
+        };
+
+        for (var row = 0; row < matrix.Rows; row++)
+        {
+            var column = 0;
+
+            while (column < matrix.Columns)
+            {
+                if (!matrix.IsDark(column, row))
+                {
+                    column++;
+                    continue;
+                }
+
+                var runStart = column;
+                while (column < matrix.Columns && matrix.IsDark(column, row))
+                {
+                    column++;
+                }
+
+                canvas.DrawRect(
+                    SKRect.Create(left + runStart * module, top + row * moduleHeight, (column - runStart) * module, moduleHeight),
+                    paint);
+            }
+        }
+
+        if (textHeight > 0)
+        {
+            DrawBarcodeText(canvas, BarcodeLayout.DisplayText(barcode.Symbology, value), width, barsHeight, textHeight, barcode.Fill);
+        }
+    }
+
+    /// <summary>The largest whole number of output pixels that fits, in document units; below
+    /// one pixel per module there's nothing to snap to.</summary>
+    private static float Snap(float size, float pxPerUnit)
+    {
+        var pixels = MathF.Floor(size * pxPerUnit);
+        return pixels >= 1 ? pixels / pxPerUnit : size;
+    }
+
+    private static void DrawBarcodeText(SKCanvas canvas, string text, float width, float top, float height, string fill)
+    {
+        using var typeface = FontResolver.Typeface("Arial", bold: false);
+        var fontSize = height * BarcodeLayout.TextSizeRatio;
+        using var font = CreateFont(typeface, fontSize);
+        var measured = font.MeasureText(text);
+
+        if (measured > width && measured > 0)
+        {
+            font.Size = fontSize * width / measured;
+        }
+
+        using var paint = new SKPaint { Color = ColorParser.Parse(fill, SKColors.Black), IsAntialias = true };
+        canvas.DrawText(text, width / 2f, top + height * 0.85f, SKTextAlign.Center, font, paint);
+    }
+
+    private static void DrawBarcodePlaceholder(SKCanvas canvas, float width, float height)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(0x99, 0x99, 0x99),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = MathF.Min(width, height) * 0.03f,
+            IsAntialias = true
+        };
+        canvas.DrawRect(SKRect.Create(width, height), paint);
+        canvas.DrawLine(0, 0, width, height, paint);
+        canvas.DrawLine(width, 0, 0, height, paint);
     }
 
     private static void DrawLine(SKCanvas canvas, RenderableLine line)

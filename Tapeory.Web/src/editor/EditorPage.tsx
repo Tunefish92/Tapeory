@@ -13,6 +13,8 @@ import {
   addObject,
   createDynamicFieldObject,
   createImageObject,
+  createBarcodeObject,
+  createEllipseObject,
   createLineObject,
   createRectObject,
   createTextObject,
@@ -137,6 +139,8 @@ export function EditorPage() {
       dynamicField: createDynamicFieldObject,
       rect: createRectObject,
       line: createLineObject,
+      ellipse: createEllipseObject,
+      barcode: createBarcodeObject,
     }[type];
 
     const object = factory();
@@ -377,6 +381,7 @@ export function EditorPage() {
             onDelete={handleDeleteSelected}
             onDuplicate={handleDuplicateSelected}
             onReorder={handleReorder}
+            fieldNames={extractFields(history.value).map((field) => field.name)}
           />
         )}
       </div>

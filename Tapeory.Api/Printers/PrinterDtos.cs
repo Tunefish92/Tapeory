@@ -45,10 +45,17 @@ public sealed record PrinterResponse(
     string? LastErrorMessage,
     // The print resolutions this model supports, as Brother documents them; always at least Standard.
     List<PrintResolutionResponse> Resolutions,
+    // The cutting options this model offers, e.g. no half cut on QL printers.
+    List<string> CutModes,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
 public sealed record PrintResolutionResponse(string Quality, int HorizontalDpi, int VerticalDpi);
+
+/// <summary>A printer model Tapeory knows, for the printer form's suggestions.</summary>
+/// <param name="Network">Can be printed to directly; otherwise through a CUPS server's queue.</param>
+public sealed record PrinterModelResponse(
+    string Name, string Family, bool Network, int Dpi, bool HighResolution, bool TwoColor, List<string> CutModes);
 
 /// <param name="LoadedTapeMm">The tape the printer reports loaded, when it says (directly
 /// connected printers with SNMP).</param>

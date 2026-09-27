@@ -60,6 +60,7 @@
 
 .settings-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin: 0;
@@ -84,6 +85,22 @@
   font-family: var(--font-heading);
   font-weight: 500;
   word-break: break-all;
+}
+
+/* Version, with the update check beside it */
+.settings-row dd.settings-version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  word-break: normal;
+}
+
+.settings-version__status {
+  color: var(--color-text-muted);
+  font-family: var(--font-body, inherit);
+  font-weight: 400;
 }
 
 .settings-section--wide {

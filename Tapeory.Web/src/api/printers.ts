@@ -11,6 +11,20 @@ export interface PrintResolution {
   verticalDpi: number;
 }
 
+/** Cutting options, as the server names them (see api/printJobs CutMode). */
+export type PrinterCutMode = "AutoCut" | "HalfCut" | "CutAtEnd" | "ChainPrinting" | "CutMarks";
+
+/** A Brother model Tapeory knows. `network` models print directly; others through a CUPS queue. */
+export interface PrinterModelResponse {
+  name: string;
+  family: string;
+  network: boolean;
+  dpi: number;
+  highResolution: boolean;
+  twoColor: boolean;
+  cutModes: PrinterCutMode[];
+}
+
 export interface PrinterResponse {
   id: number;
   name: string;
@@ -30,6 +44,8 @@ export interface PrinterResponse {
   lastConnectionCheckedAt: string | null;
   lastErrorMessage: string | null;
   resolutions: PrintResolution[];
+  /** The cutting options this printer's model offers. */
+  cutModes?: PrinterCutMode[];
   createdAt: string;
   updatedAt: string;
 }
@@ -138,6 +154,11 @@ export async function setDefaultPrinter(id: number): Promise<void> {
 
 export async function testPrinterConnection(id: number): Promise<TestConnectionResponse> {
   const response = await fetch(`${API_BASE_URL}/printers/${id}/test-connection`, { method: "POST" });
+  return parseJsonOrThrow(response);
+}
+
+export async function listPrinterModels(): Promise<PrinterModelResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/printers/models`);
   return parseJsonOrThrow(response);
 }
 

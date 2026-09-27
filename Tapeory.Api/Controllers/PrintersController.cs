@@ -11,8 +11,9 @@ namespace Tapeory.Api.Controllers;
 public sealed class PrintersController(
     PrinterService printers,
     PrinterConnectionTester connectionTester,
-    BrotherPtPrinterDriver driver,
+    BrotherPrinterDriver driver,
     IPrinterStatusReader statusReader,
+    IppClient ipp,
     LabelRenderer renderer) : ControllerBase
 {
     private const int MaxNameLength = 200;
@@ -24,6 +25,16 @@ public sealed class PrintersController(
         var results = await printers.ListAsync(cancellationToken);
         return Ok(results.Select(PrinterMapper.ToResponse));
     }
+
+    [HttpGet("models")]
+    public IActionResult GetModels() => Ok(BrotherCatalog.Models.Select(model => new PrinterModelResponse(
+        model.Name,
+        model.Family.ToString(),
+        model.Network,
+        model.Dpi,
+        model.HighResolution,
+        model.TwoColor,
+        PrinterCapabilities.CutModes(model.Name).Select(mode => mode.ToString()).ToList())));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetPrinter(int id, CancellationToken cancellationToken)
@@ -118,13 +129,39 @@ public sealed class PrintersController(
             : new PrinterStatusResponse(true, status.LoadedTapeMm, status.Display.Trim(), status.BlockingError));
     }
 
-    /// <summary>Only a printer reached directly is the device SNMP answers for; behind a print
-    /// server it would be the server.</summary>
-    private Task<PrinterStatusSnapshot?> ReadStatusAsync(Printer printer, CancellationToken cancellationToken) =>
-        printer.ConnectionType is PrinterConnectionType.IpAddress or PrinterConnectionType.Hostname
-        && PrinterNetworkResolver.Resolve(printer) is { } target
-            ? statusReader.ReadAsync(target.Host, cancellationToken)
-            : Task.FromResult<PrinterStatusSnapshot?>(null);
+    /// <summary>The printer's own status over SNMP: directly for a printer reached by address, or,
+    /// behind a CUPS queue, at the device address the queue prints to. A raw print server without
+    /// a queue, or a queue whose printer has no network address, can't be asked.</summary>
+    private async Task<PrinterStatusSnapshot?> ReadStatusAsync(Printer printer, CancellationToken cancellationToken)
+    {
+        if (PrinterNetworkResolver.Resolve(printer) is not { } target)
+        {
+            return null;
+        }
+
+        if (printer.ConnectionType is PrinterConnectionType.IpAddress or PrinterConnectionType.Hostname)
+        {
+            return await statusReader.ReadAsync(target.Host, cancellationToken);
+        }
+
+        if (printer is not { ConnectionType: PrinterConnectionType.PrintServer, QueueName: { } queue })
+        {
+            return null;
+        }
+
+        try
+        {
+            var attributes = await ipp.GetPrinterAttributesAsync(IppClient.QueueUri(target.Host, target.Port, queue), cancellationToken);
+            return IppClient.DeviceHost(attributes.Text("device-uri")) is { } host
+                ? await statusReader.ReadAsync(host, cancellationToken)
+                : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidDataException
+                                       or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Renders a small built-in test label, prints it, and waits until the printer
     /// confirms it came out (or reports why it didn't).</summary>
@@ -140,13 +177,15 @@ public sealed class PrintersController(
 
         var widthMm = printer.LabelMediaWidthMm ?? 50m;
         var heightMm = printer.LabelMediaHeightMm ?? 25m;
-        var testDocument = TestLabel.Build(widthMm, heightMm);
-        var resolution = PrinterCapabilities.Standard;
-        using var label = renderer.RenderBitmap(
-            testDocument, new Dictionary<string, string>(), _ => null, resolution.HorizontalDpi, resolution.VerticalDpi);
+        var model = BrotherCatalog.Find(printer.Model);
+        var testDocument = TestLabel.Build(widthMm, heightMm, model);
+        var resolution = PrinterCapabilities.Resolve(printer.Model, PrintQuality.Standard);
+        var (label, media) = BrotherLabelRaster.Render(
+            renderer, testDocument, new Dictionary<string, string>(), _ => null, model, resolution);
 
+        using var _ = label;
         var result = await driver.PrintAsync(
-            printer, [label], BrotherPtTape.ForLabelHeight(heightMm), resolution, CutMode.AutoCut,
+            printer, [label], media, resolution, PrinterCapabilities.CutModes(printer.Model)[0],
             _ => Task.CompletedTask, cancellationToken);
         await printers.RecordConnectionResultAsync(
             printer, new ConnectionTestResult(result.IsSuccess, result.ErrorMessage), cancellationToken);
@@ -188,6 +227,16 @@ public sealed class PrintersController(
         if (port is < 1 or > 65535)
         {
             return "Port must be between 1 and 65535.";
+        }
+
+        // A common mix-up: pasting a URL or CUPS device address (socket://…, ipp://…/printers/…).
+        foreach (var host in new[] { isIpOrHostname ? address : null, parsedType == PrinterConnectionType.PrintServer ? printServerAddress : null })
+        {
+            if (host is not null && (host.Contains("://") || host.Contains('/') || host.Trim().Contains(' ')))
+            {
+                return $"Enter just the host name or IP address (e.g. 10.0.0.10), not '{host.Trim()}'. "
+                       + "The port and, for a CUPS server, the queue name have their own fields.";
+            }
         }
 
         if (queueName is { Length: > MaxQueueNameLength } || queueName?.IndexOfAny(['/', '?', '#']) >= 0)

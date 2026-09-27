@@ -44,6 +44,22 @@ public sealed class IppClient(HttpClient http)
 
     private int _requestId;
 
+    /// <summary>The printer's network host from a CUPS device URI (socket://BRW…:9100,
+    /// ipp://10.0.0.184/ipp, lpd://…), or null when it isn't one Tapeory can reach directly: USB,
+    /// file, and dnssd:// (a Bonjour service name, not a host).</summary>
+    public static string? DeviceHost(string? deviceUri)
+    {
+        if (string.IsNullOrWhiteSpace(deviceUri) || !Uri.TryCreate(deviceUri.Trim(), UriKind.Absolute, out var uri))
+        {
+            return null;
+        }
+
+        return uri.Scheme.ToLowerInvariant() is "socket" or "ipp" or "ipps" or "http" or "https" or "lpd"
+               && uri.Host.Length > 0
+            ? uri.Host
+            : null;
+    }
+
     public static Uri QueueUri(string host, int port, string queue) =>
         new($"http://{host}:{port}/printers/{Uri.EscapeDataString(queue)}");
 
@@ -76,7 +92,7 @@ public sealed class IppClient(HttpClient http)
         request.AddKeywords(
             "requested-attributes",
             "printer-state", "printer-state-message", "printer-state-reasons", "printer-is-accepting-jobs",
-            "document-format-supported", "printer-make-and-model");
+            "document-format-supported", "printer-make-and-model", "device-uri");
         return SendAsync(queueUri, request, null, cancellationToken);
     }
 

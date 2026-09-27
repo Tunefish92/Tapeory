@@ -135,7 +135,7 @@ public sealed class PrintJobsControllerTests(TapeoryWebApplicationFactory factor
 
     [Theory]
     [InlineData("Brother PT-P750W", "High", HttpStatusCode.Created)]
-    [InlineData("Brother PT-H110", "High", HttpStatusCode.BadRequest)]
+    [InlineData("Brother PT-P700", "High", HttpStatusCode.BadRequest)]
     [InlineData("Brother PT-P750W", "Ultra", HttpStatusCode.BadRequest)]
     public async Task CreatePrintJob_AcceptsOnlyAQualityThePrinterSupports(
         string model, string quality, HttpStatusCode expected)

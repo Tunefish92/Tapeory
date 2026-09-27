@@ -169,7 +169,9 @@
       "backToEditing": "Retour à l’édition",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
-      "publish": "Publier"
+      "publish": "Publier",
+      "addEllipse": "Ajouter une ellipse",
+      "addBarcode": "Ajouter un code-barres"
     },
     "properties": {
       "selectPrompt": "Sélectionnez un objet pour modifier ses propriétés.",
@@ -220,7 +222,19 @@
       "fitWrap": "Retour à la ligne",
       "fixedSizeHint": "Le texte est dessiné à la taille choisie et peut dépasser du cadre.",
       "fitShrinkHint": "Le texte garde ses retours à la ligne et rétrécit jusqu’à tenir dans le cadre.",
-      "fitWrapHint": "Le texte passe à la ligne aux espaces et ne rétrécit que s’il ne tient toujours pas."
+      "fitWrapHint": "Le texte passe à la ligne aux espaces et ne rétrécit que s’il ne tient toujours pas.",
+      "typeEllipse": "Ellipse",
+      "typeBarcode": "Code-barres",
+      "barcodeType": "Type",
+      "barcodeSource": "Contenu",
+      "barcodeSourceFixed": "Valeur fixe",
+      "barcodeSourceField": "Depuis un champ",
+      "barcodeValue": "Valeur",
+      "barcodeFieldHint": "La valeur est saisie à l’impression. Utilisez le nom d’un champ texte pour imprimer la même valeur en texte et en code-barres.",
+      "barcodeShowText": "Afficher la valeur sous les barres",
+      "barcodeSizeHint": "Gardez les codes-barres assez grands pour être lus : les barres sont alignées sur les points de l’imprimante, un code trop dense perd des détails.",
+      "sectionAppearance": "Apparence",
+      "sectionOptions": "Options"
     },
     "mediaCustom": "Personnalisé · {{size}}",
     "widthFixedByLabel": "Les étiquettes prédécoupées ont une largeur fixe.",
@@ -230,7 +244,21 @@
       "dkContinuous": "Rouleau continu DK",
       "dkDieCut": "Étiquettes prédécoupées DK"
     },
-    "warningsHeading_many": "{{count}} éléments n’ont pas pu être entièrement convertis :"
+    "warningsHeading_many": "{{count}} éléments n’ont pas pu être entièrement convertis :",
+    "barcode": {
+      "code128": "Code 128",
+      "code39": "Code 39",
+      "ean13": "EAN-13",
+      "ean8": "EAN-8",
+      "upca": "UPC-A",
+      "upce": "UPC-E",
+      "itf": "ITF (Interleaved 2 of 5)",
+      "codabar": "Codabar",
+      "qr": "Code QR",
+      "datamatrix": "Data Matrix",
+      "pdf417": "PDF417",
+      "aztec": "Aztec"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -343,6 +371,15 @@
     "name": "Nom",
     "model": "Modèle",
     "modelPlaceholder": "p. ex. Brother QL-820NWB",
+    "modelChoose": "Choisir un modèle…",
+    "modelOther": "Autre modèle…",
+    "modelCustom": "Nom du modèle",
+    "modelGroupPt": "P-touch (PT)",
+    "modelGroupQl": "QL",
+    "modelHintEmpty": "Modèle Brother P-touch (PT) ou QL.",
+    "modelHintNetwork": "{{model}} ({{dpi}} ppp) imprime directement via le réseau : ajoutez-la par adresse IP ou nom d’hôte.",
+    "modelHintUsb": "{{model}} ({{dpi}} ppp) se connecte en USB : partagez-la via un serveur CUPS et ajoutez ce serveur ici comme serveur d’impression avec le nom de la file.",
+    "modelHintUnknown": "Tapeory ne connaît pas ce modèle ; il imprime comme une PT-P750W (180 ppp, ruban jusqu’à 24 mm).",
     "connectionType": "Type de connexion",
     "connectionTypeIpAddress": "Adresse IP",
     "connectionTypeHostname": "Nom d’hôte",
@@ -394,9 +431,7 @@
     "unknownModel": "Modèle inconnu"
   },
   "footer": {
-    "copyright": "© {{year}} Tapeory",
-    "tagline": "Impression d’étiquettes auto-hébergée",
-    "editorPublisher": "Éditeur et responsable de la publication : {{name}}"
+    "copyright": "© {{year}} par"
   },
   "settings": {
     "title": "Paramètres",
@@ -410,6 +445,12 @@
     "managePrinters": "Gérer les imprimantes",
     "about": "À propos",
     "version": "Version",
+    "updateChecking": "Recherche de mises à jour…",
+    "updateUpToDate": "À jour",
+    "updateAvailable": "Version {{version}} disponible",
+    "updateReleaseNotes": "Nouveautés",
+    "updateCheck": "Rechercher des mises à jour",
+    "updateFailed": "Impossible de rechercher des mises à jour",
     "storage": "Stockage",
     "storagePath": "Chemin de stockage",
     "apiConnection": "Connexion à l’API",

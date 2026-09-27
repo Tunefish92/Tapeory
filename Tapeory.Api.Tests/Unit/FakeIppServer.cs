@@ -41,13 +41,19 @@ internal sealed class FakeIppServer : HttpMessageHandler
 /// <summary>Builds IPP response bodies.</summary>
 internal static class IppResponses
 {
-    public static byte[] Printer(int state, bool acceptingJobs, string message = "") => Build(0x0000, writer =>
-    {
-        writer.Enum("printer-state", state);
-        writer.Boolean("printer-is-accepting-jobs", acceptingJobs);
-        writer.Keyword("printer-state-reasons", state == 5 ? "paused" : "none");
-        writer.Text("printer-state-message", message);
-    });
+    public static byte[] Printer(int state, bool acceptingJobs, string message = "", string? deviceUri = null) =>
+        Build(0x0000, writer =>
+        {
+            writer.Enum("printer-state", state);
+            writer.Boolean("printer-is-accepting-jobs", acceptingJobs);
+            writer.Keyword("printer-state-reasons", state == 5 ? "paused" : "none");
+            writer.Text("printer-state-message", message);
+
+            if (deviceUri is not null)
+            {
+                writer.Uri("device-uri", deviceUri);
+            }
+        });
 
     public static byte[] Job(int jobId, int state, string message = "") => Build(0x0000, writer =>
     {
@@ -80,6 +86,8 @@ internal static class IppResponses
         public void Boolean(string name, bool value) => Attribute(0x22, name, [value ? (byte)1 : (byte)0]);
 
         public void Keyword(string name, string value) => Attribute(0x44, name, Encoding.UTF8.GetBytes(value));
+
+        public void Uri(string name, string value) => Attribute(0x45, name, Encoding.UTF8.GetBytes(value));
 
         public void Text(string name, string value) => Attribute(0x41, name, Encoding.UTF8.GetBytes(value));
 

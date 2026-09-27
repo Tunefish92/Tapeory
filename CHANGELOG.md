@@ -8,6 +8,53 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-27
+
+Barcodes, QL printers and 360 dpi P-touch printers. QL and PT-P900-series printing is built from
+Brother's official command references; only the PT-P750W has been tested on real hardware so far.
+
+### Added
+- Barcodes and QR codes in the editor: Code 128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, ITF,
+  Codabar, QR, Data Matrix, PDF417, and Aztec. A barcode encodes a fixed value or a template
+  field filled in when printing (share a text field's name to print the same value as text and
+  as a barcode). 1D barcodes can show their value under the bars, EAN/UPC with the check digit.
+  Encoding happens on the server (ZXing.Net), so the editor shows exactly what prints; bars are
+  snapped to the printer's dots so they stay scannable at 180 dpi.
+- A value a barcode can't encode (say, letters in an EAN-13) is reported when the print job is
+  submitted and in the editor, instead of printing a broken code.
+- Brother QL label printers: all 21 QL models (QL-500 through QL-1115NWB) on DK continuous
+  rolls, die-cut and round labels up to 104 mm, with 600 dpi high resolution, and black/red
+  printing on DK-22251 with the QL-800 series. Die-cut templates designed the other way round are
+  turned to fit.
+- 360 dpi P-touch printers (PT-P900, PT-P900W, PT-P950NW, PT-P910BT) with TZe tape up to 36 mm and
+  720 dpi high resolution, and the PT-E310BT, PT-E510 and PT-E560BT. Heat-shrink tube printing on
+  every P-touch model that takes it.
+- A printer model table from Brother's Raster Command References: each model gets its own print
+  head, media, commands, resolutions and cutting options (no half cut or chain printing on QL
+  printers, cut marks only without a cutter). The printer form lists the models and says
+  whether one prints over the network or through a CUPS server; [docs/printers.md](docs/printers.md)
+  lists every PT and QL model Brother makes and whether Tapeory supports it.
+- Ellipses in the editor.
+- Tape detection and printer-confirmed printing through a CUPS queue: Tapeory reads the queue's
+  device address (socket://, ipp://, lpd://…) and asks the printer itself over SNMP. A wrong tape
+  or a printer error stops the job before it reaches CUPS, a printer that stops mid-job gets the
+  job cancelled on the server, and a job completes when the printer's label counter confirms it.
+- Printer address fields reject a URL or CUPS device address (like `socket://10.0.0.184:9100`)
+  with a hint to enter just the host name or IP address.
+- `.lbx` import converts barcodes (a merged barcode becomes a field), rectangles, rounded
+  rectangles, ellipses, and lines and polylines (P-touch's `draw:poly`), with their outline and fill; decorative frames become simple
+  borders. Free-form shapes and rare barcode types are reported as warnings.
+- Update check: Settings → About shows next to the version whether a newer release is out on
+  GitHub, with a link to its release notes. The server asks GitHub at most every six hours.
+
+### Changed
+- The footer shows just the copyright, "© <year> by Tunefish", linking to Tunefish's GitHub
+  repositories.
+- New screenshots in the README, on Docker Hub and in the Unraid template.
+
+### Fixed
+- The DK-11209 media preset was turned sideways: it runs 62 mm across the roll with 29 mm long labels.
+
 ## [0.2.1] - 2026-09-27
 
 ### Added
@@ -144,6 +191,7 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Tunefish92/Tapeory/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Tunefish92/Tapeory/releases/tag/v0.2.0

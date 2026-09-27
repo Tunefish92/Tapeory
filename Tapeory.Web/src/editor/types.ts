@@ -64,6 +64,44 @@ export interface LineObject extends BaseObject {
   strokeWidth: number;
 }
 
+export interface EllipseObject extends BaseObject {
+  type: "ellipse";
+  width: number;
+  height: number;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+}
+
+/** Barcode types the server can encode (see Tapeory.Api/Barcodes/BarcodeEncoder.cs). */
+export type BarcodeSymbology =
+  | "code128"
+  | "code39"
+  | "ean13"
+  | "ean8"
+  | "upca"
+  | "upce"
+  | "itf"
+  | "codabar"
+  | "qr"
+  | "datamatrix"
+  | "pdf417"
+  | "aztec";
+
+export interface BarcodeObject extends BaseObject {
+  type: "barcode";
+  symbology: BarcodeSymbology;
+  /** The value to encode; with a field, the default used until a value is typed in. */
+  data: string;
+  /** Empty for a fixed value; otherwise the template field whose value is encoded at print time. */
+  fieldName: string;
+  /** 1D barcodes: print the value under the bars. */
+  showText: boolean;
+  width: number;
+  height: number;
+  fill: string;
+}
+
 export interface ImageObject extends BaseObject {
   type: "image";
   uploadedFileId: number;
@@ -77,7 +115,9 @@ export type LabelObject =
   | DynamicFieldObject
   | RectObject
   | LineObject
-  | ImageObject;
+  | ImageObject
+  | EllipseObject
+  | BarcodeObject;
 
 export type LabelObjectType = LabelObject["type"];
 
@@ -110,6 +150,9 @@ export interface LabelObjectPatch {
   points?: [number, number, number, number];
   uploadedFileId?: number;
   url?: string;
+  symbology?: BarcodeSymbology;
+  data?: string;
+  showText?: boolean;
 }
 
 export const CURRENT_FORMAT_VERSION = 1;

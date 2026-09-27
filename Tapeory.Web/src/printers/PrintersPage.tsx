@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   createPrinter,
   deletePrinter,
+  listPrinterModels,
   listPrinters,
   setDefaultPrinter,
   testPrinterConnection,
@@ -11,6 +12,7 @@ import {
   type PrinterConnectionType,
   type PrinterRequest,
   type PrinterResponse,
+  type PrinterModelResponse,
 } from "../api/printers";
 import { useNotifications } from "../notifications/NotificationsContext";
 import "./printers.css";
@@ -54,6 +56,44 @@ function buildRequestPayload(form: PrinterRequest): PrinterRequest {
     usbIdentifier: form.usbIdentifier?.trim() || null,
     queueName: form.queueName?.trim() || null,
   };
+}
+
+const OTHER_MODEL = "__other__";
+
+const MODEL_GROUPS = [
+  { prefix: "PT-", labelKey: "printers.modelGroupPt" },
+  { prefix: "QL-", labelKey: "printers.modelGroupQl" },
+];
+
+/** The known model a free-text name refers to, matched like the server does (ignoring case,
+ * spaces, dashes and extras like "Brother" or a "c" suffix); the longest name wins. */
+function matchModel(model: string | null | undefined, models: PrinterModelResponse[]) {
+  const normalize = (value: string) => value.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  const entered = normalize(model ?? "");
+
+  if (!entered) return undefined;
+
+  return models
+    .filter((candidate) => entered.includes(normalize(candidate.name)))
+    .sort((a, b) => b.name.length - a.name.length)[0];
+}
+
+/** How the chosen model prints: directly over the network, through a CUPS server (USB-only
+ * models), or, for a model Tapeory doesn't know, like a PT-P750W. */
+function modelHint(
+  model: string | null | undefined,
+  models: PrinterModelResponse[],
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (!model?.trim()) return t("printers.modelHintEmpty");
+
+  const match = matchModel(model, models);
+
+  if (!match) return t("printers.modelHintUnknown");
+
+  return match.network
+    ? t("printers.modelHintNetwork", { model: match.name, dpi: match.dpi })
+    : t("printers.modelHintUsb", { model: match.name, dpi: match.dpi });
 }
 
 /** Where the printer is reached: address and port, print server, or USB identifier. */
@@ -114,7 +154,23 @@ export function PrintersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The Brother models Tapeory knows, offered in the model dropdown. A saved name that matches one
+  // ("Brother P750W") selects it; anything else is "Other model" with its own text field.
+  const [models, setModels] = useState<PrinterModelResponse[]>([]);
+  const [customModel, setCustomModel] = useState(false);
+  const matchedModel = matchModel(form.model, models);
+  const modelSelection = customModel || (form.model?.trim() && !matchedModel) ? OTHER_MODEL : (matchedModel?.name ?? "");
+
+  useEffect(() => {
+    listPrinterModels()
+      .then(setModels)
+      .catch(() => {
+        // Suggestions only; the field still takes any model name.
+      });
+  }, []);
+
   function openCreateForm() {
+    setCustomModel(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError(null);
@@ -122,6 +178,7 @@ export function PrintersPage() {
   }
 
   function openEditForm(printer: PrinterResponse) {
+    setCustomModel(false);
     setEditingId(printer.id);
     setForm(toFormState(printer));
     setFormError(null);
@@ -295,12 +352,43 @@ export function PrintersPage() {
 
               <label className="properties-field">
                 {t("printers.model")}
-                <input
-                  value={form.model ?? ""}
-                  onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
-                  placeholder={t("printers.modelPlaceholder")}
-                />
+                <select
+                  value={modelSelection}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCustomModel(value === OTHER_MODEL);
+                    if (value !== OTHER_MODEL) setForm((prev) => ({ ...prev, model: value }));
+                  }}
+                  aria-describedby="printer-model-hint"
+                >
+                  <option value="">{t("printers.modelChoose")}</option>
+                  {MODEL_GROUPS.map((group) => (
+                    <optgroup key={group.prefix} label={t(group.labelKey)}>
+                      {models
+                        .filter((model) => model.name.startsWith(group.prefix))
+                        .map((model) => (
+                          <option key={model.name} value={model.name}>
+                            {model.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
+                  <option value={OTHER_MODEL}>{t("printers.modelOther")}</option>
+                </select>
               </label>
+              {modelSelection === OTHER_MODEL && (
+                <label className="properties-field">
+                  {t("printers.modelCustom")}
+                  <input
+                    value={form.model ?? ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
+                    placeholder={t("printers.modelPlaceholder")}
+                  />
+                </label>
+              )}
+              <span id="printer-model-hint" className="printer-form__hint">
+                {modelHint(form.model, models, t)}
+              </span>
 
               <label className="properties-field properties-field--inline">
                 <input

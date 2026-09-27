@@ -9,11 +9,10 @@ MariaDB database.
 
 ![The Tapeory label editor](https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/editor.png)
 
-> **Early release (0.2).** This is the first stable release, but Tapeory is still young.
+> **Early release (0.3).** Tapeory is still young: expect rough edges between minor versions.
 > Designing, storing, importing, and rendering labels work.
-> Printing is new: it works with Brother P-touch PT network printers with a 128-pin head
-> (PT-P750W, PT-E550W, PT-P710BT, PT-P700) in Brother's raster format, with live status over
-> SNMP. Other printers, including the QL series, aren't supported yet.
+> Printing works with 34 Brother P-touch (PT) and QL label printers in Brother's raster format,
+> with live status over SNMP; see the [supported printers](https://github.com/Tunefish92/Tapeory/blob/main/docs/printers.md).
 
 Source, full documentation and issues: **https://github.com/Tunefish92/Tapeory**
 Questions and help: **https://github.com/Tunefish92/Tapeory/discussions**
@@ -97,7 +96,7 @@ install extra font packages.
 | Tag | Contents |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `0.2.1`, `0.2` | A release |
+| `0.3.0`, `0.3` | A release |
 | `sha-<commit>` | One specific commit |
 
 All tags are multi-arch (`amd64`, `arm64`). The same image is on GitHub Container Registry as

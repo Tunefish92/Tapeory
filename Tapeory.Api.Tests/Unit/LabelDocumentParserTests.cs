@@ -128,7 +128,7 @@ public sealed class LabelDocumentParserTests
     {
         var json = """
             {"widthMm":50,"heightMm":25,"objects":[
-              {"type":"barcode","id":"a"},
+              {"type":"hologram","id":"a"},
               {"type":"text","id":"b","text":"Still here","width":20,"height":8,"fontSize":10,
                "fontFamily":"Arial","fontWeight":"normal","align":"left","fill":"#000000",
                "x":0,"y":0,"rotation":0,"locked":false,"hidden":false}

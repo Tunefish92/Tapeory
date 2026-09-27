@@ -26,6 +26,7 @@ public static class PrinterMapper
             .Select(resolution => new PrintResolutionResponse(
                 resolution.Quality.ToString(), resolution.HorizontalDpi, resolution.VerticalDpi))
             .ToList(),
+        PrinterCapabilities.CutModes(printer.Model).Select(mode => mode.ToString()).ToList(),
         printer.CreatedAt,
         printer.UpdatedAt);
 }

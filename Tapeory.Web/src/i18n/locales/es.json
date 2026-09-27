@@ -169,7 +169,9 @@
       "backToEditing": "Volver a editar",
       "save": "Guardar",
       "saving": "Guardando…",
-      "publish": "Publicar"
+      "publish": "Publicar",
+      "addEllipse": "Añadir elipse",
+      "addBarcode": "Añadir código de barras"
     },
     "properties": {
       "selectPrompt": "Selecciona un objeto para editar sus propiedades.",
@@ -220,7 +222,19 @@
       "fitWrap": "Dividir en líneas",
       "fixedSizeHint": "El texto se dibuja con el tamaño elegido y puede salirse del cuadro.",
       "fitShrinkHint": "El texto mantiene sus saltos de línea y se reduce hasta caber en el cuadro.",
-      "fitWrapHint": "El texto se divide en los espacios y solo se reduce si aun así no cabe."
+      "fitWrapHint": "El texto se divide en los espacios y solo se reduce si aun así no cabe.",
+      "typeEllipse": "Elipse",
+      "typeBarcode": "Código de barras",
+      "barcodeType": "Tipo",
+      "barcodeSource": "Contenido",
+      "barcodeSourceFixed": "Valor fijo",
+      "barcodeSourceField": "De un campo",
+      "barcodeValue": "Valor",
+      "barcodeFieldHint": "El valor se introduce al imprimir. Usa el nombre de un campo de texto para imprimir el mismo valor como texto y como código de barras.",
+      "barcodeShowText": "Mostrar el valor bajo las barras",
+      "barcodeSizeHint": "Mantén los códigos lo bastante grandes para leerse: las barras se ajustan a los puntos de la impresora y un código demasiado denso pierde detalle.",
+      "sectionAppearance": "Apariencia",
+      "sectionOptions": "Opciones"
     },
     "mediaCustom": "Personalizado · {{size}}",
     "widthFixedByLabel": "Las etiquetas precortadas tienen un ancho fijo.",
@@ -230,7 +244,21 @@
       "dkContinuous": "Rollo continuo DK",
       "dkDieCut": "Etiquetas precortadas DK"
     },
-    "warningsHeading_many": "{{count}} elementos no se pudieron convertir por completo:"
+    "warningsHeading_many": "{{count}} elementos no se pudieron convertir por completo:",
+    "barcode": {
+      "code128": "Code 128",
+      "code39": "Code 39",
+      "ean13": "EAN-13",
+      "ean8": "EAN-8",
+      "upca": "UPC-A",
+      "upce": "UPC-E",
+      "itf": "ITF (Interleaved 2 of 5)",
+      "codabar": "Codabar",
+      "qr": "Código QR",
+      "datamatrix": "Data Matrix",
+      "pdf417": "PDF417",
+      "aztec": "Aztec"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -343,6 +371,15 @@
     "name": "Nombre",
     "model": "Modelo",
     "modelPlaceholder": "p. ej. Brother QL-820NWB",
+    "modelChoose": "Elige un modelo…",
+    "modelOther": "Otro modelo…",
+    "modelCustom": "Nombre del modelo",
+    "modelGroupPt": "P-touch (PT)",
+    "modelGroupQl": "QL",
+    "modelHintEmpty": "Modelo Brother P-touch (PT) o QL.",
+    "modelHintNetwork": "{{model}} ({{dpi}} ppp) imprime directamente por la red: añádela por dirección IP o nombre de host.",
+    "modelHintUsb": "{{model}} ({{dpi}} ppp) se conecta por USB: compártela desde un servidor CUPS y añade aquí ese servidor como servidor de impresión con el nombre de la cola.",
+    "modelHintUnknown": "Tapeory no conoce este modelo; imprime como una PT-P750W (180 ppp, cinta de hasta 24 mm).",
     "connectionType": "Tipo de conexión",
     "connectionTypeIpAddress": "Dirección IP",
     "connectionTypeHostname": "Nombre de host",
@@ -394,9 +431,7 @@
     "unknownModel": "Modelo desconocido"
   },
   "footer": {
-    "copyright": "© {{year}} Tapeory",
-    "tagline": "Impresión de etiquetas autoalojada",
-    "editorPublisher": "Edición y publicación: {{name}}"
+    "copyright": "© {{year}} por"
   },
   "settings": {
     "title": "Configuración",
@@ -410,6 +445,12 @@
     "managePrinters": "Gestionar impresoras",
     "about": "Acerca de",
     "version": "Versión",
+    "updateChecking": "Buscando actualizaciones…",
+    "updateUpToDate": "Actualizado",
+    "updateAvailable": "Versión {{version}} disponible",
+    "updateReleaseNotes": "Novedades",
+    "updateCheck": "Buscar actualizaciones",
+    "updateFailed": "No se pudieron buscar actualizaciones",
     "storage": "Almacenamiento",
     "storagePath": "Ruta de almacenamiento",
     "apiConnection": "Conexión con la API",
