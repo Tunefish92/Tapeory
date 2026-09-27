@@ -31,6 +31,14 @@ export interface TemplateSummaryResponse {
   sourceLbxUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Visible to every account; otherwise only its owner and administrators see it. */
+  isPublic?: boolean;
+  /** Display name of the owner; null for a shared template from before accounts existed. */
+  ownerName?: string | null;
+  /** Whether the signed-in account may change it (its owner, or an administrator). */
+  canEdit?: boolean;
+  /** Owned by the signed-in account. */
+  isMine?: boolean;
 }
 
 export interface TemplateDetailResponse {
@@ -45,6 +53,14 @@ export interface TemplateDetailResponse {
   createdAt: string;
   updatedAt: string;
   currentVersion: TemplateVersionResponse;
+  /** Visible to every account; otherwise only its owner and administrators see it. */
+  isPublic?: boolean;
+  /** Display name of the owner; null for a shared template from before accounts existed. */
+  ownerName?: string | null;
+  /** Whether the signed-in account may change it (its owner, or an administrator). */
+  canEdit?: boolean;
+  /** Owned by the signed-in account. */
+  isMine?: boolean;
 }
 
 export interface CreateTemplateRequest {
@@ -153,6 +169,16 @@ export async function duplicateTemplate(id: number, name: string): Promise<Templ
   });
 
   return parseJsonOrThrow<TemplateSummaryResponse>(response);
+}
+
+/** Makes a template public (every account sees it) or private (only its owner and administrators). */
+export async function setTemplateVisibility(id: number, isPublic: boolean): Promise<TemplateDetailResponse> {
+  const response = await fetch(`${API_BASE_URL}/templates/${id}/visibility`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isPublic }),
+  });
+  return parseJsonOrThrow(response);
 }
 
 export async function deleteTemplate(id: number): Promise<void> {

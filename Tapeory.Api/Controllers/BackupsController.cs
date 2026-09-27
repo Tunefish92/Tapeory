@@ -1,4 +1,6 @@
 using Tapeory.Api.Backups;
+using Tapeory.Api.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Tapeory.Api.Controllers;
@@ -15,6 +17,7 @@ public sealed record RestoreBackupResponse(
 /// </summary>
 [ApiController]
 [Route("api/backups/{kind}")]
+[Authorize(Policy = AuthPolicies.AdminOrOpen)]
 public sealed class BackupsController(
     BackupStore store,
     DatabaseBackupService databaseBackups,

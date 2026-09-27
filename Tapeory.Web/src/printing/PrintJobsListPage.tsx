@@ -166,14 +166,19 @@ export function PrintJobsListPage() {
                   </span>
                 </td>
                 <td className="data-grid__col--printer data-grid__hide-mobile">
-                  {job.printerName ? (
-                    <span className="data-grid__with-icon">
-                      <PrinterIcon />
-                      {job.printerName}
-                    </span>
-                  ) : (
-                    <span className="data-grid__empty">—</span>
-                  )}
+                  <span className="data-grid__title">
+                    {job.printerName ? (
+                      <span className="data-grid__with-icon">
+                        <PrinterIcon />
+                        {job.printerName}
+                      </span>
+                    ) : (
+                      <span className="data-grid__empty">—</span>
+                    )}
+                    {job.printedBy && (
+                      <span className="data-grid__subtitle">{t("printing.printJobsList.printedBy", { name: job.printedBy })}</span>
+                    )}
+                  </span>
                 </td>
                 <td className="data-grid__col--labels data-grid__hide-mobile">
                   <span className="data-grid__number">{numberFormat.format(labelCount(job))}</span>

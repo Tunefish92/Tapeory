@@ -1,14 +1,13 @@
-using Tapeory.Api.Data;
+using Tapeory.Api.Auth;
 using Tapeory.Api.PrintJobs;
 using Tapeory.Api.Storage;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Tapeory.Api.Controllers;
 
 [ApiController]
 [Route("api/print-jobs")]
-public sealed class PrintJobsController(PrintJobService printJobs, AppDbContext db, FileStorageService fileStorage)
+public sealed class PrintJobsController(PrintJobService printJobs, FileStorageService fileStorage)
     : ControllerBase
 {
     [HttpPost]
@@ -16,7 +15,10 @@ public sealed class PrintJobsController(PrintJobService printJobs, AppDbContext 
         [FromBody] CreatePrintJobRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await printJobs.CreateAsync(request, cancellationToken);
+        var author = AuthClaims.UserId(User) is { } userId
+            ? new PrintAuthor(userId, User.FindFirst(AuthClaims.DisplayName)?.Value ?? User.Identity!.Name!)
+            : null;
+        var result = await printJobs.CreateAsync(request, cancellationToken, author);
 
         if (result.TemplateNotFound)
         {
@@ -71,16 +73,14 @@ public sealed class PrintJobsController(PrintJobService printJobs, AppDbContext 
     [HttpGet("items/{itemId:int}/preview")]
     public async Task<IActionResult> GetItemPreview(int itemId, CancellationToken cancellationToken)
     {
-        var item = await db.PrintJobItems
-            .Include(i => i.RenderedImageFile)
-            .SingleOrDefaultAsync(i => i.Id == itemId, cancellationToken);
+        var rendered = await printJobs.GetItemPreviewFileAsync(itemId, cancellationToken);
 
-        if (item?.RenderedImageFile is null)
+        if (rendered is null)
         {
             return NotFound();
         }
 
-        var stream = fileStorage.OpenRead(item.RenderedImageFile.RelativePath);
+        var stream = fileStorage.OpenRead(rendered.RelativePath);
         return File(stream, "image/png");
     }
 }

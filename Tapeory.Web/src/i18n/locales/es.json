@@ -135,7 +135,17 @@
     "duplicate": "Duplicar",
     "copyName": "{{name}} (copia)",
     "duplicated": "Se creó «{{name}}».",
-    "duplicateErrorFallback": "No se pudo duplicar la plantilla."
+    "duplicateErrorFallback": "No se pudo duplicar la plantilla.",
+    "public": "Pública",
+    "private": "Privada",
+    "byOwner": "de {{name}}",
+    "shared": "compartida",
+    "ownershipLabel": "Mostrar plantillas",
+    "ownership": {
+      "all": "Todas",
+      "mine": "Mías",
+      "public": "Públicas"
+    }
   },
   "editor": {
     "metadataName": "Nombre",
@@ -258,7 +268,11 @@
       "datamatrix": "Data Matrix",
       "pdf417": "PDF417",
       "aztec": "Aztec"
-    }
+    },
+    "visibility": "Visibilidad",
+    "readOnlyOwned": "Esta plantilla es de {{name}}. Puedes imprimirla o hacer tu propia copia; solo {{name}} o un administrador pueden cambiarla.",
+    "readOnlyShared": "Solo un administrador puede cambiar esta plantilla compartida. Puedes imprimirla o hacer tu propia copia.",
+    "duplicateToEdit": "Duplicar para editar"
   },
   "printing": {
     "printTemplate": {
@@ -316,7 +330,8 @@
       "confirmDeleteAll_many": "¿Eliminar los {{count}} trabajos de impresión del historial?\n\nLas vistas previas y los valores de campo se eliminan definitivamente. Los trabajos que todavía se están imprimiendo se conservan. Las etiquetas siguen contando en las estadísticas; para ponerlas a cero, usa \"Restablecer estadísticas\" en Configuración.",
       "allDeleted_many": "{{count}} trabajos de impresión eliminados.",
       "keptStillPrinting_many": "Se han conservado {{count}} trabajos que todavía se están imprimiendo.",
-      "templateDeleted": "Plantilla eliminada"
+      "templateDeleted": "Plantilla eliminada",
+      "printedBy": "por {{name}}"
     },
     "printJobDetail": {
       "title": "Trabajo de impresión n.º {{id}}",
@@ -331,7 +346,8 @@
       "quantity": "Cantidad: {{count}}",
       "loading": "Cargando trabajo de impresión…",
       "loadErrorFallback": "No se pudo cargar el trabajo de impresión.",
-      "itemPreviewAlt": "Vista previa del elemento {{id}} del trabajo de impresión"
+      "itemPreviewAlt": "Vista previa del elemento {{id}} del trabajo de impresión",
+      "printedBy": "Impreso por"
     },
     "status": {
       "queued": "En cola",
@@ -483,14 +499,39 @@
     "backupRestore": "Restaurar",
     "backupRestoring": "Restaurando…",
     "backupRestoreConfirm": "Sí, restaurar",
-    "backupRestoreDatabaseConfirmText": "¿Reemplazar toda la base de datos por la copia de seguridad del {{date}}? Se perderán todos los cambios hechos desde entonces. Antes se guarda una copia del estado actual, así que puedes volver atrás.",
+    "backupRestoreDatabaseConfirmText": "¿Reemplazar toda la base de datos por la copia de seguridad del {{date}}? Se perderán todos los cambios hechos desde entonces. Antes se guarda una copia del estado actual, así que puedes volver atrás. También se restauran las cuentas: después, inicia sesión con una cuenta de la copia.",
     "backupRestoreLabelsConfirmText": "¿Reemplazar todas las plantillas de etiquetas actuales por las de la copia de seguridad del {{date}}? Antes se guarda una copia de las plantillas actuales, así que puedes volver atrás. El historial de impresión se conserva.",
     "backupRestored": "Copia de seguridad restaurada.",
     "backupRestoredLabels": "Copia de seguridad restaurada. Plantillas restauradas: {{templates}}.",
     "backupDeleteConfirmText": "¿Eliminar definitivamente la copia de seguridad del {{date}}?",
     "backupDeleteConfirm": "Sí, eliminar",
     "backupDeleted": "Copia de seguridad eliminada.",
-    "backupError": "No ha funcionado. Inténtalo de nuevo."
+    "backupError": "No ha funcionado. Inténtalo de nuevo.",
+    "users": "Usuarios",
+    "usersIntro": "Los administradores gestionan impresoras, copias de seguridad, estadísticas y usuarios. Los usuarios diseñan e imprimen etiquetas.",
+    "usersLoadError": "No se pudieron cargar los usuarios.",
+    "usersActionError": "No funcionó. Inténtalo de nuevo.",
+    "usersTemporaryPassword": "Contraseña temporal para {{name}}:",
+    "usersTemporaryHint": "Entrégasela: al iniciar sesión por primera vez elegirá su propia contraseña. No se vuelve a mostrar.",
+    "usersCopy": "Copiar",
+    "usersDisplayName": "Nombre visible",
+    "usersDisplayNameOptional": "Nombre visible (opcional)",
+    "usersUserName": "Nombre de usuario",
+    "usersRole": "Rol",
+    "usersDisabled": "Desactivada",
+    "usersYou": "(tú)",
+    "usersLastLogin": "último inicio de sesión {{when}}",
+    "usersNeverSignedIn": "nunca ha iniciado sesión",
+    "usersTemporary": "Contraseña temporal",
+    "usersResetPassword": "Restablecer contraseña",
+    "usersResetConfirm": "¿Dar a {{name}} una nueva contraseña temporal? Se cerrarán todas sus sesiones.",
+    "usersDeleteConfirm": "¿Eliminar la cuenta de {{name}}? Sus trabajos de impresión siguen en el historial.",
+    "usersAdd": "Añadir usuario",
+    "usersDeleteTitle": "Eliminar a {{name}}",
+    "usersDeleteTemplates": "Sus plantillas",
+    "usersDeleteTransfer": "Transferírmelas (siguen siendo privadas)",
+    "usersDeleteTemplatesToo": "Eliminarlas también",
+    "usersDeleteAction": "Eliminar cuenta"
   },
   "setup": {
     "title": "Te damos la bienvenida a Tapeory",
@@ -510,5 +551,37 @@
     "saving": "Configurando la base de datos…",
     "failedFallback": "No se pudo conectar con la base de datos.",
     "completed": "Base de datos conectada. Tapeory está listo."
+  },
+  "auth": {
+    "signInTitle": "Iniciar sesión",
+    "signInIntro": "Inicia sesión con tu cuenta de Tapeory.",
+    "userName": "Nombre de usuario",
+    "password": "Contraseña",
+    "rememberMe": "Mantener la sesión en este dispositivo",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Iniciando sesión…",
+    "forgotPassword": "¿Olvidaste tu contraseña? Un administrador puede restablecerla en Ajustes → Usuarios.",
+    "createTitle": "Crea tu cuenta",
+    "createIntro": "Esta primera cuenta es la de administrador: gestiona impresoras, copias de seguridad y otros usuarios. Una vez creada, Tapeory pide a todos que inicien sesión.",
+    "displayNameOptional": "Nombre visible (opcional)",
+    "repeatPassword": "Repite la contraseña",
+    "createNote": "Usa al menos 8 caracteres. Guarda la contraseña en un lugar seguro: sin otro administrador, solo se puede restablecer en el servidor.",
+    "create": "Crear cuenta",
+    "creating": "Creando cuenta…",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "changePassword": "Cambiar contraseña",
+    "saving": "Guardando…",
+    "passwordChanged": "Contraseña cambiada.",
+    "forcedTitle": "Elige una contraseña nueva",
+    "forcedIntro": "Iniciaste sesión con una contraseña temporal. Elige la tuya para continuar.",
+    "signOut": "Cerrar sesión",
+    "passwordTooShort": "Usa al menos {{count}} caracteres.",
+    "passwordsDiffer": "Las contraseñas no coinciden.",
+    "failedFallback": "No funcionó. Inténtalo de nuevo.",
+    "roleAdmin": "Administrador",
+    "roleUser": "Usuario",
+    "openBanner": "Cualquiera en tu red puede usar Tapeory. Crea una cuenta de administrador para exigir el inicio de sesión.",
+    "openBannerAction": "Crear cuenta"
   }
 }

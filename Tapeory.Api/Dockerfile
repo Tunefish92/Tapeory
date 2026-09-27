@@ -48,9 +48,12 @@ RUN apt-get update \
 COPY --from=build /app/publish .
 COPY --from=web-build /web/dist ./wwwroot
 COPY Tapeory.Api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# Strip CR in case the script was checked out with Windows line endings.
+# Strip CR in case the script was checked out with Windows line endings. The `tapeory` command runs
+# Tapeory's own commands, e.g. `docker exec tapeory tapeory reset-password <user>`.
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
- && chmod 755 /usr/local/bin/docker-entrypoint.sh
+ && chmod 755 /usr/local/bin/docker-entrypoint.sh \
+ && printf '#!/bin/sh\nexec dotnet /app/Tapeory.Api.dll "$@"\n' > /usr/local/bin/tapeory \
+ && chmod 755 /usr/local/bin/tapeory
 
 ENV ASPNETCORE_URLS=http://+:8080 \
     TAPEORY_STORAGE_PATH=/data \

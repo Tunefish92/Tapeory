@@ -7,6 +7,8 @@ import { getStoredTheme, setStoredTheme, type ThemePreference } from "../theme/t
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
 import { StatisticsCard } from "./StatisticsCard";
 import { BackupCard } from "./BackupCard";
+import { UsersCard } from "./UsersCard";
+import { useAuth } from "../auth/AuthContext";
 import "./settings.css";
 
 // Each language in its own name, so people can find theirs whatever the UI is set to.
@@ -25,6 +27,7 @@ const LANGUAGE_OPTIONS = [...SUPPORTED_LANGUAGES].sort((a, b) =>
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
+  const { user, canAdminister } = useAuth();
 
   const [theme, setTheme] = useState<ThemePreference>(() => getStoredTheme());
   const [defaultPrinter, setDefaultPrinter] = useState<PrinterResponse | null | undefined>(undefined);
@@ -111,9 +114,11 @@ export function SettingsPage() {
           <h3>{t("settings.defaultPrinter")}</h3>
         </div>
         <p>{defaultPrinter ? defaultPrinter.name : t("settings.noDefaultPrinter")}</p>
-        <Link className="btn" to="/printers">
-          {t("settings.managePrinters")}
-        </Link>
+        {canAdminister && (
+          <Link className="btn" to="/printers">
+            {t("settings.managePrinters")}
+          </Link>
+        )}
       </div>
 
       <StatisticsCard
@@ -124,6 +129,8 @@ export function SettingsPage() {
         }
       />
 
+      {canAdminister && (
+      <>
       <BackupCard
         kind="database"
         icon={
@@ -144,6 +151,20 @@ export function SettingsPage() {
           </SectionIcon>
         }
       />
+      </>
+      )}
+
+      {user?.role === "Admin" && (
+        <UsersCard
+          icon={
+            <SectionIcon>
+              <circle cx="9" cy="8" r="3.5" />
+              <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
+              <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.2.6 3.5 2.8 3.5 6" />
+            </SectionIcon>
+          }
+        />
+      )}
 
       <div className="card settings-section settings-section--wide">
         <div className="settings-section__head">

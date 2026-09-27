@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import {
   createTemplate,
   createTemplateVersion,
+  duplicateTemplate,
   getTemplate,
+  setTemplateVisibility,
   listTemplates,
   updateTemplateMetadata,
   uploadImage,
@@ -34,6 +36,7 @@ import { createEmptyDocument, type LabelDocument, type LabelObjectPatch, type La
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { collectGroups } from "./groups";
 import { LabelSizeFields } from "./LabelSizeFields";
+import { useAuth } from "../auth/AuthContext";
 import "./editor.css";
 
 export function EditorPage() {
@@ -60,6 +63,12 @@ export function EditorPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+
+  const { hasUsers } = useAuth();
+  // Who may do what with this template; a new one is yours.
+  const [access, setAccess] = useState({ canEdit: true, isPublic: false, ownerName: null as string | null });
+  const [accessBusy, setAccessBusy] = useState(false);
+  const readOnly = !access.canEdit;
 
   const [sourceLbxUrl, setSourceLbxUrl] = useState<string | null>(null);
   const [conversionWarnings, setConversionWarnings] = useState<string[]>([]);
@@ -91,6 +100,11 @@ export function EditorPage() {
         setDescription(detail.description ?? "");
         setCategory(detail.category ?? "");
         setTags(detail.tags);
+        setAccess({
+          canEdit: detail.canEdit !== false,
+          isPublic: detail.isPublic ?? true,
+          ownerName: detail.ownerName ?? null,
+        });
         setSourceLbxUrl(detail.sourceLbxUrl);
         setConversionWarnings(detail.conversionWarnings);
         setWarningsDismissed(false);
@@ -261,7 +275,7 @@ export function EditorPage() {
   }
 
   useKeyboardShortcuts({
-    enabled: !previewMode && !loading,
+    enabled: !previewMode && !loading && !readOnly,
     onUndo: history.undo,
     onRedo: history.redo,
     onDelete: handleDeleteSelected,
@@ -269,6 +283,40 @@ export function EditorPage() {
     onDeselect: () => setSelectedId(null),
     onNudge: handleNudge,
   });
+
+  async function handleVisibility(isPublic: boolean) {
+    if (templateId === null) return;
+    setAccessBusy(true);
+    setSaveError(null);
+
+    try {
+      const detail = await setTemplateVisibility(templateId, isPublic);
+      setAccess({ canEdit: detail.canEdit !== false, isPublic: detail.isPublic ?? isPublic, ownerName: detail.ownerName ?? null });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : t("editor.saveErrorFallback"));
+    } finally {
+      setAccessBusy(false);
+    }
+  }
+
+  async function handleDuplicateToEdit() {
+    if (templateId === null) return;
+    setAccessBusy(true);
+
+    try {
+      const copy = await duplicateTemplate(templateId, t("templates.copyName", { name }));
+      navigate(`/templates/${copy.id}/edit`);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : t("editor.saveErrorFallback"));
+    } finally {
+      setAccessBusy(false);
+    }
+  }
+
+  // Read-only: every object locked, so nothing can be dragged or resized.
+  const shownDocument = readOnly
+    ? { ...history.value, objects: history.value.objects.map((object) => ({ ...object, locked: true })) }
+    : history.value;
 
   if (loading) {
     return <p>{t("editor.loading")}</p>;
@@ -283,7 +331,7 @@ export function EditorPage() {
       <div className="editor-metadata">
         <label className="properties-field">
           {t("editor.metadataName")}
-          <input value={name} onChange={(e) => setName(e.target.value)} />
+          <input value={name} onChange={(e) => setName(e.target.value)} disabled={readOnly} />
         </label>
         <label className="properties-field">
           {t("editor.metadataCategory")}
@@ -293,6 +341,7 @@ export function EditorPage() {
             maxLength={100}
             placeholder={t("templates.groupPlaceholder")}
             onChange={(e) => setCategory(e.target.value)}
+            disabled={readOnly}
           />
           <datalist id="editor-group-options">
             {groupOptions.map((group) => (
@@ -302,20 +351,45 @@ export function EditorPage() {
         </label>
         <label className="properties-field">
           {t("editor.metadataDescription")}
-          <input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} disabled={readOnly} />
         </label>
-        <LabelSizeFields
-          widthMm={history.value.widthMm}
-          heightMm={history.value.heightMm}
-          media={history.value.media}
-          onChange={(patch) => history.set({ ...history.value, ...patch })}
-        />
+        {!readOnly && (
+          <LabelSizeFields
+            widthMm={history.value.widthMm}
+            heightMm={history.value.heightMm}
+            media={history.value.media}
+            onChange={(patch) => history.set({ ...history.value, ...patch })}
+          />
+        )}
+        {hasUsers && templateId !== null && !readOnly && (
+          <div className="view-toggle editor-visibility" role="group" aria-label={t("editor.visibility")}>
+            <button type="button" aria-pressed={!access.isPublic} disabled={accessBusy} onClick={() => void handleVisibility(false)}>
+              {t("templates.private")}
+            </button>
+            <button type="button" aria-pressed={access.isPublic} disabled={accessBusy} onClick={() => void handleVisibility(true)}>
+              {t("templates.public")}
+            </button>
+          </div>
+        )}
         {templateId !== null && (
           <Link className="btn" to={`/templates/${templateId}/print`}>
             {t("editor.print")}
           </Link>
         )}
       </div>
+
+      {readOnly && (
+        <div className="editor-import-banner" role="status">
+          <span>
+            {access.ownerName
+              ? t("editor.readOnlyOwned", { name: access.ownerName })
+              : t("editor.readOnlyShared")}
+          </span>
+          <button type="button" className="btn btn-primary btn-sm" disabled={accessBusy} onClick={() => void handleDuplicateToEdit()}>
+            {t("editor.duplicateToEdit")}
+          </button>
+        </div>
+      )}
 
       {sourceLbxUrl && (
         <div className="editor-import-banner">
@@ -358,6 +432,7 @@ export function EditorPage() {
         saving={saving}
         saveError={saveError}
         onPublish={templateId !== null ? handlePublish : undefined}
+        readOnly={readOnly}
       />
 
       {imageError && <p role="alert">{imageError}</p>}
@@ -365,16 +440,16 @@ export function EditorPage() {
       <div className="editor-body">
         <div className="editor-canvas-scroll">
           <LabelCanvas
-            document={history.value}
-            selectedId={selectedId}
+            document={shownDocument}
+            selectedId={readOnly ? null : selectedId}
             previewMode={previewMode}
             zoom={zoom}
-            onSelect={setSelectedId}
-            onChange={handleObjectChange}
+            onSelect={readOnly ? () => {} : setSelectedId}
+            onChange={readOnly ? () => {} : handleObjectChange}
           />
         </div>
 
-        {!previewMode && (
+        {!previewMode && !readOnly && (
           <PropertiesPanel
             object={selectedObject}
             onChange={(changes) => selectedId && handleObjectChange(selectedId, changes)}

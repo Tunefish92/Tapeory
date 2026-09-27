@@ -72,6 +72,13 @@ namespace Tapeory.Api.Data.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
+                    b.Property<string>("PrintedByName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("PrintedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PrinterId")
                         .HasColumnType("int");
 
@@ -92,6 +99,8 @@ namespace Tapeory.Api.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PrintedByUserId");
 
                     b.HasIndex("PrinterId");
 
@@ -231,10 +240,16 @@ namespace Tapeory.Api.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("OwnerUserId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("SourceLbxFileId")
                         .HasColumnType("int");
@@ -252,6 +267,8 @@ namespace Tapeory.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CurrentVersionId");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("SourceLbxFileId");
 
@@ -386,6 +403,9 @@ namespace Tapeory.Api.Data.Migrations
                         .HasMaxLength(260)
                         .HasColumnType("varchar(260)");
 
+                    b.Property<int?>("OwnerUserId")
+                        .HasColumnType("int");
+
                     b.Property<string>("RelativePath")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -396,11 +416,69 @@ namespace Tapeory.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerUserId");
+
                     b.ToTable("UploadedFiles");
+                });
+
+            modelBuilder.Entity("Tapeory.Api.Data.Entities.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTimeOffset?>("LastLoginAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.PrintJob", b =>
                 {
+                    b.HasOne("Tapeory.Api.Data.Entities.User", "PrintedByUser")
+                        .WithMany()
+                        .HasForeignKey("PrintedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Tapeory.Api.Data.Entities.Printer", "Printer")
                         .WithMany()
                         .HasForeignKey("PrinterId")
@@ -411,6 +489,8 @@ namespace Tapeory.Api.Data.Migrations
                         .HasForeignKey("TemplateId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("PrintedByUser");
 
                     b.Navigation("Printer");
 
@@ -442,12 +522,19 @@ namespace Tapeory.Api.Data.Migrations
                         .HasForeignKey("CurrentVersionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Tapeory.Api.Data.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Tapeory.Api.Data.Entities.UploadedFile", "SourceLbxFile")
                         .WithMany()
                         .HasForeignKey("SourceLbxFileId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CurrentVersion");
+
+                    b.Navigation("Owner");
 
                     b.Navigation("SourceLbxFile");
                 });
@@ -490,6 +577,14 @@ namespace Tapeory.Api.Data.Migrations
                     b.Navigation("PreviewImageFile");
 
                     b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("Tapeory.Api.Data.Entities.UploadedFile", b =>
+                {
+                    b.HasOne("Tapeory.Api.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.PrintJob", b =>

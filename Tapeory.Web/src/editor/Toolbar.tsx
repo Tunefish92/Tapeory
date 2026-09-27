@@ -20,6 +20,8 @@ interface ToolbarProps {
   /** Omitted for a template that hasn't been created yet — publishing only makes sense once
    * there's a saved template to publish. */
   onPublish?: () => void;
+  /** Someone else's template: only zoom and preview. */
+  readOnly?: boolean;
 }
 
 export function Toolbar({
@@ -37,6 +39,7 @@ export function Toolbar({
   saving,
   saveError,
   onPublish,
+  readOnly = false,
 }: ToolbarProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +48,8 @@ export function Toolbar({
 
   return (
     <div className="editor-toolbar" role="toolbar" aria-label="Editor tools">
+      {!readOnly && (
+      <>
       <div className="editor-toolbar__group">
         <button type="button" onClick={() => onAddObject("text")} disabled={previewMode}>
           {t("editor.toolbar.addText")}
@@ -95,6 +100,8 @@ export function Toolbar({
           {t("editor.toolbar.redo")}
         </button>
       </div>
+      </>
+      )}
 
       <div className="editor-toolbar__group">
         <button
@@ -118,10 +125,12 @@ export function Toolbar({
         <button type="button" onClick={onTogglePreview} aria-pressed={previewMode}>
           {previewMode ? t("editor.toolbar.backToEditing") : t("editor.toolbar.preview")}
         </button>
-        <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
-          {saving ? t("editor.toolbar.saving") : t("editor.toolbar.save")}
-        </button>
-        {onPublish && (
+        {!readOnly && (
+          <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
+            {saving ? t("editor.toolbar.saving") : t("editor.toolbar.save")}
+          </button>
+        )}
+        {onPublish && !readOnly && (
           <button type="button" onClick={onPublish} disabled={saving}>
             {t("editor.toolbar.publish")}
           </button>

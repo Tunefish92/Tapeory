@@ -9,7 +9,7 @@ MariaDB database.
 
 ![The Tapeory label editor](https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/editor.png)
 
-> **Early release (0.3).** Tapeory is still young: expect rough edges between minor versions.
+> **Early release (0.4).** Tapeory is still young: expect rough edges between minor versions.
 > Designing, storing, importing, and rendering labels work.
 > Printing works with 34 Brother P-touch (PT) and QL label printers in Brother's raster format,
 > with live status over SNMP; see the [supported printers](https://github.com/Tunefish92/Tapeory/blob/main/docs/printers.md).
@@ -96,14 +96,21 @@ install extra font packages.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.3.0`, `0.2.1`, … | One specific release |
+| `0.4.0`, `0.3.0`, … | One specific release |
 
 All tags are multi-arch (`amd64`, `arm64`). The same image is on GitHub Container Registry as
 `ghcr.io/tunefish92/tapeory`.
 
 ## Security
 
-Tapeory has no user accounts yet. Anyone who can reach the port can use it, so keep it on a
-trusted network or behind a reverse proxy that adds authentication.
+Right after the database setup, Tapeory asks you to create the first account, which is the
+administrator; from then on everyone has to sign in. Administrators add more accounts, as
+administrators or users, in Settings → Users. Templates are private to their creator until made
+public, and each account sees its own print history. Installs upgraded from 0.3 or older stay open until the
+first account is created. Tapeory serves plain HTTP: for access from outside your home network,
+put it behind a reverse proxy with HTTPS.
+
+Lost the only administrator's password? `docker exec tapeory tapeory reset-password <user name>`
+prints a temporary one.
 
 License: MIT

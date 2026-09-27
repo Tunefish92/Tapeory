@@ -1,6 +1,7 @@
 using System.Globalization;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Templates;
 using Microsoft.EntityFrameworkCore;
 
 namespace Tapeory.Api.Stats;
@@ -20,8 +21,10 @@ public sealed record DashboardStatsResponse(
     // Null = all-time statistics; otherwise only print jobs created at or after this moment count.
     DateTimeOffset? StatsSince);
 
-public sealed class StatsService(AppDbContext db)
+public sealed class StatsService(AppDbContext db, IHttpContextAccessor? http = null)
 {
+    private TemplateAccess Viewer => TemplateAccess.For(http?.HttpContext?.User ?? new System.Security.Claims.ClaimsPrincipal());
+
     /// <summary>ApplicationSettings key holding the moment the statistics were last reset.</summary>
     public const string ResetAtSettingKey = "stats.resetAt";
 
@@ -35,7 +38,10 @@ public sealed class StatsService(AppDbContext db)
         // for exactly this.
         var jobs = since is { } from ? db.PrintJobs.Where(j => j.CreatedAt >= from) : db.PrintJobs;
 
-        var templateCount = await db.Templates.CountAsync(t => t.DeletedAt == null, cancellationToken);
+        // Label and tape totals are the whole installation's; template names and counts only
+        // include templates the signed-in account can see.
+        var viewer = Viewer;
+        var templateCount = await viewer.Visible(db.Templates).CountAsync(t => t.DeletedAt == null, cancellationToken);
         var printerCount = await db.Printers.CountAsync(cancellationToken);
         var printJobCount = await jobs.CountAsync(cancellationToken);
         var completedJobCount = await jobs.CountAsync(j => j.Status == PrintJobStatus.Completed, cancellationToken);
@@ -60,11 +66,14 @@ public sealed class StatsService(AppDbContext db)
                     version.WidthMm,
                     version.HeightMm,
                     job.TemplateId,
-                    TemplateName = template.Name
+                    TemplateName = template.Name,
+                    template.IsPublic,
+                    template.OwnerUserId
                 })
             .ToListAsync(cancellationToken);
 
         var mostPrinted = printed
+            .Where(p => viewer.IsAdmin || p.IsPublic || p.OwnerUserId == viewer.UserId)
             .GroupBy(p => new { p.TemplateId, p.TemplateName })
             .Select(g => new { g.Key.TemplateName, Count = g.Sum(p => p.Quantity) })
             .OrderByDescending(g => g.Count)

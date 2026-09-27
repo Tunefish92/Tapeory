@@ -2,6 +2,8 @@ using Tapeory.Api.Data.Entities;
 using Tapeory.Api.Printers;
 using Tapeory.Api.Printing;
 using Tapeory.Api.Rendering;
+using Tapeory.Api.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Tapeory.Api.Controllers;
@@ -44,6 +46,7 @@ public sealed class PrintersController(
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthPolicies.AdminOrOpen)]
     public async Task<IActionResult> CreatePrinter(
         [FromBody] CreatePrinterRequest request, CancellationToken cancellationToken)
     {
@@ -62,6 +65,7 @@ public sealed class PrintersController(
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Policy = AuthPolicies.AdminOrOpen)]
     public async Task<IActionResult> UpdatePrinter(
         int id, [FromBody] UpdatePrinterRequest request, CancellationToken cancellationToken)
     {
@@ -80,6 +84,7 @@ public sealed class PrintersController(
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = AuthPolicies.AdminOrOpen)]
     public async Task<IActionResult> DeletePrinter(int id, CancellationToken cancellationToken)
     {
         var deleted = await printers.DeleteAsync(id, cancellationToken);
@@ -87,6 +92,7 @@ public sealed class PrintersController(
     }
 
     [HttpPut("{id:int}/default")]
+    [Authorize(Policy = AuthPolicies.AdminOrOpen)]
     public async Task<IActionResult> SetDefaultPrinter(int id, CancellationToken cancellationToken)
     {
         var success = await printers.SetDefaultAsync(id, cancellationToken);
@@ -94,6 +100,7 @@ public sealed class PrintersController(
     }
 
     [HttpPost("{id:int}/test-connection")]
+    [Authorize(Policy = AuthPolicies.AdminOrOpen)]
     public async Task<IActionResult> TestConnection(int id, CancellationToken cancellationToken)
     {
         var printer = await printers.GetByIdAsync(id, cancellationToken);
@@ -166,6 +173,7 @@ public sealed class PrintersController(
     /// <summary>Renders a small built-in test label, prints it, and waits until the printer
     /// confirms it came out (or reports why it didn't).</summary>
     [HttpPost("{id:int}/test-print")]
+    [Authorize(Policy = AuthPolicies.AdminOrOpen)]
     public async Task<IActionResult> TestPrint(int id, CancellationToken cancellationToken)
     {
         var printer = await printers.GetByIdAsync(id, cancellationToken);

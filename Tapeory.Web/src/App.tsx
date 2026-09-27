@@ -9,10 +9,12 @@ import { PrintJobsListPage } from "./printing/PrintJobsListPage";
 import { PrintersPage } from "./printers/PrintersPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SetupGate } from "./setup/SetupGate";
+import { AuthGate } from "./auth/AuthGate";
 
 export function App() {
   return (
     <SetupGate>
+      <AuthGate>
       <BrowserRouter>
         <AppLayout>
           <Routes>
@@ -28,6 +30,7 @@ export function App() {
           </Routes>
         </AppLayout>
       </BrowserRouter>
+      </AuthGate>
     </SetupGate>
   );
 }

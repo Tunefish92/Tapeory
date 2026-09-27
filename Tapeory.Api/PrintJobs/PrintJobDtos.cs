@@ -35,6 +35,8 @@ public sealed record PrintJobResponse(
     int TemplateVersionNumber,
     int? PrinterId,
     string? PrinterName,
+    // Who submitted it; null from before accounts existed.
+    string? PrintedBy,
     string Quality,
     string CutMode,
     string Status,

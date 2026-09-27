@@ -134,7 +134,17 @@
     "duplicate": "Duplicate",
     "copyName": "{{name}} (copy)",
     "duplicated": "Created “{{name}}”.",
-    "duplicateErrorFallback": "Couldn’t duplicate the template."
+    "duplicateErrorFallback": "Couldn’t duplicate the template.",
+    "public": "Public",
+    "private": "Private",
+    "byOwner": "by {{name}}",
+    "shared": "shared",
+    "ownershipLabel": "Show templates",
+    "ownership": {
+      "all": "All",
+      "mine": "Mine",
+      "public": "Public"
+    }
   },
   "editor": {
     "metadataName": "Name",
@@ -256,7 +266,11 @@
       "datamatrix": "Data Matrix",
       "pdf417": "PDF417",
       "aztec": "Aztec"
-    }
+    },
+    "visibility": "Visibility",
+    "readOnlyOwned": "This is {{name}}'s template. You can print it or make your own copy; only {{name}} or an administrator can change it.",
+    "readOnlyShared": "This shared template can only be changed by an administrator. You can print it or make your own copy.",
+    "duplicateToEdit": "Duplicate to edit"
   },
   "printing": {
     "printTemplate": {
@@ -309,7 +323,8 @@
       "keptStillPrinting_one": "{{count}} job that is still printing was kept.",
       "keptStillPrinting_other": "{{count}} jobs that are still printing were kept.",
       "deleteErrorFallback": "The print job couldn't be deleted.",
-      "templateDeleted": "Template deleted"
+      "templateDeleted": "Template deleted",
+      "printedBy": "by {{name}}"
     },
     "printJobDetail": {
       "title": "Print Job #{{id}}",
@@ -324,7 +339,8 @@
       "quantity": "Quantity: {{count}}",
       "loading": "Loading print job…",
       "loadErrorFallback": "Failed to load print job.",
-      "itemPreviewAlt": "Print job item {{id}} preview"
+      "itemPreviewAlt": "Print job item {{id}} preview",
+      "printedBy": "Printed by"
     },
     "status": {
       "queued": "Queued",
@@ -476,14 +492,39 @@
     "backupRestore": "Restore",
     "backupRestoring": "Restoring…",
     "backupRestoreConfirm": "Yes, restore",
-    "backupRestoreDatabaseConfirmText": "Replace the entire database with the backup from {{date}}? All changes made since then will be lost. The current state is backed up first, so you can go back.",
+    "backupRestoreDatabaseConfirmText": "Replace the entire database with the backup from {{date}}? All changes made since then will be lost. The current state is backed up first, so you can go back. Accounts are restored too: afterwards, sign in with an account from the backup.",
     "backupRestoreLabelsConfirmText": "Replace all current label templates with the ones in the backup from {{date}}? The current templates are backed up first, so you can go back. Print history is kept.",
     "backupRestored": "Backup restored.",
     "backupRestoredLabels": "Backup restored. Templates restored: {{templates}}.",
     "backupDeleteConfirmText": "Permanently delete the backup from {{date}}?",
     "backupDeleteConfirm": "Yes, delete",
     "backupDeleted": "Backup deleted.",
-    "backupError": "That didn’t work. Please try again."
+    "backupError": "That didn’t work. Please try again.",
+    "users": "Users",
+    "usersIntro": "Administrators manage printers, backups, statistics and users. Users design and print labels.",
+    "usersLoadError": "Couldn't load the users.",
+    "usersActionError": "That didn't work. Please try again.",
+    "usersTemporaryPassword": "Temporary password for {{name}}:",
+    "usersTemporaryHint": "Give it to them: they choose their own password when they first sign in. It isn't shown again.",
+    "usersCopy": "Copy",
+    "usersDisplayName": "Display name",
+    "usersDisplayNameOptional": "Display name (optional)",
+    "usersUserName": "User name",
+    "usersRole": "Role",
+    "usersDisabled": "Disabled",
+    "usersYou": "(you)",
+    "usersLastLogin": "last signed in {{when}}",
+    "usersNeverSignedIn": "never signed in",
+    "usersTemporary": "Temporary password",
+    "usersResetPassword": "Reset password",
+    "usersResetConfirm": "Give {{name}} a new temporary password? They're signed out everywhere.",
+    "usersDeleteConfirm": "Delete {{name}}'s account? Their print jobs stay in the history.",
+    "usersAdd": "Add user",
+    "usersDeleteTitle": "Delete {{name}}",
+    "usersDeleteTemplates": "Their templates",
+    "usersDeleteTransfer": "Transfer them to me (they stay private)",
+    "usersDeleteTemplatesToo": "Delete them too",
+    "usersDeleteAction": "Delete account"
   },
   "setup": {
     "title": "Welcome to Tapeory",
@@ -503,5 +544,37 @@
     "saving": "Setting up the database…",
     "failedFallback": "Couldn’t connect to the database.",
     "completed": "Database connected. Tapeory is ready."
+  },
+  "auth": {
+    "signInTitle": "Sign in",
+    "signInIntro": "Sign in with your Tapeory account.",
+    "userName": "User name",
+    "password": "Password",
+    "rememberMe": "Stay signed in on this device",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "forgotPassword": "Forgot your password? An administrator can reset it in Settings → Users.",
+    "createTitle": "Create your account",
+    "createIntro": "This first account is the administrator: it manages printers, backups and other users. Once it exists, Tapeory asks everyone to sign in.",
+    "displayNameOptional": "Display name (optional)",
+    "repeatPassword": "Repeat password",
+    "createNote": "Use at least 8 characters. Keep the password somewhere safe: without another administrator, it can only be reset on the server.",
+    "create": "Create account",
+    "creating": "Creating account…",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "changePassword": "Change password",
+    "saving": "Saving…",
+    "passwordChanged": "Password changed.",
+    "forcedTitle": "Choose a new password",
+    "forcedIntro": "You signed in with a temporary password. Choose your own to continue.",
+    "signOut": "Sign out",
+    "passwordTooShort": "Use at least {{count}} characters.",
+    "passwordsDiffer": "The passwords don't match.",
+    "failedFallback": "That didn't work. Please try again.",
+    "roleAdmin": "Administrator",
+    "roleUser": "User",
+    "openBanner": "Anyone on your network can use Tapeory. Create an administrator account to require signing in.",
+    "openBannerAction": "Create account"
   }
 }

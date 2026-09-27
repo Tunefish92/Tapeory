@@ -3,6 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { NotificationsProvider } from "../notifications/NotificationsContext";
 import { TemplatesListPage } from "./TemplatesListPage";
+import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
+
+const signedIn: AuthContextValue = {
+  hasUsers: true,
+  user: { id: 2, userName: "ada", displayName: "Ada", role: "User", mustChangePassword: false },
+  openAccess: false,
+  canAdminister: false,
+  signOut: async () => {},
+  startCreatingAccount: () => {},
+  refresh: async () => {},
+};
 
 function LocationProbe() {
   const location = useLocation();
@@ -631,5 +642,57 @@ describe("TemplatesListPage", () => {
       expect(await screen.findByText("Not Found")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Shipping Label" })).toBeInTheDocument();
     });
+  });
+  it("shows whose templates they are, filters to mine or public, and only offers edits where allowed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse([
+          { ...shippingLabel, id: 1, name: "My Label", isPublic: false, isMine: true, ownerName: "Ada", canEdit: true },
+          { ...shippingLabel, id: 2, name: "Grace Label", isPublic: true, isMine: false, ownerName: "Grace", canEdit: false },
+          { ...shippingLabel, id: 3, name: "Old Label", isPublic: true, isMine: false, ownerName: null, canEdit: false },
+        ]),
+      ),
+    );
+
+    render(
+      <AuthContext.Provider value={signedIn}>
+        <MemoryRouter initialEntries={["/templates"]}>
+          <TemplatesListPage />
+          <LocationProbe />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    const mine = (await screen.findByText("My Label")).closest("article") as HTMLElement;
+    const graces = screen.getByText("Grace Label").closest("article") as HTMLElement;
+    const old = screen.getByText("Old Label").closest("article") as HTMLElement;
+
+    expect(within(mine).getByText("Private")).toBeInTheDocument();
+    expect(within(mine).getByRole("link", { name: "Edit" })).toBeInTheDocument();
+    expect(within(graces).getByText(/Public/)).toHaveTextContent("Public · by Grace");
+    expect(within(graces).queryByRole("link", { name: "Edit" })).not.toBeInTheDocument();
+    expect(within(graces).queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+    expect(within(graces).getByRole("link", { name: "Print" })).toBeInTheDocument();
+    expect(within(old).getByText(/Public/)).toHaveTextContent("Public · shared");
+
+    fireEvent.click(screen.getByRole("button", { name: "Mine" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("show=mine");
+    expect(screen.getByText("My Label")).toBeInTheDocument();
+    expect(screen.queryByText("Grace Label")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Public" }));
+    expect(screen.queryByText("My Label")).not.toBeInTheDocument();
+    expect(screen.getByText("Grace Label")).toBeInTheDocument();
+  });
+
+  it("shows no ownership filter or badges while Tapeory has no accounts", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([{ ...shippingLabel, isPublic: true, ownerName: null }])));
+
+    renderPage();
+
+    await screen.findByText("Shipping Label");
+    expect(screen.queryByRole("group", { name: "Show templates" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/shared/)).not.toBeInTheDocument();
   });
 });

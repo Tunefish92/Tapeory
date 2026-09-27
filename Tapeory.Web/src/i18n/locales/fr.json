@@ -135,7 +135,17 @@
     "duplicate": "Dupliquer",
     "copyName": "{{name}} (copie)",
     "duplicated": "« {{name}} » créé.",
-    "duplicateErrorFallback": "Impossible de dupliquer le modèle."
+    "duplicateErrorFallback": "Impossible de dupliquer le modèle.",
+    "public": "Public",
+    "private": "Privé",
+    "byOwner": "par {{name}}",
+    "shared": "partagé",
+    "ownershipLabel": "Afficher les modèles",
+    "ownership": {
+      "all": "Tous",
+      "mine": "Les miens",
+      "public": "Publics"
+    }
   },
   "editor": {
     "metadataName": "Nom",
@@ -258,7 +268,11 @@
       "datamatrix": "Data Matrix",
       "pdf417": "PDF417",
       "aztec": "Aztec"
-    }
+    },
+    "visibility": "Visibilité",
+    "readOnlyOwned": "Ce modèle appartient à {{name}}. Vous pouvez l’imprimer ou en faire votre propre copie ; seuls {{name}} ou un administrateur peuvent le modifier.",
+    "readOnlyShared": "Seul un administrateur peut modifier ce modèle partagé. Vous pouvez l’imprimer ou en faire votre propre copie.",
+    "duplicateToEdit": "Dupliquer pour modifier"
   },
   "printing": {
     "printTemplate": {
@@ -316,7 +330,8 @@
       "confirmDeleteAll_many": "Supprimer les {{count}} impressions de l’historique ?\n\nLes aperçus d’étiquettes et les valeurs de champs sont définitivement supprimés. Les impressions en cours sont conservées. Les étiquettes restent comptées dans les statistiques ; pour les remettre à zéro, utilisez « Réinitialiser les statistiques » dans les Paramètres.",
       "allDeleted_many": "{{count}} impressions supprimées.",
       "keptStillPrinting_many": "{{count}} impressions encore en cours ont été conservées.",
-      "templateDeleted": "Modèle supprimé"
+      "templateDeleted": "Modèle supprimé",
+      "printedBy": "par {{name}}"
     },
     "printJobDetail": {
       "title": "Impression n° {{id}}",
@@ -331,7 +346,8 @@
       "quantity": "Quantité : {{count}}",
       "loading": "Chargement de l’impression…",
       "loadErrorFallback": "Impossible de charger l’impression.",
-      "itemPreviewAlt": "Aperçu de l’élément {{id}}"
+      "itemPreviewAlt": "Aperçu de l’élément {{id}}",
+      "printedBy": "Imprimé par"
     },
     "status": {
       "queued": "En attente",
@@ -483,14 +499,39 @@
     "backupRestore": "Restaurer",
     "backupRestoring": "Restauration…",
     "backupRestoreConfirm": "Oui, restaurer",
-    "backupRestoreDatabaseConfirmText": "Remplacer toute la base de données par la sauvegarde du {{date}} ? Toutes les modifications effectuées depuis seront perdues. L’état actuel est d’abord sauvegardé, vous pouvez donc revenir en arrière.",
+    "backupRestoreDatabaseConfirmText": "Remplacer toute la base de données par la sauvegarde du {{date}} ? Toutes les modifications effectuées depuis seront perdues. L’état actuel est d’abord sauvegardé, vous pouvez donc revenir en arrière. Les comptes sont aussi restaurés : ensuite, connectez-vous avec un compte de la sauvegarde.",
     "backupRestoreLabelsConfirmText": "Remplacer tous les modèles d’étiquettes actuels par ceux de la sauvegarde du {{date}} ? Les modèles actuels sont d’abord sauvegardés, vous pouvez donc revenir en arrière. L’historique d’impression est conservé.",
     "backupRestored": "Sauvegarde restaurée.",
     "backupRestoredLabels": "Sauvegarde restaurée. Modèles restaurés : {{templates}}.",
     "backupDeleteConfirmText": "Supprimer définitivement la sauvegarde du {{date}} ?",
     "backupDeleteConfirm": "Oui, supprimer",
     "backupDeleted": "Sauvegarde supprimée.",
-    "backupError": "L’opération a échoué. Veuillez réessayer."
+    "backupError": "L’opération a échoué. Veuillez réessayer.",
+    "users": "Utilisateurs",
+    "usersIntro": "Les administrateurs gèrent les imprimantes, les sauvegardes, les statistiques et les utilisateurs. Les utilisateurs conçoivent et impriment des étiquettes.",
+    "usersLoadError": "Impossible de charger les utilisateurs.",
+    "usersActionError": "Cela n’a pas fonctionné. Veuillez réessayer.",
+    "usersTemporaryPassword": "Mot de passe temporaire pour {{name}} :",
+    "usersTemporaryHint": "Transmettez-le : la personne choisira son propre mot de passe à sa première connexion. Il ne sera plus affiché.",
+    "usersCopy": "Copier",
+    "usersDisplayName": "Nom affiché",
+    "usersDisplayNameOptional": "Nom affiché (facultatif)",
+    "usersUserName": "Nom d’utilisateur",
+    "usersRole": "Rôle",
+    "usersDisabled": "Désactivé",
+    "usersYou": "(vous)",
+    "usersLastLogin": "dernière connexion {{when}}",
+    "usersNeverSignedIn": "jamais connecté",
+    "usersTemporary": "Mot de passe temporaire",
+    "usersResetPassword": "Réinitialiser le mot de passe",
+    "usersResetConfirm": "Donner à {{name}} un nouveau mot de passe temporaire ? La personne est déconnectée partout.",
+    "usersDeleteConfirm": "Supprimer le compte de {{name}} ? Ses travaux d’impression restent dans l’historique.",
+    "usersAdd": "Ajouter un utilisateur",
+    "usersDeleteTitle": "Supprimer {{name}}",
+    "usersDeleteTemplates": "Ses modèles",
+    "usersDeleteTransfer": "Me les transférer (ils restent privés)",
+    "usersDeleteTemplatesToo": "Les supprimer aussi",
+    "usersDeleteAction": "Supprimer le compte"
   },
   "setup": {
     "title": "Bienvenue dans Tapeory",
@@ -510,5 +551,37 @@
     "saving": "Configuration de la base de données…",
     "failedFallback": "Impossible de se connecter à la base de données.",
     "completed": "Base de données connectée. Tapeory est prêt."
+  },
+  "auth": {
+    "signInTitle": "Se connecter",
+    "signInIntro": "Connectez-vous avec votre compte Tapeory.",
+    "userName": "Nom d’utilisateur",
+    "password": "Mot de passe",
+    "rememberMe": "Rester connecté sur cet appareil",
+    "signIn": "Se connecter",
+    "signingIn": "Connexion…",
+    "forgotPassword": "Mot de passe oublié ? Un administrateur peut le réinitialiser dans Paramètres → Utilisateurs.",
+    "createTitle": "Créer votre compte",
+    "createIntro": "Ce premier compte est l’administrateur : il gère les imprimantes, les sauvegardes et les autres utilisateurs. Une fois créé, Tapeory demande à chacun de se connecter.",
+    "displayNameOptional": "Nom affiché (facultatif)",
+    "repeatPassword": "Répéter le mot de passe",
+    "createNote": "Au moins 8 caractères. Conservez le mot de passe en lieu sûr : sans autre administrateur, il ne peut être réinitialisé que sur le serveur.",
+    "create": "Créer le compte",
+    "creating": "Création du compte…",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "changePassword": "Changer le mot de passe",
+    "saving": "Enregistrement…",
+    "passwordChanged": "Mot de passe changé.",
+    "forcedTitle": "Choisissez un nouveau mot de passe",
+    "forcedIntro": "Vous vous êtes connecté avec un mot de passe temporaire. Choisissez le vôtre pour continuer.",
+    "signOut": "Se déconnecter",
+    "passwordTooShort": "Au moins {{count}} caractères.",
+    "passwordsDiffer": "Les mots de passe ne correspondent pas.",
+    "failedFallback": "Cela n’a pas fonctionné. Veuillez réessayer.",
+    "roleAdmin": "Administrateur",
+    "roleUser": "Utilisateur",
+    "openBanner": "Tout le monde sur votre réseau peut utiliser Tapeory. Créez un compte administrateur pour exiger une connexion.",
+    "openBannerAction": "Créer un compte"
   }
 }

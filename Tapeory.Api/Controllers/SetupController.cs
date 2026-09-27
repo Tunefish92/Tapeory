@@ -1,4 +1,5 @@
 using Tapeory.Api.Setup;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Tapeory.Api.Controllers;
@@ -9,6 +10,7 @@ namespace Tapeory.Api.Controllers;
 /// could point it at a different database.
 /// </summary>
 [ApiController]
+[AllowAnonymous]
 [Route("api/setup")]
 public sealed class SetupController(DatabaseConfigStore store, DatabaseSetupService setup) : ControllerBase
 {

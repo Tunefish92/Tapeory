@@ -1,4 +1,5 @@
 using Tapeory.Api;
+using Tapeory.Api.Auth;
 using Tapeory.Api.Backups;
 using Tapeory.Api.Data;
 using Tapeory.Api.Import;
@@ -14,7 +15,10 @@ using Tapeory.Api.Templates;
 using Tapeory.Api.Updates;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+// `tapeory reset-password <user>` runs a command instead of the server.
+var command = args is [ResetPasswordCommand.Name, ..] ? args : null;
+
+var builder = WebApplication.CreateBuilder(command is null ? args : []);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
@@ -41,6 +45,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<BackupStore>();
 builder.Services.AddSingleton<DatabaseBackupService>();
 builder.Services.AddScoped<LabelBackupService>();
+builder.Services.AddTapeoryAuth();
 builder.Services.AddSingleton(services => new UpdateChecker(
     new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
     services.GetRequiredService<TimeProvider>()));
@@ -73,6 +78,8 @@ app.UseExceptionHandler();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseAuthentication();
+app.UseCsrfCheck();
 app.UseAuthorization();
 
 // Until the database connection has been entered, only setup and health work; every other API
@@ -111,11 +118,11 @@ app.MapGet("/api/health", async (StorageService storage, DatabaseConfigStore dat
         databaseConfigured = database.IsConfigured,
         databaseConnected = canConnect
     });
-});
+}).AllowAnonymous();
 
 // Client-side routing fallback: any GET that isn't an API route or a real static file falls
 // through to index.html so React Router can handle it.
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html").AllowAnonymous();
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
@@ -133,7 +140,13 @@ else if (app.Configuration.GetValue("TAPEORY_AUTO_MIGRATE", true))
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
 }
 
+if (command is not null)
+{
+    return await ResetPasswordCommand.RunAsync(app.Services, command);
+}
+
 app.Run();
+return 0;
 
 // Exposed so WebApplicationFactory<Program> can bootstrap the app in integration tests.
 public partial class Program;

@@ -8,7 +8,7 @@ describe("App routing", () => {
     window.history.pushState({}, "", "/");
   });
 
-  it("renders the dashboard at the root route", () => {
+  it("renders the dashboard at the root route", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -19,7 +19,8 @@ describe("App routing", () => {
 
     render(<App />);
 
-    expect(screen.getByText(/system status/i)).toBeInTheDocument();
+    // The app shows once the server has said whether anyone needs to sign in.
+    expect(await screen.findByText(/system status/i)).toBeInTheDocument();
   });
 
   it("renders the templates list at /templates", async () => {

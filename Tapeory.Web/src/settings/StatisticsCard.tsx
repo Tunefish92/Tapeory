@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../auth/AuthContext";
 import { fetchStats, resetStats, restoreAllTimeStats, type DashboardStats } from "../api/client";
 import { formatCount, formatLength } from "../stats";
 
@@ -11,6 +12,7 @@ type Busy = "reset" | "restore" | null;
  */
 export function StatisticsCard({ icon }: { icon: ReactNode }) {
   const { t, i18n } = useTranslation();
+  const { canAdminister } = useAuth();
   const locale = i18n.language;
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -70,7 +72,7 @@ export function StatisticsCard({ icon }: { icon: ReactNode }) {
         </dl>
       </div>
 
-      {confirming ? (
+      {!canAdminister ? null : confirming ? (
         <div className="settings-confirm" role="group" aria-label={t("settings.statsReset")}>
           <p>{t("settings.statsResetConfirmText")}</p>
           <div className="settings-confirm__actions">

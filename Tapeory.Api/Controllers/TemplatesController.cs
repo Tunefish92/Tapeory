@@ -34,14 +34,14 @@ public sealed class TemplatesController(
         CancellationToken cancellationToken)
     {
         var results = await templates.ListAsync(search, category, status, cancellationToken);
-        return Ok(results.Select(TemplateMapper.ToSummary));
+        return Ok(results.Select(template => TemplateMapper.ToSummary(template, templates.Access)));
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetTemplate(int id, CancellationToken cancellationToken)
     {
         var template = await templates.GetByIdAsync(id, cancellationToken);
-        return template is null ? NotFound() : Ok(TemplateMapper.ToDetail(template));
+        return template is null ? NotFound() : Ok(TemplateMapper.ToDetail(template, templates.Access));
     }
 
     [HttpPost]
@@ -65,7 +65,7 @@ public sealed class TemplatesController(
 
         var template = await templates.CreateAsync(request, cancellationToken);
 
-        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template));
+        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template, templates.Access));
     }
 
     [HttpPost("{id:int}/duplicate")]
@@ -93,7 +93,7 @@ public sealed class TemplatesController(
 
         return copy is null
             ? NotFound()
-            : CreatedAtAction(nameof(GetTemplate), new { id = copy.Id }, TemplateMapper.ToSummary(copy));
+            : CreatedAtAction(nameof(GetTemplate), new { id = copy.Id }, TemplateMapper.ToSummary(copy, templates.Access));
     }
 
     /// <summary>"Name (copy)", shortening the name so the result still fits.</summary>
@@ -137,10 +137,15 @@ public sealed class TemplatesController(
             return Problem(nameError, statusCode: StatusCodes.Status400BadRequest);
         }
 
+        if (await DenyEditAsync(id, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
         try
         {
             var template = await templates.UpdateMetadataAsync(id, request, cancellationToken);
-            return template is null ? NotFound() : Ok(TemplateMapper.ToDetail(template));
+            return template is null ? NotFound() : Ok(TemplateMapper.ToDetail(template, templates.Access));
         }
         catch (ArgumentException ex)
         {
@@ -152,7 +157,31 @@ public sealed class TemplatesController(
     /// Template.DeletedAt.</summary>
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteTemplate(int id, CancellationToken cancellationToken) =>
-        await templates.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
+        await DenyEditAsync(id, cancellationToken) ?? (await templates.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound());
+
+    /// <summary>Makes a template public (every account sees it) or private (only its owner and
+    /// administrators). Only the owner or an administrator may, and only once accounts exist.</summary>
+    [HttpPut("{id:int}/visibility")]
+    public async Task<IActionResult> SetVisibility(
+        int id,
+        [FromBody] SetVisibilityRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (templates.Access.UserId is null)
+        {
+            return Problem(
+                "Templates are shared with everyone until the first account is created.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        if (await DenyEditAsync(id, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
+        var template = await templates.SetVisibilityAsync(id, request.IsPublic, cancellationToken);
+        return template is null ? NotFound() : Ok(TemplateMapper.ToDetail(template, templates.Access));
+    }
 
     [HttpPost("{id:int}/versions")]
     public async Task<IActionResult> CreateVersion(
@@ -165,6 +194,11 @@ public sealed class TemplatesController(
         if (validationError is not null)
         {
             return Problem(validationError, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        if (await DenyEditAsync(id, cancellationToken) is { } denied)
+        {
+            return denied;
         }
 
         var version = await templates.AddVersionAsync(id, request, cancellationToken);
@@ -190,6 +224,11 @@ public sealed class TemplatesController(
         [FromBody] SetPreviewImageRequest request,
         CancellationToken cancellationToken)
     {
+        if (await DenyEditAsync(id, cancellationToken) is { } denied)
+        {
+            return denied;
+        }
+
         var result = await templates.SetPreviewImageAsync(id, request.UploadedFileId, cancellationToken);
 
         return result switch
@@ -243,7 +282,7 @@ public sealed class TemplatesController(
 
         var template = await templates.ImportAsync(export, cancellationToken);
 
-        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template));
+        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template, templates.Access));
     }
 
     [HttpPost("import-lbx")]
@@ -275,7 +314,7 @@ public sealed class TemplatesController(
         await using var stream = file.OpenReadStream();
         var template = await lbxImportService.ImportAsync(stream, file.FileName, cancellationToken);
 
-        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template));
+        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template, templates.Access));
     }
 
     [HttpPost("{id:int}/preview")]
@@ -400,4 +439,16 @@ public sealed class TemplatesController(
         var sanitized = new string([.. name.Select(c => invalidChars.Contains(c) ? '-' : c)]).Trim();
         return sanitized.Length == 0 ? "template" : sanitized;
     }
+
+    /// <summary>Null when the signed-in account may change template <paramref name="id"/>;
+    /// otherwise 404 (it can't see it) or 403 (it's someone else's public template).</summary>
+    private async Task<IActionResult?> DenyEditAsync(int id, CancellationToken cancellationToken) =>
+        await templates.CheckEditAsync(id, cancellationToken) switch
+        {
+            TemplateEditCheck.NotFound => NotFound(),
+            TemplateEditCheck.Forbidden => Problem(
+                "Only the template's owner or an administrator can change it. Duplicate it to make your own copy.",
+                statusCode: StatusCodes.Status403Forbidden),
+            _ => null
+        };
 }

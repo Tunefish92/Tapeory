@@ -2,11 +2,12 @@ using System.Xml.Linq;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
 using Tapeory.Api.Storage;
+using Tapeory.Api.Templates;
 using Tapeory.Api.Uploads;
 
 namespace Tapeory.Api.Import;
 
-public sealed class LbxImportService(AppDbContext db, FileStorageService fileStorage)
+public sealed class LbxImportService(AppDbContext db, FileStorageService fileStorage, IHttpContextAccessor? http = null)
 {
     /// <summary>Imports a .lbx upload: the original bytes are always stored first and preserved
     /// unchanged, regardless of whether the file could be parsed — so no source data is ever
@@ -44,6 +45,7 @@ public sealed class LbxImportService(AppDbContext db, FileStorageService fileSto
             Name = suggestedName,
             SourceLbxFile = sourceFile
         };
+        TemplateAccess.For(http?.HttpContext?.User ?? new System.Security.Claims.ClaimsPrincipal()).ClaimNew(template);
 
         var version = new TemplateVersion
         {
@@ -74,6 +76,7 @@ public sealed class LbxImportService(AppDbContext db, FileStorageService fileSto
 
         template.CurrentVersion = version;
         await db.SaveChangesAsync(cancellationToken);
+        await db.Entry(template).Reference(t => t.Owner).LoadAsync(cancellationToken);
 
         return template;
     }
@@ -118,7 +121,8 @@ public sealed class LbxImportService(AppDbContext db, FileStorageService fileSto
                 ContentType = "image/png",
                 SizeBytes = saved.SizeBytes,
                 Category = FileStorageCategory.Image,
-                RelativePath = saved.RelativePath
+                RelativePath = saved.RelativePath,
+                OwnerUserId = Auth.AuthClaims.UserId(http?.HttpContext?.User ?? new System.Security.Claims.ClaimsPrincipal())
             };
 
             db.UploadedFiles.Add(file);

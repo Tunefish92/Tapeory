@@ -23,6 +23,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Printer> Printers => Set<Printer>();
 
+    public DbSet<User> Users => Set<User>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ApplicationSetting>(entity =>
@@ -52,6 +54,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasOne(template => template.SourceLbxFile)
                 .WithMany()
                 .HasForeignKey(template => template.SourceLbxFileId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Deleting an account transfers or deletes its templates first; this only keeps the
+            // database consistent if one is left over.
+            entity.HasOne(template => template.Owner)
+                .WithMany()
+                .HasForeignKey(template => template.OwnerUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasMany(template => template.ConversionWarnings)
@@ -97,6 +106,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(file => file.OriginalFileName).HasMaxLength(260);
             entity.Property(file => file.ContentType).HasMaxLength(200);
             entity.Property(file => file.RelativePath).HasMaxLength(500);
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(file => file.OwnerUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<PrintJob>(entity =>
@@ -122,6 +136,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .WithMany()
                 .HasForeignKey(job => job.PrinterId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Likewise for a deleted account: PrintedByName keeps who printed it.
+            entity.Property(job => job.PrintedByName).HasMaxLength(100);
+            entity.HasOne(job => job.PrintedByUser)
+                .WithMany()
+                .HasForeignKey(job => job.PrintedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<PrintJobItem>(entity =>
@@ -146,6 +167,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(printer => printer.LabelMediaWidthMm).HasColumnType("decimal(6,2)");
             entity.Property(printer => printer.LabelMediaHeightMm).HasColumnType("decimal(6,2)");
             entity.Property(printer => printer.LastErrorMessage).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            // MySQL's default collation compares case- and accent-insensitively, so "Ada" and
+            // "ada" can't both exist.
+            entity.HasIndex(user => user.UserName).IsUnique();
+            entity.Property(user => user.UserName).HasMaxLength(50);
+            entity.Property(user => user.DisplayName).HasMaxLength(100);
+            entity.Property(user => user.PasswordHash).HasMaxLength(500);
+            entity.Property(user => user.SecurityStamp).HasMaxLength(64);
         });
     }
 }

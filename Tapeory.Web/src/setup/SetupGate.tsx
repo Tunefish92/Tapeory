@@ -1,8 +1,15 @@
-import { useEffect, useState, type PropsWithChildren } from "react";
+import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
 import { isSetupRequired } from "../api/setup";
 import { useNotifications } from "../notifications/NotificationsContext";
 import { SetupPage } from "./SetupPage";
+
+const SetupJustCompletedContext = createContext(false);
+
+/** True right after the database setup in this browser: a brand-new install. */
+export function useSetupJustCompleted() {
+  return useContext(SetupJustCompletedContext);
+}
 
 /**
  * Shows the first-run database setup instead of the app while the server has no database
@@ -13,6 +20,7 @@ export function SetupGate({ children }: PropsWithChildren) {
   const { t } = useTranslation();
   const { notify } = useNotifications();
   const [setupRequired, setSetupRequired] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,11 +39,12 @@ export function SetupGate({ children }: PropsWithChildren) {
       <SetupPage
         onComplete={() => {
           setSetupRequired(false);
+          setJustCompleted(true);
           notify(t("setup.completed"), "success");
         }}
       />
     );
   }
 
-  return <>{children}</>;
+  return <SetupJustCompletedContext.Provider value={justCompleted}>{children}</SetupJustCompletedContext.Provider>;
 }

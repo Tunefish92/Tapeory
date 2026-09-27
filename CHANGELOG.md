@@ -8,8 +8,41 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-27
+
+User accounts with administrator and user roles, and private and public templates.
+
+### Added
+- User accounts. Right after the database setup, the first account is created, and it is the
+  administrator; from then on, everyone signs in. Administrators add accounts in Settings → Users
+  as administrators or users, change their role or name, disable them, reset their password, or
+  delete them; Tapeory always keeps one active administrator. Users design, import and print
+  labels; printers, backups, statistics and accounts are for administrators.
+- Everyone can change their own password from the account menu in the header, which signs them
+  out on their other devices. New accounts and reset passwords get a temporary password that has
+  to be replaced on first sign-in.
+- The print history shows who printed each job.
+- `tapeory reset-password <user>` on the server (`docker exec tapeory tapeory reset-password
+  <user>`) gives a locked-out account a temporary password.
+- Signing in pauses for 15 minutes after 5 wrong passwords for an account, or 20 from one address.
+- Private and public templates. New, imported and duplicated templates are private to the account
+  that made them; the owner (or an administrator) makes one public from the editor, and then every
+  account can see, print and duplicate it, while only the owner and administrators can change it.
+  Someone else's public template opens read-only, with "Duplicate to edit". Administrators see and
+  change every template. The templates page filters by Mine, Public and All, and shows whose each
+  template is.
+- Each account sees only its own print history; administrators see everyone's. The dashboard only
+  names templates you can see.
+- Deleting an account asks whether its templates move to you or are deleted with it.
+- Label backups keep each template's owner and visibility.
+- Uploaded images are only served to accounts that can see a template using them.
+
 ### Changed
-- Docker images are published only for releases, tagged with the version (`0.3.0`) and `latest`
+- Installs upgraded from 0.3 stay open until the first account is created, with a banner offering
+  to create it. Restoring a database backup restores its accounts too.
+- Existing templates become public, with no owner ("shared"), so nobody loses any after upgrading;
+  only administrators can change them.
+- Docker images are published only for releases, tagged with the version (`0.4.0`) and `latest`
   (the newest release). The `sha-<commit>` and `0.3`-style tags are gone; a manual "Clean up
   image tags" workflow removed the old ones.
 
@@ -196,7 +229,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Tunefish92/Tapeory/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Tunefish92/Tapeory/releases/tag/v0.2.0

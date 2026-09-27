@@ -43,7 +43,10 @@ public sealed record LabelBackupTemplate(
     int? SourceLbxFileId,
     string[] ConversionWarnings,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    // Added with accounts; backups made before them have neither, and restore as shared.
+    string? OwnerUserName = null,
+    bool? IsPublic = null);
 
 public sealed record LabelBackupFile(
     int Id,

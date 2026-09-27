@@ -222,3 +222,131 @@
     color: var(--color-bg);
   }
 }
+
+/* Users */
+.settings-users__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-users__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-users__who {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.settings-users__name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+.settings-users__you {
+  margin-inline-start: 0.4rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.settings-users__meta,
+.settings-users__hint {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.settings-users__badges,
+.settings-users__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.settings-users__edit,
+.settings-users__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.settings-users__add {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.settings-users__edit .properties-field,
+.settings-users__add .properties-field {
+  flex: 1 1 10rem;
+}
+
+.settings-users__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--fs-sm);
+  padding-bottom: 0.6rem;
+}
+
+.settings-users__temporary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  font-size: var(--fs-sm);
+}
+
+.settings-users__temporary code {
+  align-self: flex-start;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--r-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: var(--fs-md, 1rem);
+  letter-spacing: 0.05em;
+}
+
+.settings-users__error {
+  font-size: var(--fs-sm);
+  color: var(--color-danger-text);
+}
+
+.settings-users__delete {
+  width: 100%;
+}
+
+.settings-users__choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: var(--fs-sm);
+}
+
+.settings-users__choice legend {
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.settings-users__choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}

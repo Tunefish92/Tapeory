@@ -5,6 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Tapeory.Api.Templates;
 
+public enum TemplateEditCheck
+{
+    Allowed,
+    NotFound,
+    /// <summary>Visible (it's public), but only its owner or an administrator may change it.</summary>
+    Forbidden
+}
+
 public enum SetPreviewImageResult
 {
     Success,
@@ -12,16 +20,59 @@ public enum SetPreviewImageResult
     FileNotFound
 }
 
-public sealed class TemplateService(AppDbContext db, FileStorageService fileStorage, ILogger<TemplateService> logger)
+public sealed class TemplateService(
+    AppDbContext db,
+    FileStorageService fileStorage,
+    ILogger<TemplateService> logger,
+    IHttpContextAccessor? http = null)
 {
-    /// <summary>Every lookup goes through this, so deleted templates behave as if they were gone.</summary>
-    private IQueryable<Template> ActiveTemplates() => db.Templates.Where(template => template.DeletedAt == null);
+    /// <summary>The signed-in account's view. Background work (the print queue, backups) runs
+    /// outside a request and sees everything.</summary>
+    public TemplateAccess Access => TemplateAccess.For(http?.HttpContext?.User ?? new System.Security.Claims.ClaimsPrincipal());
+
+    /// <summary>Every lookup goes through this, so deleted templates, and private templates of
+    /// other accounts, behave as if they were gone.</summary>
+    private IQueryable<Template> ActiveTemplates() => Access.Visible(db.Templates.Where(template => template.DeletedAt == null));
 
     private IQueryable<Template> TemplatesWithCurrentVersion() =>
         ActiveTemplates()
             .Include(template => template.CurrentVersion!)
                 .ThenInclude(version => version.Fields)
-            .Include(template => template.ConversionWarnings);
+            .Include(template => template.ConversionWarnings)
+            .Include(template => template.Owner);
+
+    /// <summary>Whether the signed-in account may change template <paramref name="id"/>.</summary>
+    public async Task<TemplateEditCheck> CheckEditAsync(int id, CancellationToken cancellationToken)
+    {
+        var template = await ActiveTemplates().AsNoTracking().SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+
+        return template is null ? TemplateEditCheck.NotFound
+            : Access.CanEdit(template) ? TemplateEditCheck.Allowed
+            : TemplateEditCheck.Forbidden;
+    }
+
+    /// <summary>Makes a template public or private. A private template needs an owner, so an
+    /// ownerless (shared) one made private belongs to whoever does it.</summary>
+    public async Task<Template?> SetVisibilityAsync(int id, bool isPublic, CancellationToken cancellationToken)
+    {
+        var template = await TemplatesWithCurrentVersion().SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+
+        if (template is null)
+        {
+            return null;
+        }
+
+        template.IsPublic = isPublic;
+
+        if (!isPublic && template.OwnerUserId is null)
+        {
+            template.OwnerUserId = Access.UserId;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        await db.Entry(template).Reference(t => t.Owner).LoadAsync(cancellationToken);
+        return template;
+    }
 
     public async Task<Template> CreateAsync(CreateTemplateRequest request, CancellationToken cancellationToken)
     {
@@ -32,6 +83,7 @@ public sealed class TemplateService(AppDbContext db, FileStorageService fileStor
             Category = TemplateGroups.Normalize(request.Category),
             TagsCsv = TemplateMapper.SerializeTags(request.Tags)
         };
+        Access.ClaimNew(template);
 
         var version = new TemplateVersion
         {
@@ -53,6 +105,7 @@ public sealed class TemplateService(AppDbContext db, FileStorageService fileStor
 
         template.CurrentVersion = version;
         await db.SaveChangesAsync(cancellationToken);
+        await db.Entry(template).Reference(t => t.Owner).LoadAsync(cancellationToken);
 
         return template;
     }
@@ -136,7 +189,7 @@ public sealed class TemplateService(AppDbContext db, FileStorageService fileStor
 
         var target = TemplateGroups.Normalize(to);
 
-        return await ActiveTemplates()
+        return await Access.Editable(ActiveTemplates())
             .Where(template => template.Category == source)
             .ExecuteUpdateAsync(setters => setters.SetProperty(template => template.Category, target), cancellationToken);
     }

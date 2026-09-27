@@ -12,6 +12,7 @@ import {
   type TemplateSummaryResponse,
 } from "../api/templates";
 import { useNotifications } from "../notifications/NotificationsContext";
+import { useAuth } from "../auth/AuthContext";
 import { collectGroups, groupHue, groupKey, normalizeText, type GroupSummary } from "./groups";
 import { formatRelativeTime } from "../relativeTime";
 import { DataGrid, DataGridRow, useUrlSort } from "../components/DataGrid";
@@ -30,6 +31,34 @@ type ViewMode = "cards" | "list";
 const VIEW_STORAGE_KEY = "tapeory.templatesView";
 const UNGROUPED = "__none";
 const GROUP_DATALIST_ID = "template-group-options";
+
+/** Which templates to list once there are accounts: your own, public ones, or all you can see. */
+type OwnershipFilter = "mine" | "public" | "";
+const OWNERSHIP_FILTERS: OwnershipFilter[] = ["", "mine", "public"];
+
+/** Older servers don't send canEdit: everything was editable then. */
+const canEdit = (template: TemplateSummaryResponse) => template.canEdit !== false;
+
+/** Private or public, and whose it is (only once there are accounts). */
+function AccessBadge({ template }: { template: TemplateSummaryResponse }) {
+  const { t } = useTranslation();
+  const { hasUsers } = useAuth();
+
+  if (!hasUsers) return null;
+
+  const owner = template.isMine
+    ? null
+    : template.ownerName
+      ? t("templates.byOwner", { name: template.ownerName })
+      : t("templates.shared");
+
+  return (
+    <span className={`template-card__chip template-access template-access--${template.isPublic ? "public" : "private"}`}>
+      {template.isPublic ? t("templates.public") : t("templates.private")}
+      {owner && <span className="template-access__owner"> · {owner}</span>}
+    </span>
+  );
+}
 
 function readStoredView(): ViewMode {
   try {
@@ -262,7 +291,12 @@ function TemplateCard({ template, index, onChangeGroup, deleting, onDelete, dupl
         </div>
 
         <div className="template-card__meta">
-          <GroupPicker template={template} onSave={(group) => onChangeGroup(template, group)} />
+          {canEdit(template) ? (
+            <GroupPicker template={template} onSave={(group) => onChangeGroup(template, group)} />
+          ) : (
+            template.category && <GroupChip group={template.category} />
+          )}
+          <AccessBadge template={template} />
           <span className="template-card__chip">
             {template.widthMm}×{template.heightMm}mm
           </span>
@@ -278,11 +312,13 @@ function TemplateCard({ template, index, onChangeGroup, deleting, onDelete, dupl
             })}
           </span>
           <div className="template-card__actions">
-            <DeleteTemplateButton template={template} deleting={deleting} onDelete={onDelete} />
+            {canEdit(template) && <DeleteTemplateButton template={template} deleting={deleting} onDelete={onDelete} />}
             <DuplicateTemplateButton template={template} duplicating={duplicating} onDuplicate={onDuplicate} />
-            <Link className="btn btn-sm" to={`/templates/${template.id}/edit`}>
-              {t("common.edit")}
-            </Link>
+            {canEdit(template) && (
+              <Link className="btn btn-sm" to={`/templates/${template.id}/edit`}>
+                {t("common.edit")}
+              </Link>
+            )}
             <Link className="btn btn-primary btn-sm" to={`/templates/${template.id}/print`}>
               {t("templates.print")}
             </Link>
@@ -450,6 +486,7 @@ function TemplatesTable({
                   <span className="data-grid__subtitle">
                     {template.description || t("templates.versionShort", { version: template.currentVersionNumber })}
                   </span>
+                  <AccessBadge template={template} />
                 </span>
               </span>
             </td>
@@ -490,14 +527,16 @@ function TemplatesTable({
             </td>
             <td className="data-grid__actions-cell">
               <span className="data-grid__actions">
-                <Link
-                  to={editUrl}
-                  className="icon-link"
-                  aria-label={`${t("common.edit")}: ${template.name}`}
-                  title={t("common.edit")}
-                >
-                  <PencilIcon />
-                </Link>
+                {canEdit(template) && (
+                  <Link
+                    to={editUrl}
+                    className="icon-link"
+                    aria-label={`${t("common.edit")}: ${template.name}`}
+                    title={t("common.edit")}
+                  >
+                    <PencilIcon />
+                  </Link>
+                )}
                 <Link
                   to={`/templates/${template.id}/print`}
                   className="icon-link icon-link--primary"
@@ -511,7 +550,9 @@ function TemplatesTable({
                   duplicating={duplicatingId === template.id}
                   onDuplicate={onDuplicate}
                 />
-                <DeleteTemplateButton template={template} deleting={deletingId === template.id} onDelete={onDelete} />
+                {canEdit(template) && (
+                  <DeleteTemplateButton template={template} deleting={deletingId === template.id} onDelete={onDelete} />
+                )}
               </span>
             </td>
           </DataGridRow>
@@ -538,21 +579,36 @@ export function TemplatesListPage() {
   const query = searchParams.get("q") ?? "";
   const groupFilter = searchParams.get("group") ?? "";
   const [tableSort, setSort] = useUrlSort(isSortKey);
+  const { hasUsers } = useAuth();
+  const showParam = searchParams.get("show") ?? "";
+  const ownership: OwnershipFilter = hasUsers && (showParam === "mine" || showParam === "public") ? showParam : "";
 
-  const groups = useMemo(() => collectGroups(templates ?? []), [templates]);
-  const ungroupedCount = useMemo(() => (templates ?? []).filter((template) => !template.category?.trim()).length, [templates]);
+  // Mine / public narrows everything below it, groups and their counts included.
+  const ownedTemplates = useMemo(
+    () =>
+      templates?.filter((template) =>
+        ownership === "mine" ? template.isMine : ownership === "public" ? template.isPublic : true,
+      ) ?? null,
+    [templates, ownership],
+  );
+
+  const groups = useMemo(() => collectGroups(ownedTemplates ?? []), [ownedTemplates]);
+  const ungroupedCount = useMemo(
+    () => (ownedTemplates ?? []).filter((template) => !template.category?.trim()).length,
+    [ownedTemplates],
+  );
 
   const filteredTemplates = useMemo(() => {
-    if (!templates) return null;
+    if (!ownedTemplates) return null;
     const needle = normalizeText(query.trim());
 
-    return templates.filter((template) => {
+    return ownedTemplates.filter((template) => {
       if (needle && !normalizeText(template.name).includes(needle)) return false;
       if (groupFilter === UNGROUPED) return !template.category?.trim();
       if (groupFilter) return !!template.category && groupKey(template.category) === groupFilter;
       return true;
     });
-  }, [templates, query, groupFilter]);
+  }, [ownedTemplates, query, groupFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -792,16 +848,31 @@ export function TemplatesListPage() {
         </div>
       )}
 
+      {hasUsers && templates && templates.length > 0 && (
+        <div className="view-toggle template-ownership" role="group" aria-label={t("templates.ownershipLabel")}>
+          {OWNERSHIP_FILTERS.map((filter) => (
+            <button
+              key={filter || "all"}
+              type="button"
+              aria-pressed={ownership === filter}
+              onClick={() => updateParams({ show: filter, group: "" })}
+            >
+              {t(`templates.ownership.${filter || "all"}`)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {groups.length > 0 && (
         <div className="group-filter" role="group" aria-label={t("templates.groupFilterLabel")}>
           <button
             type="button"
             aria-pressed={!groupFilter}
-            aria-label={`${t("templates.allGroups")} (${templates?.length ?? 0})`}
+            aria-label={`${t("templates.allGroups")} (${ownedTemplates?.length ?? 0})`}
             onClick={() => setGroupFilter("")}
           >
             {t("templates.allGroups")}
-            <span className="group-filter__count">{templates?.length ?? 0}</span>
+            <span className="group-filter__count">{ownedTemplates?.length ?? 0}</span>
           </button>
           {groups.map((group) => (
             <button

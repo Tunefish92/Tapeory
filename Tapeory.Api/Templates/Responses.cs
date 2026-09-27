@@ -22,7 +22,13 @@ public sealed record TemplateSummaryResponse(
     string? PreviewImageUrl,
     string? SourceLbxUrl,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    bool IsPublic = true,
+    // Null for a shared template from before accounts existed.
+    string? OwnerName = null,
+    bool CanEdit = true,
+    // Owned by the signed-in account.
+    bool IsMine = false);
 
 public sealed record TemplateDetailResponse(
     int Id,
@@ -35,7 +41,12 @@ public sealed record TemplateDetailResponse(
     string[] ConversionWarnings,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    TemplateVersionResponse CurrentVersion);
+    TemplateVersionResponse CurrentVersion,
+    bool IsPublic = true,
+    string? OwnerName = null,
+    bool CanEdit = true,
+    // Owned by the signed-in account.
+    bool IsMine = false);
 
 /// <summary>The portable, native Tapeory template envelope used for export/import.</summary>
 public sealed record NativeTemplateExport(
