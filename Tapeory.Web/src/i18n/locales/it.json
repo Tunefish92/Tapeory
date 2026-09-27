@@ -249,7 +249,8 @@
       "loading": "Caricamento del modello…",
       "loadErrorFallback": "Impossibile caricare il modello.",
       "previewErrorFallback": "Impossibile generare l'anteprima.",
-      "submitErrorFallback": "Impossibile inviare il lavoro di stampa."
+      "submitErrorFallback": "Impossibile inviare il lavoro di stampa.",
+      "tapeMismatch": "Nella stampante è caricato un nastro da {{loaded}} mm, ma questo modello richiede un nastro da {{needed}} mm. Carica un nastro da {{needed}} mm prima di stampare."
     },
     "printJobsList": {
       "title": "Cronologia di stampa",
@@ -327,7 +328,9 @@
       "CutAtEnd": "Taglio alla fine",
       "CutAtEndHint": "Nessun taglio tra le etichette, uno solo dopo l’ultima.",
       "ChainPrinting": "Stampa a catena",
-      "ChainPrintingHint": "Taglia tra le etichette ma tiene l’ultima nella stampante fino alla stampa successiva o al tasto di avanzamento. Risparmia il nastro vuoto che la stampante fa avanzare all’inizio di ogni lavoro."
+      "ChainPrintingHint": "Taglia tra le etichette ma tiene l’ultima nella stampante fino alla stampa successiva o al tasto di avanzamento. Risparmia il nastro vuoto che la stampante fa avanzare all’inizio di ogni lavoro.",
+      "CutMarks": "Segni di taglio",
+      "CutMarksHint": "Nessun taglio: tutte le etichette vengono stampate come un’unica striscia, con una linea tratteggiata a ogni taglio, da tagliare a mano."
     }
   },
   "printers": {
@@ -380,6 +383,7 @@
     "setDefault": "Imposta come predefinita",
     "testingConnection": "Verifica della connessione…",
     "connectionSucceeded": "Connessione riuscita.",
+    "connectionSucceededWithTape": "Connessione riuscita — nastro da {{tape}} mm caricato.",
     "connectionFailedFallback": "Connessione non riuscita.",
     "connectionTestErrorFallback": "Verifica della connessione non riuscita.",
     "sendingTestPrint": "Invio della stampa di prova…",

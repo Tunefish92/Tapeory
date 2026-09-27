@@ -53,14 +53,86 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
             });
         });
 
-        // The fake printers in these tests are plain TCP listeners with no SNMP agent; answering
-        // "no status" straight away skips the SNMP timeout on every print.
-        builder.ConfigureServices(services => services.AddSingleton<IPrinterStatusReader, NoStatusReader>());
+        // The fake printers in these tests are plain TCP listeners with no SNMP agent, and there's
+        // no real CUPS server: tests script what the printer and the print server report instead.
+        // By default the printer reports nothing, which skips the SNMP timeout on every print.
+        // Short driver timeouts keep the "never finishes" cases quick.
+        builder.ConfigureServices(services =>
+        {
+            services.AddSingleton<IPrinterStatusReader>(PrinterStatus);
+            services.AddSingleton(new IppClient(new HttpClient(PrintServer)));
+            services.AddSingleton(provider => new BrotherPtPrinterDriver(
+                provider.GetRequiredService<PrinterRawSocketSender>(),
+                provider.GetRequiredService<IPrinterStatusReader>(),
+                provider.GetRequiredService<IppClient>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BrotherPtPrinterDriver>>())
+            {
+                PollInterval = TimeSpan.FromMilliseconds(20),
+                BaseTimeout = TimeSpan.FromSeconds(2),
+                TimeoutPerLabel = TimeSpan.Zero
+            });
+        });
     }
 
-    private sealed class NoStatusReader : IPrinterStatusReader
+    /// <summary>What the (fake) printer reports over SNMP. Reset it after a test that scripts it.</summary>
+    public ScriptedPrinterStatus PrinterStatus { get; } = new();
+
+    /// <summary>The (fake) CUPS server's answers. Reset it after a test that scripts it.</summary>
+    public ScriptedPrintServer PrintServer { get; } = new();
+
+    public sealed class ScriptedPrinterStatus : IPrinterStatusReader
     {
-        public Task<PrinterStatusSnapshot?> ReadAsync(string host, CancellationToken cancellationToken) =>
-            Task.FromResult<PrinterStatusSnapshot?>(null);
+        private readonly Queue<PrinterStatusSnapshot?> _script = new();
+        private PrinterStatusSnapshot? _last;
+
+        /// <summary>Answers each read with the next snapshot, then keeps repeating the last one.</summary>
+        public void Script(params PrinterStatusSnapshot?[] snapshots)
+        {
+            lock (_script)
+            {
+                _script.Clear();
+                _last = null;
+                foreach (var snapshot in snapshots) _script.Enqueue(snapshot);
+            }
+        }
+
+        public void Reset() => Script();
+
+        public Task<PrinterStatusSnapshot?> ReadAsync(string host, CancellationToken cancellationToken)
+        {
+            lock (_script)
+            {
+                if (_script.Count > 0) _last = _script.Dequeue();
+                return Task.FromResult(_last);
+            }
+        }
+    }
+
+    public sealed class ScriptedPrintServer : HttpMessageHandler
+    {
+        private Func<int, byte[]>? _respond;
+
+        public List<int> Operations { get; } = [];
+
+        /// <summary>Answers each IPP request by its operation id.</summary>
+        public void Script(Func<int, byte[]> respondToOperation)
+        {
+            Operations.Clear();
+            _respond = respondToOperation;
+        }
+
+        public void Reset() => _respond = null;
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var body = await request.Content!.ReadAsByteArrayAsync(cancellationToken);
+            var operation = (body[2] << 8) | body[3];
+            lock (Operations) Operations.Add(operation);
+
+            return _respond is null
+                ? new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
+                : new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(_respond(operation)) };
+        }
     }
 }

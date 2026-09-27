@@ -208,6 +208,13 @@ describe("PrintTemplatePage", () => {
           } as Response;
         }
 
+        if (url.endsWith("/api/printers/1/status")) {
+          return {
+            ok: true,
+            json: async () => ({ available: true, loadedTapeMm: 12, display: "READY", problem: null }),
+          } as Response;
+        }
+
         if (url.endsWith("/api/print-jobs")) {
           submitted = JSON.parse((init?.body as string) ?? "{}");
           return { ok: true, json: async () => ({ id: 99 }) } as Response;
@@ -219,6 +226,9 @@ describe("PrintTemplatePage", () => {
 
     renderPage();
     await screen.findByText("Print: Shipping Label");
+
+    // The template is 25 mm high (24 mm tape), but the printer reports 12 mm tape.
+    expect(await screen.findByRole("alert")).toHaveTextContent("12 mm tape loaded, but this template needs 24 mm");
 
     const qualitySelect = await screen.findByLabelText("Print quality");
     expect(screen.getByRole("option", { name: "High (180 × 360 dpi)" })).toBeInTheDocument();

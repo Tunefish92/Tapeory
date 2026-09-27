@@ -147,6 +147,30 @@ public sealed class BrotherPtPrinterDriverTests : IDisposable
     }
 
     [Fact]
+    public async Task Print_FailsWithoutSending_WhenTheLoadedTapeDoesNotMatchTheLabel()
+    {
+        var twelveMmLoaded = new PrinterStatusSnapshot(3, [0x00], "READY", 100, "12mm(0.47\")");
+
+        var (outcome, stages) = await PrintAsync(new ScriptedStatusReader(twelveMmLoaded)); // 9 mm label
+
+        Assert.False(outcome.IsSuccess);
+        Assert.Contains("12 mm tape loaded", outcome.ErrorMessage);
+        Assert.Contains("needs 9 mm", outcome.ErrorMessage);
+        Assert.Empty(stages);
+    }
+
+    [Fact]
+    public async Task Print_Proceeds_WhenTheLoadedTapeMatchesTheLabel()
+    {
+        var nineMm = new PrinterStatusSnapshot(3, [0x00], "READY", 100, "9mm(0.35\")");
+
+        var (outcome, _) = await PrintAsync(
+            new ScriptedStatusReader(nineMm, nineMm with { LabelCount = 101 }));
+
+        Assert.True(outcome.IsSuccess, outcome.ErrorMessage);
+    }
+
+    [Fact]
     public async Task Print_RefusesQlPrinters()
     {
         var printer = PtPrinter();

@@ -32,6 +32,16 @@ public static class BrotherPtRasterEncoder
     {
         ArgumentOutOfRangeException.ThrowIfZero(labels.Count);
 
+        // Margin and gaps are counted in raster lines, which are twice as dense at 360 dpi.
+        var marginLines = highResolution ? MarginDots * 2 : MarginDots;
+        var labelLines = labels.Select(label => RasterLines(label, tape)).ToList();
+
+        // Cut marks: no cutting at all; the labels print as one strip with a dashed line across
+        // the tape at each cut, centred in the gap, to cut along by hand.
+        var pages = cutMode == CutMode.CutMarks
+            ? [WithCutMarks(labelLines, CutMarkLine(tape), marginLines)]
+            : labelLines;
+
         // ESC i A: full cut after every n labels. Half cut and cut-at-end leave the labels
         // joined and cut once after the last (the command takes at most 255).
         var cutEvery = cutMode is CutMode.HalfCut or CutMode.CutAtEnd ? (byte)Math.Min(labels.Count, 255) : (byte)1;
@@ -48,40 +58,50 @@ public static class BrotherPtRasterEncoder
         output.Write([0x1B, 0x40]);             // ESC @: initialize
         output.Write([0x1B, 0x69, 0x61, 0x01]); // ESC i a: raster mode
 
-        for (var page = 0; page < labels.Count; page++)
+        for (var page = 0; page < pages.Count; page++)
         {
-            var label = labels[page];
-            var lines = label.Width;
+            var lines = pages[page];
 
             // ESC i z: print information. Flags: 0x80 printer recovery on, 0x04 tape width valid.
             output.Write([0x1B, 0x69, 0x7A, 0x84, 0x00, tape.WidthCode, 0x00]);
-            output.Write(BitConverter.GetBytes(lines)); // raster line count, little-endian
+            output.Write(BitConverter.GetBytes(lines.Count)); // raster line count, little-endian
             output.Write([page == 0 ? (byte)0 : (byte)1, 0x00]);
 
-            output.Write([0x1B, 0x69, 0x4D, 0x40]); // ESC i M: auto cut on
+            output.Write([0x1B, 0x69, 0x4D, cutMode == CutMode.CutMarks ? (byte)0x00 : (byte)0x40]); // ESC i M: auto cut
             output.Write([0x1B, 0x69, 0x41, cutEvery]);
             output.Write([0x1B, 0x69, 0x4B, advancedMode]);
-            var margin = highResolution ? MarginDots * 2 : MarginDots; // margin is counted in raster lines
-            output.Write([0x1B, 0x69, 0x64, (byte)(margin & 0xFF), (byte)(margin >> 8)]); // ESC i d: margin
+            output.Write([0x1B, 0x69, 0x64, (byte)(marginLines & 0xFF), (byte)(marginLines >> 8)]); // ESC i d: margin
             output.Write([0x4D, 0x02]);             // M: TIFF (PackBits) compression
 
-            WriteRasterLines(output, label, tape);
+            foreach (var line in lines)
+            {
+                if (line is null)
+                {
+                    output.WriteByte(0x5A); // Z: empty raster line
+                    continue;
+                }
 
-            output.WriteByte(page == labels.Count - 1 ? (byte)0x1A : (byte)0x0C); // print (last page: and feed)
+                // G: one raster line, sent as a single PackBits literal run of all 16 bytes.
+                output.Write([0x47, BytesPerLine + 1, 0x00, BytesPerLine - 1]);
+                output.Write(line);
+            }
+
+            output.WriteByte(page == pages.Count - 1 ? (byte)0x1A : (byte)0x0C); // print (last page: and feed)
         }
 
         return output.ToArray();
     }
 
-    private static void WriteRasterLines(Stream output, SKBitmap label, BrotherPtTape tape)
+    /// <summary>One label's raster lines, one per pixel column; null for a line without dots.</summary>
+    private static List<byte[]?> RasterLines(SKBitmap label, BrotherPtTape tape)
     {
         // Label rows that land on the printable pins, centring the label on the tape.
         var firstRow = (label.Height - tape.PrintPins) / 2;
-        var line = new byte[BytesPerLine];
+        var lines = new List<byte[]?>(label.Width);
 
         for (var x = 0; x < label.Width; x++)
         {
-            Array.Clear(line);
+            var line = new byte[BytesPerLine];
             var anyDot = false;
 
             for (var pin = 0; pin < tape.PrintPins; pin++)
@@ -93,21 +113,53 @@ public static class BrotherPtRasterEncoder
                     continue;
                 }
 
-                var bit = tape.MarginPins + pin;
-                line[bit / 8] |= (byte)(0x80 >> (bit % 8));
+                SetPin(line, tape, pin);
                 anyDot = true;
             }
 
-            if (!anyDot)
-            {
-                output.WriteByte(0x5A); // Z: empty raster line
-                continue;
-            }
-
-            // G: one raster line, sent as a single PackBits literal run of all 16 bytes.
-            output.Write([0x47, BytesPerLine + 1, 0x00, BytesPerLine - 1]);
-            output.Write(line);
+            lines.Add(anyDot ? line : null);
         }
+
+        return lines;
+    }
+
+    /// <summary>All labels on one strip: a cut mark before the first, between each pair, and after
+    /// the last, with a gap either side of each inner mark so labels don't touch it.</summary>
+    private static List<byte[]?> WithCutMarks(List<List<byte[]?>> labels, byte[] mark, int gap)
+    {
+        var strip = new List<byte[]?> { mark };
+
+        foreach (var label in labels)
+        {
+            strip.AddRange(Enumerable.Repeat<byte[]?>(null, gap));
+            strip.AddRange(label);
+            strip.AddRange(Enumerable.Repeat<byte[]?>(null, gap));
+            strip.Add(mark);
+        }
+
+        return strip;
+    }
+
+    /// <summary>A dashed line across the printable width of the tape.</summary>
+    private static byte[] CutMarkLine(BrotherPtTape tape)
+    {
+        var line = new byte[BytesPerLine];
+
+        for (var pin = 0; pin < tape.PrintPins; pin++)
+        {
+            if (pin / 3 % 2 == 0)
+            {
+                SetPin(line, tape, pin);
+            }
+        }
+
+        return line;
+    }
+
+    private static void SetPin(byte[] line, BrotherPtTape tape, int pin)
+    {
+        var bit = tape.MarginPins + pin;
+        line[bit / 8] |= (byte)(0x80 >> (bit % 8));
     }
 
     /// <summary>Thresholds at mid-grey, treating transparency as white.</summary>

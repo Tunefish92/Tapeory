@@ -97,7 +97,7 @@ install extra font packages.
 | Tag | Contents |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `0.2.0`, `0.2` | A release |
+| `0.2.1`, `0.2` | A release |
 | `sha-<commit>` | One specific commit |
 
 All tags are multi-arch (`amd64`, `arm64`). The same image is on GitHub Container Registry as

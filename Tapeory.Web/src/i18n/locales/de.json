@@ -247,7 +247,8 @@
       "loading": "Vorlage wird geladen…",
       "loadErrorFallback": "Vorlage konnte nicht geladen werden.",
       "previewErrorFallback": "Vorschau konnte nicht gerendert werden.",
-      "submitErrorFallback": "Druckauftrag konnte nicht gesendet werden."
+      "submitErrorFallback": "Druckauftrag konnte nicht gesendet werden.",
+      "tapeMismatch": "Im Drucker ist {{loaded}}-mm-Band eingelegt, diese Vorlage braucht aber {{needed}}-mm-Band. Legen Sie vor dem Drucken {{needed}}-mm-Band ein."
     },
     "printJobsList": {
       "title": "Druckverlauf",
@@ -320,7 +321,9 @@
       "CutAtEnd": "Am Ende schneiden",
       "CutAtEndHint": "Keine Schnitte zwischen den Etiketten, ein Schnitt nach dem letzten.",
       "ChainPrinting": "Kettendruck",
-      "ChainPrintingHint": "Schneidet zwischen den Etiketten, behält das letzte aber im Drucker, bis zum nächsten Druck oder zur Vorschubtaste. Spart das leere Band, das der Drucker zu Beginn jedes Auftrags vorschiebt."
+      "ChainPrintingHint": "Schneidet zwischen den Etiketten, behält das letzte aber im Drucker, bis zum nächsten Druck oder zur Vorschubtaste. Spart das leere Band, das der Drucker zu Beginn jedes Auftrags vorschiebt.",
+      "CutMarks": "Schnittmarken",
+      "CutMarksHint": "Kein Schneiden: Alle Etiketten werden als ein Streifen gedruckt, mit einer gestrichelten Linie an jeder Schnittstelle zum Schneiden von Hand."
     }
   },
   "printers": {
@@ -373,6 +376,7 @@
     "setDefault": "Als Standard festlegen",
     "testingConnection": "Verbindung wird getestet…",
     "connectionSucceeded": "Verbindung erfolgreich.",
+    "connectionSucceededWithTape": "Verbindung erfolgreich – {{tape}}-mm-Band eingelegt.",
     "connectionFailedFallback": "Verbindung fehlgeschlagen.",
     "connectionTestErrorFallback": "Verbindungstest fehlgeschlagen.",
     "sendingTestPrint": "Testdruck wird gesendet…",

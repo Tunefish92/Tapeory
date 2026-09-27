@@ -16,5 +16,9 @@ public enum CutMode
     /// <summary>Cut between labels, but don't feed and cut the last one. It stays in the printer
     /// until the next job (or the feed button) pushes it out, which saves the blank leader the
     /// printer otherwise feeds at the start of every job.</summary>
-    ChainPrinting = 3
+    ChainPrinting = 3,
+
+    /// <summary>No cutting: the labels print as one strip with a dashed cut mark between them,
+    /// to cut by hand.</summary>
+    CutMarks = 4
 }

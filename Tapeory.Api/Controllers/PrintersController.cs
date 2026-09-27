@@ -12,6 +12,7 @@ public sealed class PrintersController(
     PrinterService printers,
     PrinterConnectionTester connectionTester,
     BrotherPtPrinterDriver driver,
+    IPrinterStatusReader statusReader,
     LabelRenderer renderer) : ControllerBase
 {
     private const int MaxNameLength = 200;
@@ -93,9 +94,37 @@ public sealed class PrintersController(
 
         var result = await connectionTester.TestAsync(printer, cancellationToken);
         await printers.RecordConnectionResultAsync(printer, result, cancellationToken);
+        var status = result.IsSuccess ? await ReadStatusAsync(printer, cancellationToken) : null;
 
-        return Ok(new TestConnectionResponse(result.IsSuccess, result.ErrorMessage));
+        return Ok(new TestConnectionResponse(result.IsSuccess, result.ErrorMessage, status?.LoadedTapeMm));
     }
+
+    /// <summary>The printer's current state over SNMP, e.g. which tape is loaded, so the print form
+    /// can warn before a label goes onto the wrong tape.</summary>
+    [HttpGet("{id:int}/status")]
+    public async Task<IActionResult> GetStatus(int id, CancellationToken cancellationToken)
+    {
+        var printer = await printers.GetByIdAsync(id, cancellationToken);
+
+        if (printer is null)
+        {
+            return NotFound();
+        }
+
+        var status = await ReadStatusAsync(printer, cancellationToken);
+
+        return Ok(status is null
+            ? new PrinterStatusResponse(false, null, null, null)
+            : new PrinterStatusResponse(true, status.LoadedTapeMm, status.Display.Trim(), status.BlockingError));
+    }
+
+    /// <summary>Only a printer reached directly is the device SNMP answers for; behind a print
+    /// server it would be the server.</summary>
+    private Task<PrinterStatusSnapshot?> ReadStatusAsync(Printer printer, CancellationToken cancellationToken) =>
+        printer.ConnectionType is PrinterConnectionType.IpAddress or PrinterConnectionType.Hostname
+        && PrinterNetworkResolver.Resolve(printer) is { } target
+            ? statusReader.ReadAsync(target.Host, cancellationToken)
+            : Task.FromResult<PrinterStatusSnapshot?>(null);
 
     /// <summary>Renders a small built-in test label, prints it, and waits until the printer
     /// confirms it came out (or reports why it didn't).</summary>

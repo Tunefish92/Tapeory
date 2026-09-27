@@ -51,6 +51,24 @@ export interface PrinterRequest {
 export interface TestConnectionResponse {
   isSuccess: boolean;
   errorMessage: string | null;
+  /** The tape the printer reports loaded, in mm (directly connected printers with SNMP). */
+  loadedTapeMm?: number | null;
+}
+
+/** What a directly connected printer reports right now; `available` is false when it can't be asked. */
+export interface PrinterStatusResponse {
+  available: boolean;
+  loadedTapeMm: number | null;
+  display: string | null;
+  problem: string | null;
+}
+
+/** Brother TZe tape widths, in mm. */
+export const TAPE_WIDTHS_MM = [3.5, 6, 9, 12, 18, 24];
+
+/** The tape a label of this height prints on: the closest width, as the server picks it. */
+export function tapeForLabelHeight(heightMm: number): number {
+  return TAPE_WIDTHS_MM.reduce((best, width) => (Math.abs(width - heightMm) < Math.abs(best - heightMm) ? width : best));
 }
 
 export interface TestPrintResponse {
@@ -120,6 +138,11 @@ export async function setDefaultPrinter(id: number): Promise<void> {
 
 export async function testPrinterConnection(id: number): Promise<TestConnectionResponse> {
   const response = await fetch(`${API_BASE_URL}/printers/${id}/test-connection`, { method: "POST" });
+  return parseJsonOrThrow(response);
+}
+
+export async function getPrinterStatus(id: number): Promise<PrinterStatusResponse> {
+  const response = await fetch(`${API_BASE_URL}/printers/${id}/status`);
   return parseJsonOrThrow(response);
 }
 
