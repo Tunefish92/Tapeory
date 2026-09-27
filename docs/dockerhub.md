@@ -16,6 +16,7 @@ MariaDB database.
 > SNMP. Other printers, including the QL series, aren't supported yet.
 
 Source, full documentation and issues: **https://github.com/Tunefish92/Tapeory**
+Questions and help: **https://github.com/Tunefish92/Tapeory/discussions**
 
 ## Quick start with Docker Compose
 

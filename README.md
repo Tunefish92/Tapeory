@@ -312,6 +312,12 @@ opens the app. The image carries both as labels (`net.unraid.docker.icon` and
 `net.unraid.docker.webui`), so they also work for a container started without the template,
 for example with Compose.
 
+## Support
+
+Ask questions and share ideas in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions),
+and report bugs as [issues](https://github.com/Tunefish92/Tapeory/issues). Please include your Tapeory
+version (Settings page), your printer model, and the container log.
+
 ## Known limitations
 
 - **Only Brother PT printers with a 128-pin head can print** (PT-P750W, PT-E550W, PT-P710BT,

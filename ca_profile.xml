@@ -1,5 +1,6 @@
 <CommunityApplications>
-  <Profile>Tapeory is a self-hosted web app for designing, storing, and printing Brother P-touch labels. This repository contains its source and its Unraid template. Report problems and ask questions on GitHub issues.</Profile>
+  <Profile>Tapeory is a self-hosted web app for designing, storing, and printing Brother P-touch labels. This repository contains its source and its Unraid template. Ask questions and get help in GitHub Discussions (https://github.com/Tunefish92/Tapeory/discussions); report bugs as GitHub issues.</Profile>
   <Icon>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/unraid/tapeory.png</Icon>
   <WebPage>https://github.com/Tunefish92/Tapeory</WebPage>
+  <Forum>https://github.com/Tunefish92/Tapeory/discussions</Forum>
 </CommunityApplications>
