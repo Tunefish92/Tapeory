@@ -9,7 +9,8 @@ MariaDB database.
 
 ![The Tapeory label editor](https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/editor.png)
 
-> **Early development (0.x).** Designing, storing, importing, and rendering labels work.
+> **Early release (0.2).** This is the first stable release, but Tapeory is still young.
+> Designing, storing, importing, and rendering labels work.
 > Sending jobs to a real printer is experimental: Tapeory sends a PNG over a raw TCP socket
 > (port 9100), which most Brother printers don't understand yet.
 
@@ -93,7 +94,7 @@ install extra font packages.
 | Tag | Contents |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `0.1.0`, `0.1` | A release |
+| `0.2.0`, `0.2` | A release |
 | `sha-<commit>` | One specific commit |
 
 All tags are multi-arch (`amd64`, `arm64`). The same image is on GitHub Container Registry as
