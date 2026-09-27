@@ -95,9 +95,8 @@ install extra font packages.
 
 | Tag | Contents |
 | --- | --- |
-| `latest` | Latest build of `main` |
-| `0.3.0`, `0.3` | A release |
-| `sha-<commit>` | One specific commit |
+| `latest` | The newest release |
+| `0.3.0`, `0.2.1`, … | One specific release |
 
 All tags are multi-arch (`amd64`, `arm64`). The same image is on GitHub Container Registry as
 `ghcr.io/tunefish92/tapeory`.

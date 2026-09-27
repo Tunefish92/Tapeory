@@ -1,0 +1,101 @@
+name: Clean up image tags
+
+# Run by hand from the Actions tab. Points `latest` at the newest release and removes every image
+# tag that isn't `latest` or a release version (1.2.3), such as the sha-<commit> and 1.2 tags
+# older builds published.
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Clean up image tags
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    env:
+      KEEP: '^(latest|[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Find the newest release
+        id: release
+        run: |
+          version=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+          echo "Newest release: ${version#v}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: vars.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Point latest at the newest release
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_USERNAME != '' && format('{0}/tapeory', vars.DOCKERHUB_USERNAME) || '' }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker buildx imagetools create -t "$image:latest" "$image:$VERSION"
+          if [ -n "$DOCKERHUB_IMAGE" ]; then
+            docker buildx imagetools create -t "$DOCKERHUB_IMAGE:latest" "$DOCKERHUB_IMAGE:$VERSION"
+          fi
+
+      # Docker Hub deletes single tags; the images they point to stay while another tag uses them.
+      - name: Remove other tags on Docker Hub
+        if: vars.DOCKERHUB_USERNAME != ''
+        env:
+          USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          jwt=$(curl -fsS -H 'Content-Type: application/json' \
+            -d "{\"username\":\"$USERNAME\",\"password\":\"$TOKEN\"}" \
+            https://hub.docker.com/v2/users/login | jq -r .token)
+          repo="https://hub.docker.com/v2/repositories/$USERNAME/tapeory"
+          tags=$(curl -fsS -H "Authorization: JWT $jwt" "$repo/tags?page_size=100" | jq -r '.results[].name')
+          for tag in $tags; do
+            if [[ "$tag" =~ $KEEP ]]; then
+              echo "keep   $tag"
+            else
+              echo "delete $tag"
+              curl -fsS -X DELETE -H "Authorization: JWT $jwt" "$repo/tags/$tag/"
+            fi
+          done
+
+      # GHCR deletes whole versions, not tags, so only versions with no tag worth keeping go.
+      # Untagged versions stay: they are the per-platform images of the multi-arch releases.
+      - name: Remove other tags on GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER}"
+          versions="/users/$owner/packages/container/tapeory/versions"
+          gh api --paginate "$versions" \
+            --jq '.[] | select(.metadata.container.tags | length > 0) | "\(.id) \(.metadata.container.tags | join(","))"' |
+          while read -r id tags; do
+            keep=false
+            for tag in ${tags//,/ }; do
+              [[ "$tag" =~ $KEEP ]] && keep=true
+            done
+            if $keep; then
+              echo "keep   $tags"
+            else
+              echo "delete $tags"
+              gh api -X DELETE "$versions/$id" || echo "::warning::Couldn't delete $tags from GHCR"
+            fi
+          done
