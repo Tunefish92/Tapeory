@@ -8,16 +8,21 @@ describe("Footer", () => {
     void i18n.changeLanguage("en");
   });
 
-  it("credits Tunefish as editor and publisher", () => {
+  it("shows only the copyright, linking Tunefish to its GitHub repositories", () => {
     render(<Footer />);
 
-    expect(screen.getByText("Editor & publisher: Tunefish")).toBeInTheDocument();
+    const year = new Date().getFullYear();
+    expect(screen.getByRole("contentinfo")).toHaveTextContent(`© ${year} by Tunefish`);
+    expect(screen.getByRole("link", { name: "Tunefish" })).toHaveAttribute(
+      "href",
+      "https://github.com/Tunefish92?tab=repositories",
+    );
   });
 
-  it("translates the credit but keeps the name", async () => {
+  it("translates the copyright but keeps the name", async () => {
     await i18n.changeLanguage("de");
     render(<Footer />);
 
-    expect(screen.getByText("Herausgeber & Redaktion: Tunefish")).toBeInTheDocument();
+    expect(screen.getByRole("contentinfo")).toHaveTextContent(`© ${new Date().getFullYear()} von Tunefish`);
   });
 });

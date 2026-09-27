@@ -1,7 +1,7 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { fetchHealth, type HealthStatus } from "../api/client";
+import { checkForUpdates, fetchHealth, type HealthStatus, type UpdateCheck } from "../api/client";
 import { listPrinters, type PrinterResponse } from "../api/printers";
 import { getStoredTheme, setStoredTheme, type ThemePreference } from "../theme/theme";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
@@ -29,6 +29,14 @@ export function SettingsPage() {
   const [theme, setTheme] = useState<ThemePreference>(() => getStoredTheme());
   const [defaultPrinter, setDefaultPrinter] = useState<PrinterResponse | null | undefined>(undefined);
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [update, setUpdate] = useState<UpdateCheck | "checking" | "failed">("checking");
+
+  function runUpdateCheck(refresh: boolean) {
+    setUpdate("checking");
+    checkForUpdates(refresh)
+      .then(setUpdate)
+      .catch(() => setUpdate("failed"));
+  }
 
   useEffect(() => {
     listPrinters()
@@ -38,6 +46,8 @@ export function SettingsPage() {
     fetchHealth()
       .then(setHealth)
       .catch(() => setHealth(null));
+
+    runUpdateCheck(false);
   }, []);
 
   function handleThemeChange(value: ThemePreference) {
@@ -146,7 +156,10 @@ export function SettingsPage() {
         <div>
           <dl className="settings-row">
             <dt>{t("settings.version")}</dt>
-            <dd>{__APP_VERSION__}</dd>
+            <dd className="settings-version">
+              <span>{__APP_VERSION__}</span>
+              <UpdateStatus update={update} onCheck={() => runUpdateCheck(true)} />
+            </dd>
           </dl>
           <dl className="settings-row">
             <dt>{t("settings.apiConnection")}</dt>
@@ -166,6 +179,57 @@ export function SettingsPage() {
       </div>
       </div>
     </section>
+  );
+}
+
+function UpdateStatus({
+  update,
+  onCheck,
+}: {
+  update: UpdateCheck | "checking" | "failed";
+  onCheck: () => void;
+}) {
+  const { t } = useTranslation();
+
+  if (update === "checking") {
+    return <span className="settings-version__status">{t("settings.updateChecking")}</span>;
+  }
+
+  const checkAgain = (
+    <button type="button" className="btn btn-sm" onClick={onCheck}>
+      {t("settings.updateCheck")}
+    </button>
+  );
+
+  if (update === "failed" || update.errorMessage || !update.latestVersion) {
+    return (
+      <>
+        <span className="settings-version__status">{t("settings.updateFailed")}</span>
+        {checkAgain}
+      </>
+    );
+  }
+
+  if (update.updateAvailable) {
+    return (
+      <>
+        <span className="status-pill status-pill--info">
+          {t("settings.updateAvailable", { version: update.latestVersion })}
+        </span>
+        {update.releaseUrl && (
+          <a className="btn btn-sm" href={update.releaseUrl} target="_blank" rel="noreferrer">
+            {t("settings.updateReleaseNotes")}
+          </a>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span className="status-pill status-pill--success">{t("settings.updateUpToDate")}</span>
+      {checkAgain}
+    </>
   );
 }
 

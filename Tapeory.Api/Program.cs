@@ -11,6 +11,7 @@ using Tapeory.Api.Setup;
 using Tapeory.Api.Stats;
 using Tapeory.Api.Storage;
 using Tapeory.Api.Templates;
+using Tapeory.Api.Updates;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,13 +34,16 @@ builder.Services.AddSingleton<PrinterConnectionTester>();
 builder.Services.AddSingleton<PrinterRawSocketSender>();
 builder.Services.AddSingleton<IPrinterStatusReader, SnmpPrinterStatusReader>();
 builder.Services.AddSingleton(new IppClient(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }));
-builder.Services.AddSingleton<BrotherPtPrinterDriver>();
+builder.Services.AddSingleton<BrotherPrinterDriver>();
 builder.Services.AddSingleton<DatabaseConfigStore>();
 builder.Services.AddSingleton<DatabaseSetupService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<BackupStore>();
 builder.Services.AddSingleton<DatabaseBackupService>();
 builder.Services.AddScoped<LabelBackupService>();
+builder.Services.AddSingleton(services => new UpdateChecker(
+    new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+    services.GetRequiredService<TimeProvider>()));
 
 // The connection string is read per scope rather than once at startup: on a fresh install there
 // is none until the first-run setup saves one, and the app switches over without a restart.

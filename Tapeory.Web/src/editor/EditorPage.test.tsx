@@ -72,8 +72,8 @@ describe("EditorPage", () => {
     expect(screen.getByDisplayValue("Shipping")).toBeInTheDocument();
     expect(screen.getByDisplayValue("A label")).toBeInTheDocument();
     expect(screen.getByDisplayValue("62")).toBeInTheDocument();
-    // 62 × 29 mm is Brother's die-cut DK-11209, so the height picker selects that preset.
-    expect(screen.getByLabelText("Height (mm)")).toHaveDisplayValue("29 × 62 mm · DK-11209");
+    // 29 mm high is the 29 mm continuous roll (DK-11209 runs 62 mm across the roll instead).
+    expect(screen.getByLabelText("Height (mm)")).toHaveDisplayValue("29 mm · DK-22210");
   });
 
   it("shows a load error when the template can't be fetched", async () => {

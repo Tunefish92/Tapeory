@@ -21,8 +21,8 @@ public sealed record PrintOutcome(bool IsSuccess, string? ErrorMessage, bool Con
 }
 
 /// <summary>
-/// Prints on Brother PT label printers with a 128-pin, 180 dpi head (PT-P750W, PT-E550W,
-/// PT-P710BT and relatives), as Brother raster data.
+/// Prints on Brother P-touch (PT) and QL label printers (see <see cref="BrotherCatalog"/>), as
+/// Brother raster data.
 ///
 /// Directly connected printers get the job on their raw port; their SNMP status then shows when
 /// they start printing, whether they stop on an error such as no tape or an open cover, and, from
@@ -30,11 +30,11 @@ public sealed record PrintOutcome(bool IsSuccess, string? ErrorMessage, bool Con
 /// it over IPP (CUPS) as a raw document that its driver passes through untouched, and the job's
 /// state on the server tells when it's done.
 /// </summary>
-public sealed class BrotherPtPrinterDriver(
+public sealed class BrotherPrinterDriver(
     PrinterRawSocketSender sender,
     IPrinterStatusReader statusReader,
     IppClient ipp,
-    ILogger<BrotherPtPrinterDriver> logger)
+    ILogger<BrotherPrinterDriver> logger)
 {
     public TimeSpan PollInterval { get; init; } = TimeSpan.FromMilliseconds(500);
 
@@ -47,7 +47,7 @@ public sealed class BrotherPtPrinterDriver(
     public async Task<PrintOutcome> PrintAsync(
         Printer printer,
         IReadOnlyList<SKBitmap> labels,
-        BrotherPtTape tape,
+        BrotherMedia media,
         PrintResolution resolution,
         CutMode cutMode,
         Func<PrintStage, Task> onStage,
@@ -58,10 +58,6 @@ public sealed class BrotherPtPrinterDriver(
             return PrintOutcome.Failure("Printing to USB printers isn't supported yet.");
         }
 
-        if (printer.Model?.Contains("QL", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            return PrintOutcome.Failure("Brother QL printers aren't supported yet; Tapeory prints on P-touch (PT) models.");
-        }
 
         var target = PrinterNetworkResolver.Resolve(printer);
 
@@ -70,24 +66,20 @@ public sealed class BrotherPtPrinterDriver(
             return PrintOutcome.Failure("No address is configured for this printer.");
         }
 
-        var data = BrotherPtRasterEncoder.Encode(labels, tape, resolution.Quality == PrintQuality.High, cutMode);
+        var model = BrotherCatalog.Find(printer.Model);
+        var data = BrotherRasterEncoder.Encode(labels, model, media, resolution.Quality == PrintQuality.High, cutMode);
 
         if (printer is { ConnectionType: PrinterConnectionType.PrintServer, QueueName: { } queue })
         {
             var queueUri = IppClient.QueueUri(target.Host, target.Port, queue);
-            return await PrintViaIppAsync(queueUri, data, labels.Count, onStage, cancellationToken);
+            return await PrintViaIppAsync(queueUri, data, labels.Count, media, onStage, cancellationToken);
         }
 
         var before = await statusReader.ReadAsync(target.Host, cancellationToken);
 
-        if (before?.BlockingError is { } problem)
+        if (ProblemBeforePrinting(before, media) is { } refusal)
         {
-            return PrintOutcome.Failure($"The printer reports a problem: {problem}.");
-        }
-
-        if (before?.LoadedTapeMm is { } loaded && loaded != tape.WidthMm)
-        {
-            return PrintOutcome.Failure(TapeMismatchMessage(loaded, tape.WidthMm));
+            return PrintOutcome.Failure(refusal);
         }
 
         await onStage(PrintStage.Sending);
@@ -106,11 +98,28 @@ public sealed class BrotherPtPrinterDriver(
         }
 
         await onStage(PrintStage.Printing);
-        return await WaitUntilPrintedAsync(target.Host, before, labels.Count, tape, cancellationToken);
+        return await WaitUntilPrintedAsync(target.Host, before, labels.Count, media, cancellationToken);
     }
 
+    /// <summary>Why the printer shouldn't get this job (an error it reports, or the wrong tape), or
+    /// null to go ahead. Without a status there's nothing to check.</summary>
+    /// Heat-shrink tube sizes aren't whole millimetres, so tubes aren't compared.
+    private static string? ProblemBeforePrinting(PrinterStatusSnapshot? status, BrotherMedia media) =>
+        status?.BlockingError is { } problem ? $"The printer reports a problem: {problem}."
+        : media.Kind != MediaKind.Tube && status?.LoadedTapeMm is { } loaded && Math.Abs(loaded - media.WidthMm) >= 1
+            ? TapeMismatchMessage(loaded, media.WidthMm, media.IsQl)
+        : null;
+
+    /// <summary>
+    /// Prints through a CUPS/IPP queue. When the queue's device address names the printer on the
+    /// network (socket://, ipp://, lpd://…), the printer itself is also asked over SNMP: before
+    /// submitting (errors, wrong tape), while CUPS works on the job (a stop cancels the job with
+    /// the printer's reason), and after CUPS finishes (the label counter confirms the labels).
+    /// Without that, CUPS's own job state decides.
+    /// </summary>
     private async Task<PrintOutcome> PrintViaIppAsync(
-        Uri queueUri, byte[] data, int labelCount, Func<PrintStage, Task> onStage, CancellationToken cancellationToken)
+        Uri queueUri, byte[] data, int labelCount, BrotherMedia media,
+        Func<PrintStage, Task> onStage, CancellationToken cancellationToken)
     {
         try
         {
@@ -127,6 +136,14 @@ public sealed class BrotherPtPrinterDriver(
             {
                 return PrintOutcome.Failure(
                     $"The print server's queue is stopped or not accepting jobs: {DescribeQueue(queue)}.");
+            }
+
+            var printerHost = IppClient.DeviceHost(queue.Text("device-uri"));
+            var before = printerHost is null ? null : await statusReader.ReadAsync(printerHost, cancellationToken);
+
+            if (ProblemBeforePrinting(before, media) is { } refusal)
+            {
+                return PrintOutcome.Failure(refusal);
             }
 
             await onStage(PrintStage.Sending);
@@ -152,11 +169,21 @@ public sealed class BrotherPtPrinterDriver(
                 switch (job.Integer("job-state"))
                 {
                     case IppJobCompleted:
-                        return PrintOutcome.Printed();
+                        // CUPS has handed the job over; the printer's counter says when it's out.
+                        return before is null
+                            ? PrintOutcome.Printed()
+                            : await WaitUntilPrintedAsync(printerHost!, before, labelCount, media, cancellationToken);
                     case IppJobCanceled or IppJobAborted:
                         return PrintOutcome.Failure($"The print server stopped the job: {message}.");
                     case IppJobStopped:
                         return PrintOutcome.Failure($"The print server's printer stopped: {message}.");
+                }
+
+                if (before is not null
+                    && await statusReader.ReadAsync(printerHost!, cancellationToken) is { BlockingError: { } stopped })
+                {
+                    await ipp.CancelJobAsync(queueUri, jobId, cancellationToken);
+                    return PrintOutcome.Failure($"The printer stopped: {stopped}. Tapeory cancelled the job on the print server.");
                 }
             }
 
@@ -175,9 +202,12 @@ public sealed class BrotherPtPrinterDriver(
         }
     }
 
-    public static string TapeMismatchMessage(decimal loadedMm, decimal labelMm) =>
-        $"The printer has {loadedMm:0.#} mm tape loaded, but this label needs {labelMm:0.#} mm tape. "
-        + $"Load {labelMm:0.#} mm tape, or use a template that's {loadedMm:0.#} mm high.";
+    public static string TapeMismatchMessage(decimal loadedMm, decimal labelMm, bool roll = false)
+    {
+        var media = roll ? "labels" : "tape";
+        return $"The printer has {loadedMm:0.#} mm {media} loaded, but this label needs {labelMm:0.#} mm {media}. "
+               + $"Load {labelMm:0.#} mm {media}, or use a template that's {loadedMm:0.#} mm high.";
+    }
 
     private static string DescribeQueue(IppResponse queue) =>
         queue.Text("printer-state-message") is { Length: > 0 } message
@@ -192,7 +222,7 @@ public sealed class BrotherPtPrinterDriver(
     private const int IppJobCompleted = 9;
 
     private async Task<PrintOutcome> WaitUntilPrintedAsync(
-        string host, PrinterStatusSnapshot before, int labelCount, BrotherPtTape tape, CancellationToken cancellationToken)
+        string host, PrinterStatusSnapshot before, int labelCount, BrotherMedia media, CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.UtcNow + BaseTimeout + TimeoutPerLabel * labelCount;
         var seenPrinting = false;
@@ -229,7 +259,7 @@ public sealed class BrotherPtPrinterDriver(
 
         var display = last?.Display.Trim();
         return PrintOutcome.Failure(
-            $"The printer accepted the job but didn't finish printing it. Check that {tape.WidthMm} mm tape is loaded"
+            $"The printer accepted the job but didn't finish printing it. Check that {media.WidthMm:0.#} mm {(media.IsQl ? "labels are" : "tape is")} loaded"
             + (string.IsNullOrEmpty(display) ? "." : $" (printer display: {display})."));
     }
 }

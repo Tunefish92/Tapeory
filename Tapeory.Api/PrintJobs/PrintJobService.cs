@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Tapeory.Api.Barcodes;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
 using Tapeory.Api.Printing;
@@ -29,6 +30,17 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
 
         var errors = new List<string>();
         var fields = template.CurrentVersion.Fields;
+        // A document that can't be parsed isn't rejected here: the print queue fails that job with
+        // its own message.
+        RenderableDocument? document;
+        try
+        {
+            document = LabelDocumentParser.Parse(template.CurrentVersion.EditorJson);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            document = null;
+        }
 
         for (var i = 0; i < request.Items.Count; i++)
         {
@@ -39,6 +51,12 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
             if (!validation.IsValid)
             {
                 errors.AddRange(validation.Errors.Select(error => $"Item {i + 1}: {error}"));
+            }
+            else if (document is not null)
+            {
+                // Every barcode must be able to encode the value it would print.
+                var resolved = FieldValueValidator.ResolveValues(fields, values);
+                errors.AddRange(BarcodeValidation.Validate(document, resolved).Select(error => $"Item {i + 1}: {error}"));
             }
 
             if (item.Quantity <= 0)
@@ -72,12 +90,18 @@ public sealed class PrintJobService(AppDbContext db, FileStorageService fileStor
             errors.Add($"Printer '{printer.Name}' doesn't support {quality} print quality.");
         }
 
-        var cutMode = CutMode.AutoCut;
+        // Without a choice, the printer's first cutting option (auto cut, or cut marks on a
+        // printer without a cutter).
+        var cutMode = printer is null ? CutMode.AutoCut : PrinterCapabilities.CutModes(printer.Model)[0];
 
         if (request.CutMode is not null
             && (!Enum.TryParse(request.CutMode, ignoreCase: true, out cutMode) || !Enum.IsDefined(cutMode)))
         {
             errors.Add($"Unknown cut mode '{request.CutMode}'.");
+        }
+        else if (printer is not null && !PrinterCapabilities.CutModes(printer.Model).Contains(cutMode))
+        {
+            errors.Add($"Printer '{printer.Name}' doesn't support the {cutMode} cutting option.");
         }
 
         if (errors.Count > 0)

@@ -6,7 +6,7 @@ namespace Tapeory.Api.Printing;
 /// <summary>
 /// Sends raw bytes to a printer's network address over a plain TCP socket — the conventional
 /// "raw"/JetDirect-style printing port (commonly 9100). It's only the transport: what the bytes
-/// mean is up to the caller (BrotherPtPrinterDriver sends Brother raster data through it).
+/// mean is up to the caller (BrotherPrinterDriver sends Brother raster data through it).
 /// </summary>
 public sealed class PrinterRawSocketSender
 {

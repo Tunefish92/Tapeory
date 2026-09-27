@@ -61,3 +61,24 @@ export function resetStats(): Promise<DashboardStats> {
 export function restoreAllTimeStats(): Promise<DashboardStats> {
   return statsResetRequest("DELETE");
 }
+
+export interface UpdateCheck {
+  currentVersion: string;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  releaseUrl: string | null;
+  checkedAt: string | null;
+  /** Set when GitHub couldn't be asked. */
+  errorMessage: string | null;
+}
+
+/** Compares this version with the latest release on GitHub; `refresh` skips the server's cache. */
+export async function checkForUpdates(refresh = false): Promise<UpdateCheck> {
+  const response = await fetch(`${API_BASE_URL}/updates${refresh ? "?refresh=true" : ""}`);
+
+  if (!response.ok) {
+    throw new Error(`Update check failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as UpdateCheck;
+}

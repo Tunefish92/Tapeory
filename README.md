@@ -10,13 +10,13 @@ existing P-touch Editor `.lbx` files. It runs as a single Docker container next 
 every template, upload, and print job stays on your own server.
 
 > [!WARNING]
-> **Early release (0.2).** This is the first stable release, but Tapeory is still young.
+> **Early release (0.3).** Tapeory is still young: expect rough edges between minor versions.
 > Designing, storing, importing, and rendering labels work and are covered by tests.
-> **Printing is new:** Tapeory prints on Brother P-touch PT network printers with a 128-pin head
-> (PT-P750W, PT-E550W, PT-P710BT, PT-P700) using Brother's raster protocol. Other printers,
-> including the QL series, aren't supported yet. See [Known limitations](#known-limitations).
+> **Printing** works with Brother P-touch (PT) and QL label printers in Brother's raster format:
+> 34 models, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. See
+> [Supported printers](docs/printers.md) and [Known limitations](#known-limitations).
 
-![The label editor with a dynamic field selected](docs/screenshots/editor.png)
+![The label editor with a QR code selected, bound to the Asset ID field](docs/screenshots/editor.png)
 
 <table>
   <tr>
@@ -40,11 +40,14 @@ every template, upload, and print job stays on your own server.
 ## Features
 
 **Label editor**
-- Canvas editor with text, dynamic fields, rectangles, lines, and images (PNG, JPEG, WebP, SVG;
-  TIFF and BMP are converted to PNG)
+- Canvas editor with text, dynamic fields, barcodes and QR codes, rectangles, ellipses, lines, and
+  images (PNG, JPEG, WebP, SVG; TIFF and BMP are converted to PNG)
 - Move, resize, and rotate objects; change layer order; lock, hide, duplicate, and delete
 - Undo/redo, zoom, arrow-key nudging, and keyboard shortcuts
 - Text fitting for each text box: overflow, shrink to fit, or wrap at spaces and shrink
+- Barcodes and QR codes: Code 128, Code 39, EAN-13, EAN-8, UPC-A, UPC-E, ITF, Codabar, QR,
+  Data Matrix, PDF417, and Aztec, with a fixed value or one filled in from a field when printing.
+  Bars are snapped to the printer's dots, so they stay scannable at 180 dpi.
 - Brother media presets: TZe/HGe tape, HSe heat-shrink tube, DK continuous and die-cut rolls
 - Preview mode that fills dynamic fields with sample values
 - The editor uses the server's own fonts, so the preview matches the printed output. Thirteen
@@ -57,7 +60,7 @@ every template, upload, and print job stays on your own server.
 - Duplicate a template from the card or list view
 - Groups (case- and accent-insensitive) with bulk rename, plus thumbnails
 - Export and import in Tapeory's native JSON format
-- **`.lbx` import:** converts text objects, database-merge fields, and images from P-touch Editor
+- **`.lbx` import:** converts text objects, database-merge fields, images, barcodes, and shapes from P-touch Editor
   files. Anything it can't convert is listed as a warning, and the original file stays
   available for download.
 
@@ -66,8 +69,10 @@ every template, upload, and print job stays on your own server.
   (auto cut, half cut, cut at end, chain printing, cut marks), and a preview that updates as you type
 - Server-side rendering to PNG (300 DPI) and PDF with SkiaSharp
 - Background print queue, with a job history and per-label previews
-- Printing on Brother PT printers in Brother's raster format, in standard (180 × 180 dpi) or,
-  where the model supports it, high (180 × 360 dpi) quality. The tape width follows the label height.
+- Printing on Brother P-touch (PT, 180 and 360 dpi) and QL printers (300 dpi) in Brother's raster
+  format: TZe tape up to 36 mm and HSe heat-shrink tube, and DK continuous rolls, die-cut and round
+  labels up to 104 mm, including black/red DK-22251 on the QL-800 series. High resolution doubles
+  the dots along the tape where the model supports it. The media follows the label size.
 - Tape detection: Tapeory reads which tape the printer has loaded, warns in the print form when
   it doesn't match the template, and stops the job before printing onto the wrong tape
 - Live print status from the printer (over SNMP): sending, printing, and finished once the
@@ -81,6 +86,7 @@ every template, upload, and print job stays on your own server.
 - First-start setup screen for the database connection (no connection string needed)
 - Database and label backups created and restored from the Settings page, stored on the server
 - Dashboard with usage statistics
+- Update check: Settings shows when a newer release is out on GitHub
 - 5 UI languages: English, German, French, Italian, and Spanish
 - Light, dark, or system theme; millimetres or inches
 - Runs on `linux/amd64` and `linux/arm64`, with an Unraid Community Applications template
@@ -135,7 +141,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `0.2.1`, `0.2` | A release (from Git tags such as `v0.2.1`) |
+| `0.3.0`, `0.3` | A release (from Git tags such as `v0.3.0`) |
 | `sha-<commit>` | One specific commit |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
@@ -208,8 +214,9 @@ language, theme, units, and the default printer.
 ## Printers
 
 Add printers on the **Printers** page, then pick one when printing. Tapeory prints on Brother
-P-touch PT printers with a 128-pin head (PT-P750W, PT-E550W, PT-P710BT, PT-P700); enter the model
-so Tapeory knows which print qualities it offers.
+P-touch (PT) and QL label printers; [docs/printers.md](docs/printers.md) lists every supported
+model and how to connect it. Choose the model from the list so Tapeory knows its print head,
+media, resolutions and cutting options; USB-only models print through a CUPS server.
 
 - **Directly over the network** (connection type IP address or hostname): Tapeory sends the job
   to the printer's raw port, usually 9100, and follows it over SNMP until the printer's label
@@ -221,11 +228,19 @@ so Tapeory knows which print qualities it offers.
   `socket://<printer IP or hostname>:9100`; queues that CUPS found automatically
   (`dnssd://… .local`) often can't reach the printer, especially when CUPS runs in a container.
   Without a queue name, Tapeory sends to the server's raw port instead.
+  When the queue prints to the printer's network address, Tapeory also asks the printer itself
+  over SNMP, so tape detection, printer errors, and the label counter work through CUPS too.
 
 **Test Connection** checks that the printer (or the CUPS queue) answers, and **Test Print** prints
 a small label centred on the tape; its size can be set in the printer's settings.
 
+<img src="docs/screenshots/printers.png" alt="Printers page with a PT-P750W, a QL-820NWB and a PT-P950NW behind a CUPS server" width="720">
+
 ## Upgrading
+
+**Settings → About** shows next to the version whether a newer release is out. To find out, the
+server asks GitHub's API for the latest Tapeory release (at most every six hours, and only while
+the settings page is opened); nothing about your installation is sent.
 
 ```bash
 git pull                                      # updates docker-compose.yml and .env.example
@@ -247,7 +262,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
 **Settings** has two backup cards. Both save their backups on the server, in the storage folder's
 `backups/` folder. Each backup can be downloaded, restored, or deleted there.
 
-<img src="docs/screenshots/settings.png" alt="Settings page with the database and label backup cards" width="720">
+<img src="docs/screenshots/settings.png" alt="Settings page with the backup cards and the update check next to the version" width="720">
 
 | Card | What it contains | Restoring it |
 | --- | --- | --- |
@@ -322,16 +337,22 @@ version (Settings page), your printer model, and the container log.
 
 ## Known limitations
 
-- **Only Brother PT printers with a 128-pin head can print** (PT-P750W, PT-E550W, PT-P710BT,
-  PT-P700). QL printers and 360 dpi PT models (such as the PT-P900 series) aren't supported yet.
+- **Only Brother PT and QL printers with a published raster protocol can print** (34 models, see
+  [Supported printers](docs/printers.md)). Brother's TD, RJ and PJ series, and P-touch models
+  without a published protocol (such as the PT-D610BT or PT-D800W), aren't supported.
+- **Tested on real hardware: the PT-P750W.** QL and 360 dpi P-touch printing follows Brother's
+  Raster Command References exactly, but hasn't been tried on those printers yet. Reports are
+  welcome in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions).
+- **USB-only models need a CUPS server** with a raw queue; Tapeory itself prints over the network.
 - **Print status needs SNMP.** Tapeory reads it with the `public` community, which Brother
   printers enable by default. Without SNMP, jobs are marked done once they're sent.
-- **Tape detection needs SNMP too**, and works only for printers reached directly (not through
-  a print server); without it, the tape width simply follows the label height.
+- **Tape detection needs SNMP too.** Behind a CUPS server it works when the queue prints to the
+  printer's network address (socket://, ipp://, lpd://), not for USB or dnssd:// queues; without
+  it, the tape width simply follows the label height.
 - **USB printers** can be added, but Tapeory can't send jobs to them yet.
-- **Barcodes and QR codes** aren't available in the editor yet.
-- **`.lbx` import** converts text, merge fields, and images. Barcodes and shapes are reported
-  as warnings instead of being converted.
+- **`.lbx` import** converts text, merge fields, images, barcodes, rectangles, ellipses, lines,
+  and frames (as simple borders). Free-form shapes and a few rare barcode types are reported as
+  warnings instead of being converted.
 - **No user accounts or authentication.** Anyone who can reach the port can use the app, so
   keep it on a trusted network or behind a reverse proxy that adds authentication.
 
@@ -377,7 +398,7 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.2.1 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.3.0 && git push --tags`.
 
 ### Tech stack
 

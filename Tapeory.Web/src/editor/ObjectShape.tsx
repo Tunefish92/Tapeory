@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { Image as KonvaImage, Line as KonvaLine, Rect as KonvaRect, Text as KonvaText } from "react-konva";
+import { Ellipse as KonvaEllipse, Image as KonvaImage, Line as KonvaLine, Rect as KonvaRect, Text as KonvaText } from "react-konva";
+import { BarcodeShape } from "./BarcodeShape";
 import { PT_TO_MM } from "./constants";
 import { createCanvasMeasure, fitText, LINE_HEIGHT } from "./fitText";
 import type { DynamicFieldObject, LabelObject, LabelObjectPatch, TextObject } from "./types";
@@ -206,6 +207,34 @@ export function ObjectShape({
           strokeWidth={object.strokeWidth}
           cornerRadius={object.cornerRadius}
           onTransformEnd={(e) => handleBoxTransformEnd(e, onChange)}
+        />
+      );
+
+    case "ellipse":
+      // Konva draws an ellipse around its position; the offset puts the position at the top-left
+      // corner like every other object, so dragging, rotating and the renderer all agree.
+      return (
+        <KonvaEllipse
+          {...common}
+          radiusX={object.width / 2}
+          radiusY={object.height / 2}
+          offsetX={-object.width / 2}
+          offsetY={-object.height / 2}
+          fill={object.fill}
+          stroke={object.stroke}
+          strokeWidth={object.strokeWidth}
+          onTransformEnd={(e) => handleBoxTransformEnd(e, onChange)}
+        />
+      );
+
+    case "barcode":
+      return (
+        <BarcodeShape
+          object={object}
+          draggable={!object.locked}
+          onSelect={onSelect}
+          onChange={onChange}
+          registerNode={registerNode}
         />
       );
 

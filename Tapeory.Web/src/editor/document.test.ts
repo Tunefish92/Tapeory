@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addObject,
+  createBarcodeObject,
   createDynamicFieldObject,
   createImageObject,
   createLineObject,
@@ -180,6 +181,22 @@ describe("extractFields", () => {
 
     expect(fields).toHaveLength(1);
     expect(fields[0].label).toBe("First");
+  });
+
+  it("adds a field for a barcode bound to a name no text field uses, with its value as default", () => {
+    let doc = createEmptyDocument(50, 25);
+    doc = addObject(doc, createBarcodeObject({ fieldName: "serial", data: "SN-1" }));
+    doc = addObject(doc, createBarcodeObject({ fieldName: "", data: "fixed" }));
+
+    expect(extractFields(doc)).toEqual([{ name: "serial", label: null, defaultValue: "SN-1", required: false }]);
+  });
+
+  it("lets a barcode share a text field, keeping the text field's definition", () => {
+    let doc = createEmptyDocument(50, 25);
+    doc = addObject(doc, createBarcodeObject({ fieldName: "sku", data: "barcode default" }));
+    doc = addObject(doc, createDynamicFieldObject({ fieldName: "sku", label: "SKU", defaultValue: "A-1" }));
+
+    expect(extractFields(doc)).toEqual([{ name: "sku", label: "SKU", defaultValue: "A-1", required: true }]);
   });
 
   it("returns an empty array when there are no dynamic fields", () => {

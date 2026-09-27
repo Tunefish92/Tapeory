@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
+  createBarcodeObject,
   createDynamicFieldObject,
   createImageObject,
   createLineObject,
@@ -258,5 +259,34 @@ describe("PropertiesPanel", () => {
     expect(onReorder).toHaveBeenNthCalledWith(2, "back");
     expect(onReorder).toHaveBeenNthCalledWith(3, "forward");
     expect(onReorder).toHaveBeenNthCalledWith(4, "backward");
+  });
+  it("binds a barcode to a field and shows why a value can't be encoded", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ detail: "Requested contents should be 12 or 13 digits long" }),
+      } as Response),
+    );
+    const onChange = vi.fn();
+
+    render(
+      <PropertiesPanel
+        object={createBarcodeObject({ symbology: "ean13", data: "12" })}
+        onChange={onChange}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onReorder={vi.fn()}
+        fieldNames={["sku"]}
+      />,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("12 or 13 digits");
+
+    fireEvent.change(screen.getByLabelText("Content"), { target: { value: "field" } });
+    expect(onChange).toHaveBeenCalledWith({ fieldName: "sku" });
+
+    vi.unstubAllGlobals();
   });
 });

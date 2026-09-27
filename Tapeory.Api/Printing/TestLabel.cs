@@ -19,12 +19,12 @@ public static class TestLabel
     private const float EndPaddingMm = 1f;
     private const float EdgePaddingMm = 0.3f;
 
-    public static RenderableDocument Build(decimal widthMm, decimal heightMm)
+    public static RenderableDocument Build(decimal widthMm, decimal heightMm, BrotherModel model)
     {
         // The head only reaches the middle of the tape (7 mm of 9 mm tape, for example), so the
         // text has to fit there rather than in the label's full height.
-        var tape = BrotherPtTape.ForLabelHeight(heightMm);
-        var printableMm = tape.PrintPins / 180f * MmPerInch;
+        var (media, _) = BrotherCatalog.MediaForLabel(model, widthMm, heightMm);
+        var printableMm = media.PrintPins / (float)model.Dpi * MmPerInch;
         var boxHeight = Math.Max(Math.Min((float)heightMm, printableMm) - 2 * EdgePaddingMm, 1f);
         var boxWidth = Math.Max((float)widthMm - 2 * EndPaddingMm, 1f);
 

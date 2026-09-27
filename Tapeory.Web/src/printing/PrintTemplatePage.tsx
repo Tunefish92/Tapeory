@@ -157,6 +157,10 @@ export function PrintTemplatePage() {
   const tapeMismatch = loadedTapeMm !== null && neededTapeMm !== null && loadedTapeMm !== neededTapeMm;
   const resolutions = selectedPrinter?.resolutions ?? [];
   const effectiveQuality = resolutions.some((resolution) => resolution.quality === quality) ? quality : "Standard";
+  // The printer's model decides the cutting options (no half cut on QL printers, only cut marks
+  // without a cutter); a choice it doesn't offer falls back to its first.
+  const cutModes: CutMode[] = selectedPrinter?.cutModes?.length ? selectedPrinter.cutModes : CUT_MODES;
+  const effectiveCutMode = cutModes.includes(cutMode) ? cutMode : cutModes[0];
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -171,7 +175,7 @@ export function PrintTemplatePage() {
         printerName: printerId === null ? manualPrinterName.trim() || null : null,
         items: [{ fieldValues, quantity }],
         quality: printerId === null ? undefined : effectiveQuality,
-        cutMode: printerId === null ? undefined : cutMode,
+        cutMode: printerId === null ? undefined : effectiveCutMode,
       });
       navigate(`/print-jobs/${job.id}`);
     } catch (err) {
@@ -264,11 +268,11 @@ export function PrintTemplatePage() {
               <label className="properties-field">
                 {t("printing.cutMode.label")}
                 <select
-                  value={cutMode}
+                  value={effectiveCutMode}
                   onChange={(e) => setCutMode(e.target.value as CutMode)}
                   aria-describedby="print-cut-mode-hint"
                 >
-                  {CUT_MODES.map((mode) => (
+                  {cutModes.map((mode) => (
                     <option key={mode} value={mode}>
                       {t(`printing.cutMode.${mode}`)}
                     </option>
@@ -276,7 +280,7 @@ export function PrintTemplatePage() {
                 </select>
               </label>
               <span id="print-cut-mode-hint" className="print-form__hint">
-                {t(`printing.cutMode.${cutMode}Hint`)}
+                {t(`printing.cutMode.${effectiveCutMode}Hint`)}
               </span>
             </div>
           )}

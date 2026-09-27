@@ -41,7 +41,11 @@ public static class LabelDocumentParser
             }
         }
 
-        return new RenderableDocument(widthMm, heightMm, objects);
+        var media = root.TryGetProperty("media", out var mediaElement) && mediaElement.ValueKind == JsonValueKind.String
+            ? mediaElement.GetString()
+            : null;
+
+        return new RenderableDocument(widthMm, heightMm, objects, media);
     }
 
     private static RenderableObject? ParseObject(JsonElement element)
@@ -84,6 +88,19 @@ public static class LabelDocumentParser
             "line" => new RenderableLine(
                 x, y, rotation, locked, hidden,
                 GetDecimalArray(element, "points"), stroke, strokeWidth),
+
+            "ellipse" => new RenderableEllipse(
+                x, y, rotation, locked, hidden,
+                width, height, GetString(element, "fill") ?? "transparent", stroke, strokeWidth),
+
+            "barcode" => new RenderableBarcode(
+                x, y, rotation, locked, hidden,
+                width, height,
+                GetString(element, "symbology") ?? "code128",
+                GetString(element, "data") ?? string.Empty,
+                GetString(element, "fieldName") ?? string.Empty,
+                GetBool(element, "showText"),
+                fill),
 
             "image" => new RenderableImage(
                 x, y, rotation, locked, hidden,

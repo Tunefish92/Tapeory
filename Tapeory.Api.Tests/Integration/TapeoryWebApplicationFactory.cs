@@ -61,11 +61,11 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
         {
             services.AddSingleton<IPrinterStatusReader>(PrinterStatus);
             services.AddSingleton(new IppClient(new HttpClient(PrintServer)));
-            services.AddSingleton(provider => new BrotherPtPrinterDriver(
+            services.AddSingleton(provider => new BrotherPrinterDriver(
                 provider.GetRequiredService<PrinterRawSocketSender>(),
                 provider.GetRequiredService<IPrinterStatusReader>(),
                 provider.GetRequiredService<IppClient>(),
-                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BrotherPtPrinterDriver>>())
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BrotherPrinterDriver>>())
             {
                 PollInterval = TimeSpan.FromMilliseconds(20),
                 BaseTimeout = TimeSpan.FromSeconds(2),

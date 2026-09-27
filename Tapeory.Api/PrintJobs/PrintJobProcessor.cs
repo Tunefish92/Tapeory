@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Tapeory.Api.Barcodes;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
 using Tapeory.Api.Printing;
@@ -12,7 +13,7 @@ namespace Tapeory.Api.PrintJobs;
 /// <summary>
 /// Polls for queued print jobs and renders each item to a PNG preview. When the job has an
 /// enabled printer attached, it also prints each item (as many copies as its quantity) through
-/// BrotherPtPrinterDriver, and records the stages as they happen: Sending while the data goes
+/// BrotherPrinterDriver, and records the stages as they happen: Sending while the data goes
 /// out, Printing while the printer works, then Completed once the printer confirms the labels
 /// came out, or Failed with the printer's reason. A job with no printer attached (or a disabled
 /// one) just renders and stops there.
@@ -66,7 +67,7 @@ public sealed class PrintJobProcessor(
         var renderer = scope.ServiceProvider.GetRequiredService<LabelRenderer>();
         var fileStorage = scope.ServiceProvider.GetRequiredService<FileStorageService>();
         var imageResolver = scope.ServiceProvider.GetRequiredService<UploadedFileImageResolver>();
-        var driver = scope.ServiceProvider.GetRequiredService<BrotherPtPrinterDriver>();
+        var driver = scope.ServiceProvider.GetRequiredService<BrotherPrinterDriver>();
 
         var nextJobId = await db.PrintJobs
             .Where(j => j.Status == PrintJobStatus.Queued)
@@ -125,6 +126,14 @@ public sealed class PrintJobProcessor(
                 {
                     var submitted = JsonSerializer.Deserialize<Dictionary<string, string>>(item.FieldValuesJson) ?? [];
                     var resolvedValues = FieldValueValidator.ResolveValues(version.Fields, submitted);
+
+                    if (BarcodeValidation.Validate(document, resolvedValues) is [_, ..] barcodeErrors)
+                    {
+                        anyItemFailed = true;
+                        item.Status = PrintJobStatus.Failed;
+                        item.ErrorMessage = string.Join(" ", barcodeErrors);
+                        continue;
+                    }
                     var pngBytes = renderer.RenderPng(document, resolvedValues, imageResolver.AsDelegate());
 
                     await using var pngStream = new MemoryStream(pngBytes);
@@ -147,14 +156,15 @@ public sealed class PrintJobProcessor(
                     if (job.Printer is { Enabled: true })
                     {
                         var resolution = PrinterCapabilities.Resolve(job.Printer.Model, job.Quality);
-                        using var label = renderer.RenderBitmap(
-                            document, resolvedValues, imageResolver.AsDelegate(),
-                            resolution.HorizontalDpi, resolution.VerticalDpi);
+                        var (label, media) = BrotherLabelRaster.Render(
+                            renderer, document, resolvedValues, imageResolver.AsDelegate(),
+                            BrotherCatalog.Find(job.Printer.Model), resolution);
+                        using var _ = label;
 
                         var outcome = await driver.PrintAsync(
                             job.Printer,
                             Enumerable.Repeat(label, item.Quantity).ToList(),
-                            BrotherPtTape.ForLabelHeight(document.HeightMm),
+                            media,
                             resolution,
                             job.CutMode,
                             async stage =>

@@ -168,7 +168,9 @@
       "backToEditing": "Back to Editing",
       "save": "Save",
       "saving": "Saving…",
-      "publish": "Publish"
+      "publish": "Publish",
+      "addEllipse": "Add Ellipse",
+      "addBarcode": "Add Barcode"
     },
     "properties": {
       "selectPrompt": "Select an object to edit its properties.",
@@ -219,7 +221,19 @@
       "fitWrap": "Wrap lines",
       "fixedSizeHint": "Text is drawn at the chosen size and may run past the box.",
       "fitShrinkHint": "Text keeps its line breaks and shrinks until it fits the box.",
-      "fitWrapHint": "Text wraps at spaces and only shrinks if it still doesn't fit."
+      "fitWrapHint": "Text wraps at spaces and only shrinks if it still doesn't fit.",
+      "typeEllipse": "Ellipse",
+      "typeBarcode": "Barcode",
+      "barcodeType": "Type",
+      "barcodeSource": "Content",
+      "barcodeSourceFixed": "Fixed value",
+      "barcodeSourceField": "From a field",
+      "barcodeValue": "Value",
+      "barcodeFieldHint": "The value is filled in when printing. Use the name of a text field to print the same value as text and as a barcode.",
+      "barcodeShowText": "Show the value under the bars",
+      "barcodeSizeHint": "Keep barcodes large enough to scan: bars are snapped to the printer's dots, so a code that's too dense for the label loses detail.",
+      "sectionAppearance": "Appearance",
+      "sectionOptions": "Options"
     },
     "mediaCustom": "Custom · {{size}}",
     "widthFixedByLabel": "Die-cut labels have a fixed width.",
@@ -228,6 +242,20 @@
       "hse": "HSe heat-shrink tube",
       "dkContinuous": "DK continuous roll",
       "dkDieCut": "DK die-cut labels"
+    },
+    "barcode": {
+      "code128": "Code 128",
+      "code39": "Code 39",
+      "ean13": "EAN-13",
+      "ean8": "EAN-8",
+      "upca": "UPC-A",
+      "upce": "UPC-E",
+      "itf": "ITF (Interleaved 2 of 5)",
+      "codabar": "Codabar",
+      "qr": "QR code",
+      "datamatrix": "Data Matrix",
+      "pdf417": "PDF417",
+      "aztec": "Aztec"
     }
   },
   "printing": {
@@ -336,6 +364,15 @@
     "name": "Name",
     "model": "Model",
     "modelPlaceholder": "e.g. Brother QL-820NWB",
+    "modelChoose": "Choose a model…",
+    "modelOther": "Other model…",
+    "modelCustom": "Model name",
+    "modelGroupPt": "P-touch (PT)",
+    "modelGroupQl": "QL",
+    "modelHintEmpty": "Brother P-touch (PT) or QL model.",
+    "modelHintNetwork": "{{model}} ({{dpi}} dpi) prints directly over the network: add it by IP address or hostname.",
+    "modelHintUsb": "{{model}} ({{dpi}} dpi) connects by USB: share it from a CUPS server and add that server here as a print server with the queue name.",
+    "modelHintUnknown": "Tapeory doesn't know this model; it prints like a PT-P750W (180 dpi, tape up to 24 mm).",
     "connectionType": "Connection type",
     "connectionTypeIpAddress": "IP address",
     "connectionTypeHostname": "Hostname",
@@ -387,9 +424,7 @@
     "unknownModel": "Unknown model"
   },
   "footer": {
-    "copyright": "© {{year}} Tapeory",
-    "tagline": "Self-hosted label printing",
-    "editorPublisher": "Editor & publisher: {{name}}"
+    "copyright": "© {{year}} by"
   },
   "settings": {
     "title": "Settings",
@@ -403,6 +438,12 @@
     "managePrinters": "Manage printers",
     "about": "About",
     "version": "Version",
+    "updateChecking": "Checking for updates…",
+    "updateUpToDate": "Up to date",
+    "updateAvailable": "Version {{version}} available",
+    "updateReleaseNotes": "What’s new",
+    "updateCheck": "Check for updates",
+    "updateFailed": "Couldn’t check for updates",
     "storage": "Storage",
     "storagePath": "Storage path",
     "apiConnection": "API connection",

@@ -207,6 +207,15 @@
 }
 
 /* Locked and hidden, side by side under the fitting settings. */
+.properties-hint--error {
+  color: var(--color-danger-text);
+}
+
+.properties-options--plain {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .properties-options {
   display: flex;
   flex-wrap: wrap;

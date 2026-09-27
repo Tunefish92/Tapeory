@@ -62,6 +62,25 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
         Assert.Equal(expected, created!.QueueName);
     }
 
+    [Theory]
+    [InlineData("PrintServer", "socket://10.0.0.184:9100")]
+    [InlineData("PrintServer", "http://10.0.0.10:631/printers/Brother")]
+    [InlineData("IpAddress", "10.0.0.184/9100")]
+    public async Task CreatePrinter_ReturnsBadRequest_ForAUrlInsteadOfAHost(string connectionType, string host)
+    {
+        var request = ValidIpPrinterRequest(UniqueName("Printer")) with
+        {
+            ConnectionType = connectionType,
+            Address = connectionType == "IpAddress" ? host : null,
+            PrintServerAddress = connectionType == "PrintServer" ? host : null
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/printers", request, JsonOptions);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("just the host name or IP address", await response.Content.ReadAsStringAsync());
+    }
+
     [Fact]
     public async Task CreatePrinter_ReturnsBadRequest_ForAQueueNameWithASlash()
     {
@@ -75,6 +94,29 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
         var response = await _client.PostAsJsonAsync("/api/printers", request, JsonOptions);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetModels_ListsTheSupportedBrotherModels()
+    {
+        var models = await _client.GetFromJsonAsync<List<PrinterModelResponse>>("/api/printers/models", JsonOptions);
+
+        var ql = Assert.Single(models!, model => model.Name == "QL-820NWB");
+        Assert.Equal(("Ql720", true, 300, true), (ql.Family, ql.Network, ql.Dpi, ql.TwoColor));
+        Assert.Contains(models!, model => model.Name == "PT-P950NW" && model.Dpi == 360);
+        Assert.Contains(models!, model => model.Name == "QL-700" && !model.Network);
+    }
+
+    [Fact]
+    public async Task CreatePrinter_ReportsTheModelsOwnResolutionsAndCuttingOptions()
+    {
+        var request = ValidIpPrinterRequest(UniqueName("Printer")) with { Model = "Brother QL-820NWB" };
+
+        var response = await _client.PostAsJsonAsync("/api/printers", request, JsonOptions);
+        var printer = await response.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
+
+        Assert.Equal([300, 600], printer!.Resolutions.Select(r => r.HorizontalDpi));
+        Assert.Equal(["AutoCut", "CutAtEnd", "CutMarks"], printer.CutModes);
     }
 
     [Fact]

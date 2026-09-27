@@ -55,8 +55,14 @@ export function Toolbar({
         <button type="button" onClick={() => onAddObject("rect")} disabled={previewMode}>
           {t("editor.toolbar.addRectangle")}
         </button>
+        <button type="button" onClick={() => onAddObject("ellipse")} disabled={previewMode}>
+          {t("editor.toolbar.addEllipse")}
+        </button>
         <button type="button" onClick={() => onAddObject("line")} disabled={previewMode}>
           {t("editor.toolbar.addLine")}
+        </button>
+        <button type="button" onClick={() => onAddObject("barcode")} disabled={previewMode}>
+          {t("editor.toolbar.addBarcode")}
         </button>
         <button
           type="button"

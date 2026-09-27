@@ -33,11 +33,15 @@ describe("Toolbar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Field" }));
     fireEvent.click(screen.getByRole("button", { name: "Add Rectangle" }));
     fireEvent.click(screen.getByRole("button", { name: "Add Line" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Ellipse" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Barcode" }));
 
     expect(props.onAddObject).toHaveBeenNthCalledWith(1, "text");
     expect(props.onAddObject).toHaveBeenNthCalledWith(2, "dynamicField");
     expect(props.onAddObject).toHaveBeenNthCalledWith(3, "rect");
     expect(props.onAddObject).toHaveBeenNthCalledWith(4, "line");
+    expect(props.onAddObject).toHaveBeenNthCalledWith(5, "ellipse");
+    expect(props.onAddObject).toHaveBeenNthCalledWith(6, "barcode");
   });
 
   it("forwards the chosen file to onAddImage", () => {

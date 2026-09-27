@@ -23,10 +23,10 @@ export const MEDIA_GROUPS: readonly MediaGroup[] = ["tze", "hse", "dkContinuous"
 const tze = (heightMm: number): MediaPreset => ({ id: `tze-${heightMm}`, group: "tze", heightMm });
 const hse = (code: string, heightMm: number): MediaPreset => ({ id: code, group: "hse", code, heightMm });
 const dk = (code: string, heightMm: number): MediaPreset => ({ id: code, group: "dkContinuous", code, heightMm });
-const dieCut = (code: string, heightMm: number, widthMm: number, round = false): MediaPreset => ({
-  id: code,
+const dieCut = (code: string | null, heightMm: number, widthMm: number, round = false): MediaPreset => ({
+  id: code ?? `dk-${heightMm}x${widthMm}`,
   group: "dkDieCut",
-  code,
+  code: code ?? undefined,
   heightMm,
   widthMm,
   round,
@@ -48,6 +48,12 @@ export const MEDIA_PRESETS: readonly MediaPreset[] = [
   hse("HSe-241E", 17.7),
   hse("HSe-251E", 21),
   hse("HSe-261E", 31),
+  // P-touch HSe heat-shrink tube, 2:1 series.
+  hse("HSe-211", 5.8),
+  hse("HSe-221", 8.8),
+  hse("HSe-231", 11.7),
+  hse("HSe-241", 17.7),
+  hse("HSe-251", 23.6),
   // QL DK continuous-length rolls.
   dk("DK-22214", 12),
   dk("DK-22210", 29),
@@ -55,6 +61,8 @@ export const MEDIA_PRESETS: readonly MediaPreset[] = [
   dk("DK-22223", 50),
   dk("DK-N55224", 54),
   dk("DK-22205", 62),
+  // Black/red continuous roll, for the two-colour QL-800 series.
+  dk("DK-22251", 62),
   dk("DK-22243", 102),
   dk("DK-22246", 103.6),
   // QL DK die-cut labels (height across the roll × length).
@@ -63,9 +71,13 @@ export const MEDIA_PRESETS: readonly MediaPreset[] = [
   dieCut("DK-11203", 17, 87),
   dieCut("DK-11221", 23, 23),
   dieCut("DK-11218", 24, 24, true),
-  dieCut("DK-11209", 29, 62),
+  dieCut("DK-11209", 62, 29),
   dieCut("DK-11201", 29, 90),
   dieCut("DK-11208", 38, 90),
+  dieCut(null, 29, 42),
+  dieCut(null, 39, 48),
+  dieCut(null, 52, 29),
+  dieCut(null, 54, 29),
   dieCut("DK-11207", 58, 58, true),
   dieCut("DK-11234", 60, 86),
   dieCut("DK-11202", 62, 100),

@@ -13,7 +13,7 @@
 &#xD;
 Requires a MySQL 8 or MariaDB database, for example Unraid's "mariadb" template. Create an empty database and a user, then enter the connection in the web UI on first start.&#xD;
 &#xD;
-Printing supports Brother PT network printers with a 128-pin head (PT-P750W, PT-E550W, PT-P710BT, PT-P700). Tapeory has no user accounts yet, so keep it on a trusted network.</Overview>
+Printing supports 34 Brother P-touch (PT) and QL label printers, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. Tapeory has no user accounts yet, so keep it on a trusted network.</Overview>
   <Category>Productivity: Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:8080]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/unraid/tapeory.xml</TemplateURL>
@@ -24,6 +24,7 @@ Printing supports Brother PT network printers with a 128-pin head (PT-P750W, PT-
   <Screenshot>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/editor.png</Screenshot>
   <Screenshot>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/templates.png</Screenshot>
   <Screenshot>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/print.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/printers.png</Screenshot>
   <Screenshot>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/docs/screenshots/setup.png</Screenshot>
 
   <Config Name="WebUI Port" Target="8080" Default="8080" Mode="tcp" Description="Port the Tapeory web UI and API are served on." Type="Port" Display="always" Required="true" Mask="false">8080</Config>

@@ -11,6 +11,15 @@ public sealed class LbxObjectConverterTests
     private static readonly XNamespace TextNs = "http://schemas.brother.info/ptouch/2007/lbx/text";
     private static readonly XNamespace BarcodeNs = "http://schemas.brother.info/ptouch/2007/lbx/barcode";
     private static readonly XNamespace ImageNs = "http://schemas.brother.info/ptouch/2007/lbx/image";
+    private static readonly XNamespace DrawNs = "http://schemas.brother.info/ptouch/2007/lbx/draw";
+
+    private static XElement ShapeStyle(string objectName, string pen = "NULL", string brush = "NULL") =>
+        new(Pt + "objectStyle",
+            new XAttribute("x", "10pt"), new XAttribute("y", "5pt"),
+            new XAttribute("width", "40pt"), new XAttribute("height", "20pt"), new XAttribute("angle", "0"),
+            new XElement(Pt + "pen", new XAttribute("style", pen), new XAttribute("widthX", "1pt"), new XAttribute("color", "#FF0000")),
+            new XElement(Pt + "brush", new XAttribute("style", brush), new XAttribute("color", "#00FF00")),
+            new XElement(Pt + "expanded", new XAttribute("objectName", objectName)));
 
     private static XElement TextObject(
         string x = "6.0pt",
@@ -202,7 +211,7 @@ public sealed class LbxObjectConverterTests
     }
 
     [Fact]
-    public void Convert_WarnsAndSkips_ForBarcodeObjects()
+    public void Convert_WarnsAndSkips_BarcodesWithoutAKnownType()
     {
         var doc = BuildDocument("50pt", "25pt", BarcodeObject("Bar Code4"));
 
@@ -210,6 +219,111 @@ public sealed class LbxObjectConverterTests
 
         Assert.Equal(0, ParseObjects(result.EditorJson).GetArrayLength());
         Assert.Contains(result.Warnings, w => w.Contains("Bar Code4") && w.Contains("barcode"));
+    }
+
+    [Theory]
+    [InlineData("CODE128", "code128")]
+    [InlineData("EAN13", "ean13")]
+    [InlineData("QRCODE", "qr")]
+    [InlineData("DATAMATRIX", "datamatrix")]
+    public void Convert_TurnsBarcodesIntoBarcodes_WithTheirTypeValueAndText(string protocol, string symbology)
+    {
+        var barcode = new XElement(BarcodeNs + "barcode",
+            ShapeStyle("Bar Code1"),
+            new XElement(BarcodeNs + "barcodeStyle", new XAttribute("protocol", protocol), new XAttribute("humanReadable", "true")),
+            new XElement(Pt + "data", "4006381333931"));
+
+        var result = LbxObjectConverter.Convert(BuildDocument("200pt", "50pt", barcode));
+
+        var json = ParseObjects(result.EditorJson)[0];
+        Assert.Equal("barcode", json.GetProperty("type").GetString());
+        Assert.Equal(symbology, json.GetProperty("symbology").GetString());
+        Assert.Equal("4006381333931", json.GetProperty("data").GetString());
+        Assert.True(json.GetProperty("showText").GetBoolean());
+        Assert.Equal("", json.GetProperty("fieldName").GetString());
+    }
+
+    [Fact]
+    public void Convert_BindsAMergedBarcodeToAField()
+    {
+        var style = ShapeStyle("Bar Code1");
+        style.Element(Pt + "expanded")!.SetAttributeValue("dbMergeFieldStyleName", "Serial");
+        var barcode = new XElement(BarcodeNs + "barcode",
+            style,
+            new XElement(BarcodeNs + "barcodeStyle", new XAttribute("protocol", "CODE128")),
+            new XElement(Pt + "data", "SN-1"));
+
+        var result = LbxObjectConverter.Convert(BuildDocument("200pt", "50pt", barcode));
+
+        Assert.Equal("Serial", ParseObjects(result.EditorJson)[0].GetProperty("fieldName").GetString());
+        var field = Assert.Single(result.Fields);
+        Assert.Equal(("Serial", "SN-1"), (field.Name, field.DefaultValue));
+    }
+
+    [Fact]
+    public void Convert_TurnsRectanglesEllipsesAndLinesIntoShapes()
+    {
+        var rect = new XElement(DrawNs + "rect", ShapeStyle("Rectangle1", pen: "INSIDEFRAME", brush: "SOLID"),
+            new XElement(DrawNs + "rectStyle", new XAttribute("shape", "ROUNDRECTANGLE"), new XAttribute("roundnessX", "4pt")));
+        var ellipse = new XElement(DrawNs + "ellipse", ShapeStyle("Ellipse1", pen: "INSIDEFRAME"));
+        var line = new XElement(DrawNs + "line", ShapeStyle("Line1", pen: "INSIDEFRAME"),
+            new XElement(DrawNs + "lineStyle",
+                new XAttribute("x1", "10pt"), new XAttribute("y1", "5pt"), new XAttribute("x2", "50pt"), new XAttribute("y2", "5pt")));
+
+        var result = LbxObjectConverter.Convert(BuildDocument("200pt", "50pt", rect, ellipse, line));
+        var objects = ParseObjects(result.EditorJson);
+
+        Assert.Equal("rect", objects[0].GetProperty("type").GetString());
+        Assert.Equal("#00FF00", objects[0].GetProperty("fill").GetString());
+        Assert.Equal("#FF0000", objects[0].GetProperty("stroke").GetString());
+        Assert.Equal(LbxUnits.ParsePointsAsMm("4pt"), objects[0].GetProperty("cornerRadius").GetDecimal());
+
+        Assert.Equal("ellipse", objects[1].GetProperty("type").GetString());
+        Assert.Equal("transparent", objects[1].GetProperty("fill").GetString());
+
+        Assert.Equal("line", objects[2].GetProperty("type").GetString());
+        var points = objects[2].GetProperty("points").EnumerateArray().Select(p => p.GetDecimal()).ToArray();
+        Assert.Equal([0m, 0m, LbxUnits.ParsePointsAsMm("40pt")!.Value, 0m], points);
+        Assert.Empty(result.Warnings);
+    }
+
+    [Fact]
+    public void Convert_TurnsPTouchPolyLinesIntoLines_FromTheirPoints()
+    {
+        // As P-touch Editor saves a line (taken from a real .lbx): draw:poly with shape="LINE" and
+        // its end points in page coordinates.
+        var line = new XElement(DrawNs + "poly", ShapeStyle("Line3", pen: "INSIDEFRAME"),
+            new XElement(DrawNs + "polyStyle", new XAttribute("shape", "LINE"),
+                new XElement(DrawNs + "polyOrgPos", new XAttribute("x", "199.7pt"), new XAttribute("y", "32pt")),
+                new XElement(DrawNs + "polyLinePoints", new XAttribute("points", "200.2pt,32.5pt 300.5pt,32.5pt"))));
+        var polyline = new XElement(DrawNs + "poly", ShapeStyle("Poly2", pen: "INSIDEFRAME"),
+            new XElement(DrawNs + "polyStyle", new XAttribute("shape", "POLYLINE"),
+                new XElement(DrawNs + "polyLinePoints", new XAttribute("points", "10pt,10pt 20pt,10pt 20pt,20pt"))));
+
+        var result = LbxObjectConverter.Convert(BuildDocument("400pt", "150pt", line, polyline));
+        var objects = ParseObjects(result.EditorJson);
+
+        Assert.Equal(3, objects.GetArrayLength()); // one line, plus a polyline's two segments
+        Assert.All(objects.EnumerateArray(), o => Assert.Equal("line", o.GetProperty("type").GetString()));
+        Assert.Equal(LbxUnits.ParsePointsAsMm("200.2pt"), objects[0].GetProperty("x").GetDecimal());
+        var points = objects[0].GetProperty("points").EnumerateArray().Select(p => p.GetDecimal()).ToArray();
+        Assert.Equal([0m, 0m, LbxUnits.ParsePointsAsMm("300.5pt")!.Value - LbxUnits.ParsePointsAsMm("200.2pt")!.Value, 0m], points);
+        Assert.Empty(result.Warnings);
+    }
+
+    [Fact]
+    public void Convert_ImportsFramesAsBorders_AndWarnsAboutFreeFormShapes()
+    {
+        var frame = new XElement(DrawNs + "frame", ShapeStyle("Frame1"));
+        var poly = new XElement(DrawNs + "poly", ShapeStyle("Poly1"));
+
+        var result = LbxObjectConverter.Convert(BuildDocument("200pt", "50pt", frame, poly));
+
+        var border = Assert.Single(ParseObjects(result.EditorJson).EnumerateArray());
+        Assert.Equal("rect", border.GetProperty("type").GetString());
+        Assert.True(border.GetProperty("strokeWidth").GetDecimal() > 0);
+        Assert.Contains(result.Warnings, w => w.Contains("Frame1") && w.Contains("border"));
+        Assert.Contains(result.Warnings, w => w.Contains("Poly1") && w.Contains("free-form"));
     }
 
     [Fact]

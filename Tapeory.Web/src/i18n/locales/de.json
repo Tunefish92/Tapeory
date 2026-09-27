@@ -168,7 +168,9 @@
       "backToEditing": "Zurück zur Bearbeitung",
       "save": "Speichern",
       "saving": "Wird gespeichert…",
-      "publish": "Veröffentlichen"
+      "publish": "Veröffentlichen",
+      "addEllipse": "Ellipse hinzufügen",
+      "addBarcode": "Barcode hinzufügen"
     },
     "properties": {
       "selectPrompt": "Wählen Sie ein Objekt aus, um dessen Eigenschaften zu bearbeiten.",
@@ -219,7 +221,19 @@
       "fitWrap": "Umbrechen",
       "fixedSizeHint": "Der Text wird in der gewählten Größe gezeichnet und kann über das Feld hinausragen.",
       "fitShrinkHint": "Der Text behält seine Zeilenumbrüche und wird verkleinert, bis er ins Feld passt.",
-      "fitWrapHint": "Der Text wird an Leerzeichen umbrochen und nur verkleinert, wenn er dann immer noch nicht passt."
+      "fitWrapHint": "Der Text wird an Leerzeichen umbrochen und nur verkleinert, wenn er dann immer noch nicht passt.",
+      "typeEllipse": "Ellipse",
+      "typeBarcode": "Barcode",
+      "barcodeType": "Typ",
+      "barcodeSource": "Inhalt",
+      "barcodeSourceFixed": "Fester Wert",
+      "barcodeSourceField": "Aus einem Feld",
+      "barcodeValue": "Wert",
+      "barcodeFieldHint": "Der Wert wird beim Drucken eingegeben. Verwenden Sie den Namen eines Textfelds, um denselben Wert als Text und als Barcode zu drucken.",
+      "barcodeShowText": "Wert unter den Balken anzeigen",
+      "barcodeSizeHint": "Barcodes groß genug zum Scannen halten: Die Balken werden auf die Druckerpunkte ausgerichtet, ein zu dichter Code verliert Details.",
+      "sectionAppearance": "Aussehen",
+      "sectionOptions": "Optionen"
     },
     "mediaCustom": "Benutzerdefiniert · {{size}}",
     "widthFixedByLabel": "Bei gestanzten Etiketten ist die Breite fest vorgegeben.",
@@ -228,6 +242,20 @@
       "hse": "HSe-Schrumpfschlauch",
       "dkContinuous": "DK-Endlosrolle",
       "dkDieCut": "DK-Einzeletiketten"
+    },
+    "barcode": {
+      "code128": "Code 128",
+      "code39": "Code 39",
+      "ean13": "EAN-13",
+      "ean8": "EAN-8",
+      "upca": "UPC-A",
+      "upce": "UPC-E",
+      "itf": "ITF (Interleaved 2 of 5)",
+      "codabar": "Codabar",
+      "qr": "QR-Code",
+      "datamatrix": "Data Matrix",
+      "pdf417": "PDF417",
+      "aztec": "Aztec"
     }
   },
   "printing": {
@@ -336,6 +364,15 @@
     "name": "Name",
     "model": "Modell",
     "modelPlaceholder": "z. B. Brother QL-820NWB",
+    "modelChoose": "Modell wählen…",
+    "modelOther": "Anderes Modell…",
+    "modelCustom": "Modellname",
+    "modelGroupPt": "P-touch (PT)",
+    "modelGroupQl": "QL",
+    "modelHintEmpty": "Brother P-touch- (PT) oder QL-Modell.",
+    "modelHintNetwork": "{{model}} ({{dpi}} dpi) druckt direkt über das Netzwerk: per IP-Adresse oder Hostname hinzufügen.",
+    "modelHintUsb": "{{model}} ({{dpi}} dpi) wird per USB angeschlossen: über einen CUPS-Server freigeben und diesen hier als Druckserver mit Warteschlange hinzufügen.",
+    "modelHintUnknown": "Tapeory kennt dieses Modell nicht; es druckt wie ein PT-P750W (180 dpi, Band bis 24 mm).",
     "connectionType": "Verbindungstyp",
     "connectionTypeIpAddress": "IP-Adresse",
     "connectionTypeHostname": "Hostname",
@@ -387,9 +424,7 @@
     "unknownModel": "Unbekanntes Modell"
   },
   "footer": {
-    "copyright": "© {{year}} Tapeory",
-    "tagline": "Selbst gehostetes Etikettendrucken",
-    "editorPublisher": "Herausgeber & Redaktion: {{name}}"
+    "copyright": "© {{year}} von"
   },
   "settings": {
     "title": "Einstellungen",
@@ -403,6 +438,12 @@
     "managePrinters": "Drucker verwalten",
     "about": "Über",
     "version": "Version",
+    "updateChecking": "Suche nach Updates…",
+    "updateUpToDate": "Aktuell",
+    "updateAvailable": "Version {{version}} verfügbar",
+    "updateReleaseNotes": "Was ist neu",
+    "updateCheck": "Nach Updates suchen",
+    "updateFailed": "Update-Prüfung fehlgeschlagen",
     "storage": "Speicher",
     "storagePath": "Speicherpfad",
     "apiConnection": "API-Verbindung",

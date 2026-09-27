@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import i18n from "../i18n";
@@ -116,5 +116,65 @@ describe("SettingsPage", () => {
     await screen.findByRole("heading", { name: "Settings" });
 
     expect(screen.getByText(__APP_VERSION__)).toBeInTheDocument();
+  });
+  it("shows the update check next to the version, with a link to a newer release", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/printers")) return jsonResponse([]);
+      if (url.includes("/api/updates")) {
+        const refreshed = url.includes("refresh=true");
+        return jsonResponse({
+          currentVersion: "0.2.1",
+          latestVersion: refreshed ? "0.3.0" : "0.2.1",
+          updateAvailable: refreshed,
+          releaseUrl: "https://github.com/Tunefish92/Tapeory/releases/tag/v0.3.0",
+          checkedAt: "2026-09-27T10:00:00Z",
+          errorMessage: null,
+        });
+      }
+
+      return jsonResponse({ status: "ok", storagePath: "/data", databaseConnected: true });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+
+    const row = screen.getByText("Version").closest("dl") as HTMLElement;
+    expect(await within(row).findByText("Up to date")).toBeInTheDocument();
+
+    fireEvent.click(within(row).getByRole("button", { name: "Check for updates" }));
+
+    expect(await within(row).findByText("Version 0.3.0 available")).toBeInTheDocument();
+    expect(within(row).getByRole("link", { name: "What’s new" })).toHaveAttribute(
+      "href",
+      "https://github.com/Tunefish92/Tapeory/releases/tag/v0.3.0",
+    );
+  });
+
+  it("says so when the update check fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/api/printers")) return jsonResponse([]);
+        if (url.includes("/api/updates")) {
+          return jsonResponse({
+            currentVersion: "0.2.1",
+            latestVersion: null,
+            updateAvailable: false,
+            releaseUrl: null,
+            checkedAt: null,
+            errorMessage: "GitHub couldn't be reached.",
+          });
+        }
+        return jsonResponse({ status: "ok", storagePath: "/data", databaseConnected: true });
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("Couldn’t check for updates")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check for updates" })).toBeInTheDocument();
   });
 });

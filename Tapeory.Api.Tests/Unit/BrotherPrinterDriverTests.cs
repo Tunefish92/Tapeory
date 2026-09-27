@@ -7,12 +7,12 @@ using Tapeory.Api.Printing;
 
 namespace Tapeory.Api.Tests.Unit;
 
-public sealed class BrotherPtPrinterDriverTests : IDisposable
+public sealed class BrotherPrinterDriverTests : IDisposable
 {
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly SKBitmap _label = new(4, 64);
 
-    public BrotherPtPrinterDriverTests()
+    public BrotherPrinterDriverTests()
     {
         _listener.Start();
         _label.Erase(SKColors.White);
@@ -66,8 +66,8 @@ public sealed class BrotherPtPrinterDriverTests : IDisposable
             Task.FromResult(snapshots[Math.Min(_next++, snapshots.Length - 1)]);
     }
 
-    private static BrotherPtPrinterDriver Driver(IPrinterStatusReader status, IppClient? ipp = null) =>
-        new(new PrinterRawSocketSender(), status, ipp ?? new IppClient(new HttpClient()), NullLogger<BrotherPtPrinterDriver>.Instance)
+    private static BrotherPrinterDriver Driver(IPrinterStatusReader status, IppClient? ipp = null) =>
+        new(new PrinterRawSocketSender(), status, ipp ?? new IppClient(new HttpClient()), NullLogger<BrotherPrinterDriver>.Instance)
         {
             PollInterval = TimeSpan.FromMilliseconds(1),
             BaseTimeout = TimeSpan.FromSeconds(2),
@@ -81,7 +81,7 @@ public sealed class BrotherPtPrinterDriverTests : IDisposable
         var outcome = await Driver(status, ipp).PrintAsync(
             printer ?? PtPrinter(),
             Enumerable.Repeat(_label, copies).ToList(),
-            BrotherPtTape.ForLabelHeight(9m),
+            BrotherCatalog.Find("PT-P750W").Media.Single(media => media.Id == "tze-9"),
             PrinterCapabilities.Standard,
             CutMode.AutoCut,
             stage =>
@@ -171,15 +171,21 @@ public sealed class BrotherPtPrinterDriverTests : IDisposable
     }
 
     [Fact]
-    public async Task Print_RefusesQlPrinters()
+    public async Task Print_SendsQlPrintersAQlRasterJob()
     {
         var printer = PtPrinter();
         printer.Model = "Brother QL-820NWB";
+        var model = BrotherCatalog.Find(printer.Model);
+        using var label = new SKBitmap(4, 732);
+        label.Erase(SKColors.White);
 
-        var (outcome, stages) = await PrintAsync(new ScriptedStatusReader(Idle(0)), printer: printer);
+        var stages = new List<PrintStage>();
+        var outcome = await Driver(new ScriptedStatusReader([null])).PrintAsync(
+            printer, [label], model.Media.Single(media => media.Id == "dk-62"), PrinterCapabilities.Resolutions(printer.Model)[0],
+            CutMode.AutoCut, stage => { stages.Add(stage); return Task.CompletedTask; }, CancellationToken.None);
 
-        Assert.False(outcome.IsSuccess);
-        Assert.Empty(stages);
+        Assert.True(outcome.IsSuccess, outcome.ErrorMessage);
+        Assert.Equal([PrintStage.Sending], stages);
     }
 
     private static Printer CupsQueue() => new()
@@ -245,6 +251,79 @@ public sealed class BrotherPtPrinterDriverTests : IDisposable
         Assert.Contains(FakeIppServer.CancelJob, cups.Operations);
     }
 
+    /// <summary>A CUPS server whose queue prints to the printer at socket://printer.test:9100.</summary>
+    private static FakeIppServer CupsWithNetworkPrinter(params byte[][] jobStates)
+    {
+        var polls = 0;
+        return new FakeIppServer(operation => operation switch
+        {
+            FakeIppServer.GetPrinterAttributes =>
+                IppResponses.Printer(state: 3, acceptingJobs: true, deviceUri: "socket://printer.test:9100"),
+            FakeIppServer.PrintJob => IppResponses.Job(jobId: 5, state: 3),
+            FakeIppServer.CancelJob => IppResponses.Error(0x0000, ""),
+            _ => jobStates[Math.Min(polls++, jobStates.Length - 1)]
+        });
+    }
+
+    [Fact]
+    public async Task Print_ThroughAPrintServerQueue_StopsBeforeSubmitting_WhenThePrinterHasTheWrongTape()
+    {
+        var cups = CupsWithNetworkPrinter(IppResponses.Job(jobId: 5, state: 9));
+        var twelveMm = new PrinterStatusSnapshot(3, [0x00], "READY", 100, "12mm(0.47\")");
+
+        var (outcome, stages) = await PrintAsync(
+            new ScriptedStatusReader(twelveMm), printer: CupsQueue(), ipp: new IppClient(new HttpClient(cups)));
+
+        Assert.False(outcome.IsSuccess);
+        Assert.Contains("12 mm tape loaded", outcome.ErrorMessage);
+        Assert.Empty(stages);
+        Assert.DoesNotContain(FakeIppServer.PrintJob, cups.Operations);
+    }
+
+    [Fact]
+    public async Task Print_ThroughAPrintServerQueue_IsConfirmedByThePrintersCounter()
+    {
+        var cups = CupsWithNetworkPrinter(IppResponses.Job(jobId: 5, state: 5), IppResponses.Job(jobId: 5, state: 9));
+        var ready = new PrinterStatusSnapshot(3, [0x00], "READY", 100, "9mm(0.35\")");
+
+        var (outcome, _) = await PrintAsync(
+            new ScriptedStatusReader(ready, ready, ready with { LabelCount = 101 }),
+            printer: CupsQueue(),
+            ipp: new IppClient(new HttpClient(cups)));
+
+        Assert.True(outcome.IsSuccess, outcome.ErrorMessage);
+        Assert.True(outcome.Confirmed);
+    }
+
+    [Fact]
+    public async Task Print_ThroughAPrintServerQueue_CancelsTheJob_WhenThePrinterStopsWhileCupsWorksOnIt()
+    {
+        var cups = CupsWithNetworkPrinter(IppResponses.Job(jobId: 5, state: 5)); // processing, forever
+        var ready = new PrinterStatusSnapshot(3, [0x00], "READY", 100, "9mm(0.35\")");
+        var coverOpen = new PrinterStatusSnapshot(1, [0x08], "COVER OPEN", 100, "9mm(0.35\")");
+
+        var (outcome, _) = await PrintAsync(
+            new ScriptedStatusReader(ready, coverOpen), printer: CupsQueue(), ipp: new IppClient(new HttpClient(cups)));
+
+        Assert.False(outcome.IsSuccess);
+        Assert.Contains("COVER OPEN", outcome.ErrorMessage);
+        Assert.Contains(FakeIppServer.CancelJob, cups.Operations);
+    }
+
+    [Theory]
+    [InlineData("socket://BRW78465CA0DB3E:9100", "brw78465ca0db3e")] // host names are case-insensitive
+    [InlineData("socket://10.0.0.184:9100", "10.0.0.184")]
+    [InlineData("ipp://printer.lan/ipp/print", "printer.lan")]
+    [InlineData("lpd://10.0.0.184/queue", "10.0.0.184")]
+    [InlineData("dnssd://Brother%20PT-P750W._ipp._tcp.local/?uuid=e3", null)]
+    [InlineData("usb://Brother/PT-P750W?serial=H4G927809", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void DeviceHost_FindsThePrintersNetworkHost_InACupsDeviceUri(string? deviceUri, string? host)
+    {
+        Assert.Equal(host, IppClient.DeviceHost(deviceUri));
+    }
+
     [Fact]
     public async Task Print_ThroughAPrintServerQueue_DoesNotSubmit_WhenTheQueueIsNotAcceptingJobs()
     {
@@ -262,8 +341,9 @@ public sealed class BrotherPtPrinterDriverTests : IDisposable
     [InlineData("Brother PT-P750W", true)]
     [InlineData("pt p750w", true)]
     [InlineData("PT-E550W", true)]
-    [InlineData("Brother PT-H110", false)]
-    [InlineData(null, false)]
+    [InlineData("PT-P700", false)]
+    [InlineData("PT-P910BT", false)]
+    [InlineData(null, true)] // unknown: falls back to the PT-P750W
     public void Resolutions_OfferHighResolution_OnlyOnModelsThatSupportIt(string? model, bool high)
     {
         var qualities = PrinterCapabilities.Resolutions(model).Select(r => r.Quality).ToList();
