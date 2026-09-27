@@ -25,9 +25,14 @@ RUN dotnet publish Tapeory.Api/Tapeory.Api.csproj -c Release -o /app/publish --n
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# The net.unraid.docker.* labels give the container its icon and "WebUI" link on Unraid's Docker
+# page even when it isn't installed from the Community Applications template (e.g. via Compose).
 LABEL org.opencontainers.image.title="Tapeory" \
       org.opencontainers.image.description="Design, store, and print Brother P-touch labels from your browser" \
-      org.opencontainers.image.source="https://github.com/Tunefish92/Tapeory"
+      org.opencontainers.image.source="https://github.com/Tunefish92/Tapeory" \
+      org.opencontainers.image.licenses="MIT" \
+      net.unraid.docker.icon="https://raw.githubusercontent.com/Tunefish92/Tapeory/main/unraid/tapeory.png" \
+      net.unraid.docker.webui="http://[IP]:[PORT:8080]/"
 
 # - curl: container health check
 # - libfontconfig1: SkiaSharp's font matching (label rendering)
