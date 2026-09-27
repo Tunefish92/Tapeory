@@ -328,8 +328,9 @@ On every push and pull request to `main`, GitHub Actions:
 
 Pushes to `main` and version tags (`v*`) then publish a multi-arch image (`amd64`, `arm64`) to
 GitHub Container Registry. If the repository variable `DOCKERHUB_USERNAME` and the secret
-`DOCKERHUB_TOKEN` are set, the same image also goes to Docker Hub. The Docker Hub page's
-description is kept in [`docs/dockerhub.md`](docs/dockerhub.md); paste it there when it changes. To republish `main` without a
+`DOCKERHUB_TOKEN` are set, the same image also goes to Docker Hub, and the Docker Hub page's
+overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token needs the
+"Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
 To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 && git push --tags`.
@@ -346,6 +347,7 @@ To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 &&
 - `Tapeory.Web/`: React + TypeScript frontend (Vite)
 - `Tapeory.Api.Tests/`: backend unit and integration tests
 - `scripts/`: local development launch scripts
-- `unraid/`: Unraid Community Applications template
+- `unraid/`: Unraid Community Applications template and icon
+- `ca_profile.xml`: repository profile for Unraid Community Applications
 - `docs/screenshots/`: the screenshots in this README
 - `.github/workflows/`: CI pipeline
