@@ -130,7 +130,11 @@
     },
     "confirmDelete": "Delete the template “{{name}}”?\n\nIts print jobs stay in the print history and keep counting in the statistics.",
     "deleted": "Template “{{name}}” deleted.",
-    "deleteErrorFallback": "Couldn’t delete the template."
+    "deleteErrorFallback": "Couldn’t delete the template.",
+    "duplicate": "Duplicate",
+    "copyName": "{{name}} (copy)",
+    "duplicated": "Created “{{name}}”.",
+    "duplicateErrorFallback": "Couldn’t duplicate the template."
   },
   "editor": {
     "metadataName": "Name",
@@ -168,6 +172,10 @@
     },
     "properties": {
       "selectPrompt": "Select an object to edit its properties.",
+      "sectionContent": "Content",
+      "sectionFont": "Font",
+      "sectionLayout": "Size and position",
+      "sectionFit": "Text fitting and options",
       "x": "X (mm)",
       "y": "Y (mm)",
       "rotation": "Rotation (°)",
@@ -232,11 +240,9 @@
       "optionDisabledSuffix": " (disabled)",
       "manualOption": "Manual / no printer configured",
       "printerNameOptional": "Printer name (optional)",
-      "updatePreview": "Update Preview",
       "rendering": "Rendering…",
       "submit": "Submit Print Job",
       "submitting": "Submitting…",
-      "previewPlaceholder": "Click \"Update Preview\" to render the label with these values.",
       "previewImageAlt": "Label preview",
       "loading": "Loading template…",
       "loadErrorFallback": "Failed to load template.",
@@ -278,6 +284,7 @@
     },
     "printJobDetail": {
       "title": "Print Job #{{id}}",
+      "backToTemplates": "Back to templates",
       "backToHistory": "Back to history",
       "template": "Template",
       "printer": "Printer",
@@ -294,7 +301,26 @@
       "queued": "Queued",
       "processing": "Processing",
       "completed": "Completed",
-      "failed": "Failed"
+      "failed": "Failed",
+      "sending": "Sending to printer",
+      "printing": "Printing"
+    },
+    "quality": {
+      "label": "Print quality",
+      "standard": "Standard",
+      "high": "High",
+      "option": "{{name}} ({{vertical}} × {{horizontal}} dpi)"
+    },
+    "cutMode": {
+      "label": "Cutting",
+      "AutoCut": "Auto cut",
+      "AutoCutHint": "Cuts each label off completely.",
+      "HalfCut": "Half cut",
+      "HalfCutHint": "Cuts through the label but not the backing, so the labels stay together and peel easily. The strip is cut off after the last label.",
+      "CutAtEnd": "Cut at end",
+      "CutAtEndHint": "No cuts between labels; one cut after the last.",
+      "ChainPrinting": "Chain printing",
+      "ChainPrintingHint": "Cuts between labels but keeps the last one in the printer until the next print or the feed button. Saves the blank tape the printer feeds at the start of each job."
     }
   },
   "printers": {
@@ -302,6 +328,8 @@
     "addPrinter": "Add Printer",
     "editPrinter": "Edit Printer",
     "saveChanges": "Save Changes",
+    "sectionPrinter": "Printer",
+    "sectionConnection": "Connection",
     "name": "Name",
     "model": "Model",
     "modelPlaceholder": "e.g. Brother QL-820NWB",
@@ -311,11 +339,18 @@
     "connectionTypePrintServer": "Print server",
     "connectionTypeUsb": "USB",
     "printServerAddress": "Print server address",
+    "printServerNote": "For CUPS: in the queue's settings (Administration → Modify Printer), set the connection to \"AppSocket/HP JetDirect\" with socket://<printer IP or hostname>:9100. Queues found automatically (dnssd://… .local) often can't reach the printer, especially when CUPS runs in a container.",
+    "queueName": "Queue name (optional)",
+    "queueNameHint": "The printer's name on a CUPS or IPP print server, as in http://server:631/printers/<name>. Leave empty to send to the server's raw port.",
     "usbIdentifier": "USB identifier",
     "usbIdentifierPlaceholder": "Optional device identifier",
     "port": "Port",
-    "labelWidth": "Label width (mm)",
-    "labelHeight": "Label height (mm)",
+    "labelWidth": "Width (mm)",
+    "labelHeight": "Height (mm)",
+    "testPrintSize": "Test print size (optional)",
+    "testPrintSizeHint": "Only used by the Test Print button. Print jobs use the template's size.",
+    "portHint": "Raw printing port, usually 9100.",
+    "portHintIpp": "IPP port, usually 631.",
     "enabled": "Enabled",
     "loading": "Loading printers…",
     "empty": "No printers configured yet.",

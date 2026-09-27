@@ -11,10 +11,11 @@ namespace Tapeory.Api.Controllers;
 public sealed class PrintersController(
     PrinterService printers,
     PrinterConnectionTester connectionTester,
-    PrinterRawSocketSender rawSender,
+    BrotherPtPrinterDriver driver,
     LabelRenderer renderer) : ControllerBase
 {
     private const int MaxNameLength = 200;
+    private const int MaxQueueNameLength = 127;
 
     [HttpGet]
     public async Task<IActionResult> GetPrinters(CancellationToken cancellationToken)
@@ -35,7 +36,8 @@ public sealed class PrintersController(
         [FromBody] CreatePrinterRequest request, CancellationToken cancellationToken)
     {
         var validationError = Validate(
-            request.Name, request.ConnectionType, request.Address, request.PrintServerAddress, request.Port);
+            request.Name, request.ConnectionType, request.Address, request.PrintServerAddress, request.Port,
+            request.QueueName);
 
         if (validationError is not null)
         {
@@ -52,7 +54,8 @@ public sealed class PrintersController(
         int id, [FromBody] UpdatePrinterRequest request, CancellationToken cancellationToken)
     {
         var validationError = Validate(
-            request.Name, request.ConnectionType, request.Address, request.PrintServerAddress, request.Port);
+            request.Name, request.ConnectionType, request.Address, request.PrintServerAddress, request.Port,
+            request.QueueName);
 
         if (validationError is not null)
         {
@@ -94,9 +97,8 @@ public sealed class PrintersController(
         return Ok(new TestConnectionResponse(result.IsSuccess, result.ErrorMessage));
     }
 
-    /// <summary>Renders a small built-in test label and sends it to the printer's raw socket.
-    /// See PrinterRawSocketSender's remarks: this proves the network path works, not that a real
-    /// Brother printer will render the result correctly.</summary>
+    /// <summary>Renders a small built-in test label, prints it, and waits until the printer
+    /// confirms it came out (or reports why it didn't).</summary>
     [HttpPost("{id:int}/test-print")]
     public async Task<IActionResult> TestPrint(int id, CancellationToken cancellationToken)
     {
@@ -109,28 +111,23 @@ public sealed class PrintersController(
 
         var widthMm = printer.LabelMediaWidthMm ?? 50m;
         var heightMm = printer.LabelMediaHeightMm ?? 25m;
-        var testDocument = BuildTestLabelDocument(widthMm, heightMm);
-        var pngBytes = renderer.RenderPng(testDocument, new Dictionary<string, string>(), _ => null);
+        var testDocument = TestLabel.Build(widthMm, heightMm);
+        var resolution = PrinterCapabilities.Standard;
+        using var label = renderer.RenderBitmap(
+            testDocument, new Dictionary<string, string>(), _ => null, resolution.HorizontalDpi, resolution.VerticalDpi);
 
-        var result = await rawSender.SendAsync(printer, pngBytes, cancellationToken);
+        var result = await driver.PrintAsync(
+            printer, [label], BrotherPtTape.ForLabelHeight(heightMm), resolution, CutMode.AutoCut,
+            _ => Task.CompletedTask, cancellationToken);
         await printers.RecordConnectionResultAsync(
             printer, new ConnectionTestResult(result.IsSuccess, result.ErrorMessage), cancellationToken);
 
         return Ok(new TestPrintResponse(result.IsSuccess, result.ErrorMessage));
     }
 
-    private static RenderableDocument BuildTestLabelDocument(decimal widthMm, decimal heightMm) => new(
-        widthMm,
-        heightMm,
-        [
-            new RenderableText(
-                2, 2, 0, false, false,
-                "Tapeory Test Print", Math.Max(widthMm - 4, 1), Math.Max(heightMm - 4, 1),
-                10, "Arial", "normal", "left", "#000000")
-        ]);
-
     private static string? Validate(
-        string? name, string? connectionType, string? address, string? printServerAddress, int? port)
+        string? name, string? connectionType, string? address, string? printServerAddress, int? port,
+        string? queueName)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -162,6 +159,11 @@ public sealed class PrintersController(
         if (port is < 1 or > 65535)
         {
             return "Port must be between 1 and 65535.";
+        }
+
+        if (queueName is { Length: > MaxQueueNameLength } || queueName?.IndexOfAny(['/', '?', '#']) >= 0)
+        {
+            return $"Queue name must be {MaxQueueNameLength} characters or fewer, without '/', '?' or '#'.";
         }
 
         return null;

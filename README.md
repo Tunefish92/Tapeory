@@ -12,11 +12,9 @@ every template, upload, and print job stays on your own server.
 > [!WARNING]
 > **Early release (0.2).** This is the first stable release, but Tapeory is still young.
 > Designing, storing, importing, and rendering labels work and are covered by tests.
-> **Sending jobs to a real printer is experimental:** Tapeory sends the rendered label as a PNG
-> over a raw TCP socket (port 9100 style). Most Brother printers expect
-> their own raster command protocol, so a physical printer may ignore the job or print garbage.
-> Proper Brother protocol support has not been tested on real hardware yet. See
-> [Known limitations](#known-limitations).
+> **Printing is new:** Tapeory prints on Brother P-touch PT network printers with a 128-pin head
+> (PT-P750W, PT-E550W, PT-P710BT, PT-P700) using Brother's raster protocol. Other printers,
+> including the QL series, aren't supported yet. See [Known limitations](#known-limitations).
 
 ![The label editor with a dynamic field selected](docs/screenshots/editor.png)
 
@@ -42,35 +40,46 @@ every template, upload, and print job stays on your own server.
 ## Features
 
 **Label editor**
-- Canvas editor with text, dynamic fields, rectangles, lines, and images (PNG, JPEG, WebP, SVG)
+- Canvas editor with text, dynamic fields, rectangles, lines, and images (PNG, JPEG, WebP, SVG;
+  TIFF and BMP are converted to PNG)
 - Move, resize, and rotate objects; change layer order; lock, hide, duplicate, and delete
 - Undo/redo, zoom, arrow-key nudging, and keyboard shortcuts
 - Text fitting for each text box: overflow, shrink to fit, or wrap at spaces and shrink
 - Brother media presets: TZe/HGe tape, HSe heat-shrink tube, DK continuous and die-cut rolls
 - Preview mode that fills dynamic fields with sample values
-- The editor uses the server's own fonts, so the preview matches the printed output
+- The editor uses the server's own fonts, so the preview matches the printed output. Thirteen
+  Google Fonts ship with Tapeory (Roboto, Open Sans, Lato, Montserrat, Inter, IBM Plex Sans and
+  Serif, Roboto Slab, Bebas Neue, League Spartan, Quicksand, Comic Neue, Fira Code), so they're
+  there on every system
 
 **Templates**
 - Draft, published, and archived states, with an immutable version history
+- Duplicate a template from the card or list view
 - Groups (case- and accent-insensitive) with bulk rename, plus thumbnails
 - Export and import in Tapeory's native JSON format
-- **`.lbx` import:** converts text objects and database-merge fields from P-touch Editor
+- **`.lbx` import:** converts text objects, database-merge fields, and images from P-touch Editor
   files. Anything it can't convert is listed as a warning, and the original file stays
   available for download.
 
 **Printing**
-- Print form with values for each field, quantity, printer choice, and a live server-rendered preview
+- Print form with values for each field, quantity, printer choice, print quality, cutting
+  (auto cut, half cut, cut at end, chain printing), and a preview that updates as you type
 - Server-side rendering to PNG (300 DPI) and PDF with SkiaSharp
 - Background print queue, with a job history and per-label previews
+- Printing on Brother PT printers in Brother's raster format, in standard (180 × 180 dpi) or,
+  where the model supports it, high (180 × 360 dpi) quality. The tape width follows the label height.
+- Live print status from the printer (over SNMP): sending, printing, and finished once the
+  printer's label counter confirms the labels came out, or the printer's own error, such as no
+  tape or an open cover
+- Printing through a CUPS/IPP print server queue, with the job followed until CUPS reports it done
 - Printer management: IP address, hostname, print server, or USB entries, a default printer,
-  label media size, and connection tests and test prints
+  and connection tests and test prints
 
 **App**
 - First-start setup screen for the database connection (no connection string needed)
 - Database and label backups created and restored from the Settings page, stored on the server
 - Dashboard with usage statistics
-- 12 UI languages: English, German, French, Italian, Spanish, Portuguese, Russian, Chinese,
-  Hindi, Bengali, Arabic, and Indonesian
+- 5 UI languages: English, German, French, Italian, and Spanish
 - Light, dark, or system theme; millimetres or inches
 - Runs on `linux/amd64` and `linux/arm64`, with an Unraid Community Applications template
 
@@ -133,8 +142,11 @@ in `.env`.
 
 ### Fonts
 
-The image includes the Liberation fonts (same letter widths as Arial, Times New Roman and
-Courier New) and DejaVu. The editor and the renderer can use only fonts installed in the
+Tapeory ships thirteen Google Fonts with the app itself (Roboto, Open Sans, Lato, Montserrat,
+Inter, IBM Plex Sans and Serif, Roboto Slab, Bebas Neue, League Spartan, Quicksand, Comic Neue,
+Fira Code, each Regular and Bold), so they work the same in Docker and in a local run. The image
+also includes the Liberation fonts (same letter widths as Arial, Times New Roman and Courier New)
+and DejaVu. Beyond these, the editor and the renderer can use only fonts installed in the
 container. To add more, build your own image on top of this one:
 
 ```dockerfile
@@ -190,6 +202,26 @@ that skips the first-start setup screen. `docker-compose.yml` doesn't forward it
 
 Everything else is set in the web UI and stored in MySQL or the browser: printers, templates,
 language, theme, units, and the default printer.
+
+## Printers
+
+Add printers on the **Printers** page, then pick one when printing. Tapeory prints on Brother
+P-touch PT printers with a 128-pin head (PT-P750W, PT-E550W, PT-P710BT, PT-P700); enter the model
+so Tapeory knows which print qualities it offers.
+
+- **Directly over the network** (connection type IP address or hostname): Tapeory sends the job
+  to the printer's raw port, usually 9100, and follows it over SNMP until the printer's label
+  counter confirms it printed. Give the printer a fixed IP address (a DHCP reservation).
+- **Through a CUPS print server** (connection type print server): enter the server's address,
+  port 631, and the queue name, as in `http://<server>:631/printers/<queue>`. Tapeory sends the
+  job to that queue over IPP as raw data, so the queue's driver passes it through unchanged. In
+  CUPS, set the queue's connection to **AppSocket/HP JetDirect** with
+  `socket://<printer IP or hostname>:9100`; queues that CUPS found automatically
+  (`dnssd://… .local`) often can't reach the printer, especially when CUPS runs in a container.
+  Without a queue name, Tapeory sends to the server's raw port instead.
+
+**Test Connection** checks that the printer (or the CUPS queue) answers, and **Test Print** prints
+a small label centred on the tape; its size can be set in the printer's settings.
 
 ## Upgrading
 
@@ -276,12 +308,16 @@ path belong to Unraid's usual `nobody:users`. To add it, use Unraid's "template 
 
 ## Known limitations
 
-- **Printer output is not yet Brother-compatible.** See the warning at the top. The socket
-  transport is tested; whether a real printer accepts the data is not.
+- **Only Brother PT printers with a 128-pin head can print** (PT-P750W, PT-E550W, PT-P710BT,
+  PT-P700). QL printers and 360 dpi PT models (such as the PT-P900 series) aren't supported yet.
+- **Print status needs SNMP.** Tapeory reads it with the `public` community, which Brother
+  printers enable by default. Without SNMP, jobs are marked done once they're sent.
+- **The loaded tape isn't detected.** The printer's network port doesn't report it, so the
+  tape width comes from the label height; the printer stops with an error if they differ.
 - **USB printers** can be added, but Tapeory can't send jobs to them yet.
 - **Barcodes and QR codes** aren't available in the editor yet.
-- **`.lbx` import** converts only text and merge fields. Barcodes, embedded images (stored as
-  TIFF inside `.lbx`), and shapes are reported as warnings instead of being converted.
+- **`.lbx` import** converts text, merge fields, and images. Barcodes and shapes are reported
+  as warnings instead of being converted.
 - **No user accounts or authentication.** Anyone who can reach the port can use the app, so
   keep it on a trusted network or behind a reverse proxy that adds authentication.
 

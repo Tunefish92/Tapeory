@@ -15,17 +15,10 @@ const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   de: "Deutsch",
   it: "Italiano",
   es: "Español",
-  zh: "中文（简体）",
-  hi: "हिन्दी",
-  ar: "العربية",
   fr: "Français",
-  bn: "বাংলা",
-  pt: "Português",
-  ru: "Русский",
-  id: "Bahasa Indonesia",
 };
 
-// Latin-script names alphabetically first, then the other scripts.
+// Alphabetically by the language's own name.
 const LANGUAGE_OPTIONS = [...SUPPORTED_LANGUAGES].sort((a, b) =>
   LANGUAGE_NAMES[a].localeCompare(LANGUAGE_NAMES[b], "en"),
 );

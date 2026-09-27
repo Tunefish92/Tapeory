@@ -1,4 +1,5 @@
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Printing;
 
 namespace Tapeory.Api.Printers;
 
@@ -13,6 +14,7 @@ public static class PrinterMapper
         printer.Port,
         printer.PrintServerAddress,
         printer.UsbIdentifier,
+        printer.QueueName,
         printer.LabelMediaWidthMm,
         printer.LabelMediaHeightMm,
         printer.IsDefault,
@@ -20,6 +22,10 @@ public static class PrinterMapper
         printer.LastConnectionStatus.ToString(),
         printer.LastConnectionCheckedAt,
         printer.LastErrorMessage,
+        PrinterCapabilities.Resolutions(printer.Model)
+            .Select(resolution => new PrintResolutionResponse(
+                resolution.Quality.ToString(), resolution.HorizontalDpi, resolution.VerticalDpi))
+            .ToList(),
         printer.CreatedAt,
         printer.UpdatedAt);
 }

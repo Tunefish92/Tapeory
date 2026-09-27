@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useUnits } from "../settings/AppSettingsContext";
 import type { ReorderDirection } from "./document";
 import { FontFamilySelect } from "./FontFamilySelect";
-import type { LabelObject, LabelObjectPatch, TextFit } from "./types";
+import type { DynamicFieldObject, LabelObject, LabelObjectPatch, TextFit, TextObject } from "./types";
 
 interface PropertiesPanelProps {
   object: LabelObject | null;
@@ -94,6 +95,135 @@ function FitControls({ id, fit, onChange }: { id: string; fit: TextFit; onChange
   );
 }
 
+function Section({ title, className, children }: { title: string; className?: string; children: ReactNode }) {
+  return (
+    <section className={`properties-section${className ? ` ${className}` : ""}`}>
+      <h4>{title}</h4>
+      <div className="properties-section__fields">{children}</div>
+    </section>
+  );
+}
+
+/** Text and dynamic fields have the most settings, so they're grouped into labelled sections. */
+function TextObjectSections({
+  object,
+  onChange,
+}: {
+  object: TextObject | DynamicFieldObject;
+  onChange: (changes: LabelObjectPatch) => void;
+}) {
+  const { t } = useTranslation();
+  const fit = object.fit ?? "none";
+
+  return (
+    <div className="properties-sections">
+      <Section title={t("editor.properties.sectionContent")} className="properties-section--content">
+        {object.type === "text" ? (
+          <label className="properties-field properties-field--full">
+            {t("editor.properties.text")}
+            <textarea value={object.text} onChange={(e) => onChange({ text: e.target.value })} />
+          </label>
+        ) : (
+          <>
+            <label className="properties-field">
+              {t("editor.properties.fieldName")}
+              <input type="text" value={object.fieldName} onChange={(e) => onChange({ fieldName: e.target.value })} />
+            </label>
+            <label className="properties-field">
+              {t("editor.properties.label")}
+              <input type="text" value={object.label} onChange={(e) => onChange({ label: e.target.value })} />
+            </label>
+            <label className="properties-field">
+              {t("editor.properties.defaultValue")}
+              <input
+                type="text"
+                value={object.defaultValue}
+                onChange={(e) => onChange({ defaultValue: e.target.value })}
+              />
+            </label>
+            <label className="properties-field properties-field--inline properties-field--full">
+              <input
+                type="checkbox"
+                checked={object.required}
+                onChange={(e) => onChange({ required: e.target.checked })}
+              />
+              {t("editor.properties.required")}
+            </label>
+          </>
+        )}
+      </Section>
+
+      <Section title={t("editor.properties.sectionFont")}>
+        <div className="properties-field--full">
+          <FontFamilySelect value={object.fontFamily} onChange={(fontFamily) => onChange({ fontFamily })} />
+        </div>
+        <NumberField
+          label={t(fit === "none" ? "editor.properties.fontSize" : "editor.properties.maxFontSize")}
+          value={object.fontSize}
+          step={1}
+          onChange={(fontSize) => onChange({ fontSize })}
+        />
+        <label className="properties-field">
+          {t("editor.properties.align")}
+          <select
+            value={object.align}
+            onChange={(e) => onChange({ align: e.target.value as "left" | "center" | "right" })}
+          >
+            <option value="left">{t("editor.properties.alignLeft")}</option>
+            <option value="center">{t("editor.properties.alignCenter")}</option>
+            <option value="right">{t("editor.properties.alignRight")}</option>
+          </select>
+        </label>
+        <label className="properties-field">
+          {t("editor.properties.color")}
+          <input type="color" value={object.fill} onChange={(e) => onChange({ fill: e.target.value })} />
+        </label>
+        <label className="properties-field properties-field--inline properties-field--end">
+          <input
+            type="checkbox"
+            checked={object.fontWeight === "bold"}
+            onChange={(e) => onChange({ fontWeight: e.target.checked ? "bold" : "normal" })}
+          />
+          {t("editor.properties.bold")}
+        </label>
+      </Section>
+
+      <Section title={t("editor.properties.sectionLayout")}>
+        <LengthField labelKey="editor.properties.x" value={object.x} onChange={(x) => onChange({ x })} />
+        <LengthField labelKey="editor.properties.y" value={object.y} onChange={(y) => onChange({ y })} />
+        <LengthField labelKey="editor.properties.width" value={object.width} onChange={(width) => onChange({ width })} />
+        <LengthField
+          labelKey="editor.properties.height"
+          value={object.height}
+          onChange={(height) => onChange({ height })}
+        />
+        <NumberField
+          label={t("editor.properties.rotation")}
+          value={object.rotation}
+          step={1}
+          onChange={(rotation) => onChange({ rotation })}
+        />
+      </Section>
+
+      <Section title={t("editor.properties.sectionFit")}>
+        <div className="properties-field--full">
+          <FitControls id={object.id} fit={fit} onChange={(value) => onChange({ fit: value })} />
+        </div>
+        <div className="properties-field--full properties-options">
+          <label className="properties-field properties-field--inline">
+            <input type="checkbox" checked={object.locked} onChange={(e) => onChange({ locked: e.target.checked })} />
+            {t("editor.properties.locked")}
+          </label>
+          <label className="properties-field properties-field--inline">
+            <input type="checkbox" checked={object.hidden} onChange={(e) => onChange({ hidden: e.target.checked })} />
+            {t("editor.properties.hidden")}
+          </label>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
 export function PropertiesPanel({
   object,
   onChange,
@@ -121,231 +251,141 @@ export function PropertiesPanel({
 
   return (
     <aside className="properties-panel" aria-label="Properties">
-      <h3>{typeLabels[object.type]}</h3>
-
-      <div className="properties-field-group">
-        <LengthField labelKey="editor.properties.x" value={object.x} onChange={(x) => onChange({ x })} />
-        <LengthField labelKey="editor.properties.y" value={object.y} onChange={(y) => onChange({ y })} />
-        <NumberField
-          label={t("editor.properties.rotation")}
-          value={object.rotation}
-          step={1}
-          onChange={(rotation) => onChange({ rotation })}
-        />
+      <div className="properties-panel__header">
+        <h3>{typeLabels[object.type]}</h3>
+        <div className="properties-actions">
+          <button type="button" onClick={() => onReorder("front")}>
+            {t("editor.properties.bringToFront")}
+          </button>
+          <button type="button" onClick={() => onReorder("forward")}>
+            {t("editor.properties.forward")}
+          </button>
+          <button type="button" onClick={() => onReorder("backward")}>
+            {t("editor.properties.backward")}
+          </button>
+          <button type="button" onClick={() => onReorder("back")}>
+            {t("editor.properties.sendToBack")}
+          </button>
+          <button type="button" onClick={onDuplicate}>
+            {t("editor.properties.duplicate")}
+          </button>
+          <button type="button" className="btn btn-danger" onClick={onDelete}>
+            {t("editor.properties.delete")}
+          </button>
+        </div>
       </div>
 
-      {(object.type === "text" || object.type === "dynamicField") && (
+      {object.type === "text" || object.type === "dynamicField" ? (
+        <TextObjectSections object={object} onChange={onChange} />
+      ) : (
+        <>
         <div className="properties-field-group">
-          {object.type === "text" ? (
+          <LengthField labelKey="editor.properties.x" value={object.x} onChange={(x) => onChange({ x })} />
+          <LengthField labelKey="editor.properties.y" value={object.y} onChange={(y) => onChange({ y })} />
+          <NumberField
+            label={t("editor.properties.rotation")}
+            value={object.rotation}
+            step={1}
+            onChange={(rotation) => onChange({ rotation })}
+          />
+        </div>
+
+        {object.type === "rect" && (
+          <div className="properties-field-group">
+            <LengthField
+              labelKey="editor.properties.width"
+              value={object.width}
+              onChange={(width) => onChange({ width })}
+            />
+            <LengthField
+              labelKey="editor.properties.height"
+              value={object.height}
+              onChange={(height) => onChange({ height })}
+            />
             <label className="properties-field">
-              {t("editor.properties.text")}
-              <textarea
-                value={object.text}
-                onChange={(e) => onChange({ text: e.target.value })}
+              {t("editor.properties.fill")}
+              <input
+                type="text"
+                value={object.fill}
+                onChange={(e) => onChange({ fill: e.target.value })}
               />
             </label>
-          ) : (
-            <>
-              <label className="properties-field">
-                {t("editor.properties.fieldName")}
-                <input
-                  type="text"
-                  value={object.fieldName}
-                  onChange={(e) => onChange({ fieldName: e.target.value })}
-                />
-              </label>
-              <label className="properties-field">
-                {t("editor.properties.label")}
-                <input
-                  type="text"
-                  value={object.label}
-                  onChange={(e) => onChange({ label: e.target.value })}
-                />
-              </label>
-              <label className="properties-field">
-                {t("editor.properties.defaultValue")}
-                <input
-                  type="text"
-                  value={object.defaultValue}
-                  onChange={(e) => onChange({ defaultValue: e.target.value })}
-                />
-              </label>
-              <label className="properties-field properties-field--inline">
-                <input
-                  type="checkbox"
-                  checked={object.required}
-                  onChange={(e) => onChange({ required: e.target.checked })}
-                />
-                {t("editor.properties.required")}
-              </label>
-            </>
-          )}
+            <label className="properties-field">
+              {t("editor.properties.stroke")}
+              <input
+                type="color"
+                value={object.stroke}
+                onChange={(e) => onChange({ stroke: e.target.value })}
+              />
+            </label>
+            <LengthField
+              labelKey="editor.properties.strokeWidth"
+              value={object.strokeWidth}
+              mmStep={0.1}
+              onChange={(strokeWidth) => onChange({ strokeWidth })}
+            />
+            <LengthField
+              labelKey="editor.properties.cornerRadius"
+              value={object.cornerRadius}
+              onChange={(cornerRadius) => onChange({ cornerRadius })}
+            />
+          </div>
+        )}
 
-          <LengthField
-            labelKey="editor.properties.width"
-            value={object.width}
-            onChange={(width) => onChange({ width })}
-          />
-          <LengthField
-            labelKey="editor.properties.height"
-            value={object.height}
-            onChange={(height) => onChange({ height })}
-          />
-          <FitControls id={object.id} fit={object.fit ?? "none"} onChange={(fit) => onChange({ fit })} />
-          <NumberField
-            label={t(
-              (object.fit ?? "none") === "none" ? "editor.properties.fontSize" : "editor.properties.maxFontSize",
-            )}
-            value={object.fontSize}
-            step={1}
-            onChange={(fontSize) => onChange({ fontSize })}
-          />
-          <FontFamilySelect value={object.fontFamily} onChange={(fontFamily) => onChange({ fontFamily })} />
+        {object.type === "line" && (
+          <div className="properties-field-group">
+            <LengthField
+              labelKey="editor.properties.strokeWidth"
+              value={object.strokeWidth}
+              mmStep={0.1}
+              onChange={(strokeWidth) => onChange({ strokeWidth })}
+            />
+            <label className="properties-field">
+              {t("editor.properties.stroke")}
+              <input
+                type="color"
+                value={object.stroke}
+                onChange={(e) => onChange({ stroke: e.target.value })}
+              />
+            </label>
+          </div>
+        )}
+
+        {object.type === "image" && (
+          <div className="properties-field-group">
+            <LengthField
+              labelKey="editor.properties.width"
+              value={object.width}
+              onChange={(width) => onChange({ width })}
+            />
+            <LengthField
+              labelKey="editor.properties.height"
+              value={object.height}
+              onChange={(height) => onChange({ height })}
+            />
+          </div>
+        )}
+
+        <div className="properties-field-group">
           <label className="properties-field properties-field--inline">
             <input
               type="checkbox"
-              checked={object.fontWeight === "bold"}
-              onChange={(e) => onChange({ fontWeight: e.target.checked ? "bold" : "normal" })}
+              checked={object.locked}
+              onChange={(e) => onChange({ locked: e.target.checked })}
             />
-            {t("editor.properties.bold")}
+            {t("editor.properties.locked")}
           </label>
-          <label className="properties-field">
-            {t("editor.properties.align")}
-            <select
-              value={object.align}
-              onChange={(e) => onChange({ align: e.target.value as "left" | "center" | "right" })}
-            >
-              <option value="left">{t("editor.properties.alignLeft")}</option>
-              <option value="center">{t("editor.properties.alignCenter")}</option>
-              <option value="right">{t("editor.properties.alignRight")}</option>
-            </select>
-          </label>
-          <label className="properties-field">
-            {t("editor.properties.color")}
+          <label className="properties-field properties-field--inline">
             <input
-              type="color"
-              value={object.fill}
-              onChange={(e) => onChange({ fill: e.target.value })}
+              type="checkbox"
+              checked={object.hidden}
+              onChange={(e) => onChange({ hidden: e.target.checked })}
             />
+            {t("editor.properties.hidden")}
           </label>
         </div>
+        </>
       )}
-
-      {object.type === "rect" && (
-        <div className="properties-field-group">
-          <LengthField
-            labelKey="editor.properties.width"
-            value={object.width}
-            onChange={(width) => onChange({ width })}
-          />
-          <LengthField
-            labelKey="editor.properties.height"
-            value={object.height}
-            onChange={(height) => onChange({ height })}
-          />
-          <label className="properties-field">
-            {t("editor.properties.fill")}
-            <input
-              type="text"
-              value={object.fill}
-              onChange={(e) => onChange({ fill: e.target.value })}
-            />
-          </label>
-          <label className="properties-field">
-            {t("editor.properties.stroke")}
-            <input
-              type="color"
-              value={object.stroke}
-              onChange={(e) => onChange({ stroke: e.target.value })}
-            />
-          </label>
-          <LengthField
-            labelKey="editor.properties.strokeWidth"
-            value={object.strokeWidth}
-            mmStep={0.1}
-            onChange={(strokeWidth) => onChange({ strokeWidth })}
-          />
-          <LengthField
-            labelKey="editor.properties.cornerRadius"
-            value={object.cornerRadius}
-            onChange={(cornerRadius) => onChange({ cornerRadius })}
-          />
-        </div>
-      )}
-
-      {object.type === "line" && (
-        <div className="properties-field-group">
-          <LengthField
-            labelKey="editor.properties.strokeWidth"
-            value={object.strokeWidth}
-            mmStep={0.1}
-            onChange={(strokeWidth) => onChange({ strokeWidth })}
-          />
-          <label className="properties-field">
-            {t("editor.properties.stroke")}
-            <input
-              type="color"
-              value={object.stroke}
-              onChange={(e) => onChange({ stroke: e.target.value })}
-            />
-          </label>
-        </div>
-      )}
-
-      {object.type === "image" && (
-        <div className="properties-field-group">
-          <LengthField
-            labelKey="editor.properties.width"
-            value={object.width}
-            onChange={(width) => onChange({ width })}
-          />
-          <LengthField
-            labelKey="editor.properties.height"
-            value={object.height}
-            onChange={(height) => onChange({ height })}
-          />
-        </div>
-      )}
-
-      <div className="properties-field-group">
-        <label className="properties-field properties-field--inline">
-          <input
-            type="checkbox"
-            checked={object.locked}
-            onChange={(e) => onChange({ locked: e.target.checked })}
-          />
-          {t("editor.properties.locked")}
-        </label>
-        <label className="properties-field properties-field--inline">
-          <input
-            type="checkbox"
-            checked={object.hidden}
-            onChange={(e) => onChange({ hidden: e.target.checked })}
-          />
-          {t("editor.properties.hidden")}
-        </label>
-      </div>
-
-      <div className="properties-actions">
-        <button type="button" onClick={() => onReorder("front")}>
-          {t("editor.properties.bringToFront")}
-        </button>
-        <button type="button" onClick={() => onReorder("forward")}>
-          {t("editor.properties.forward")}
-        </button>
-        <button type="button" onClick={() => onReorder("backward")}>
-          {t("editor.properties.backward")}
-        </button>
-        <button type="button" onClick={() => onReorder("back")}>
-          {t("editor.properties.sendToBack")}
-        </button>
-        <button type="button" onClick={onDuplicate}>
-          {t("editor.properties.duplicate")}
-        </button>
-        <button type="button" className="btn btn-danger" onClick={onDelete}>
-          {t("editor.properties.delete")}
-        </button>
-      </div>
     </aside>
   );
 }

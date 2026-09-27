@@ -32,7 +32,7 @@ public sealed class PrinterConnectionTesterTests
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         var acceptTask = listener.AcceptTcpClientAsync();
 
-        var result = await new PrinterConnectionTester().TestAsync(NetworkPrinter(port), CancellationToken.None);
+        var result = await new PrinterConnectionTester(new IppClient(new HttpClient())).TestAsync(NetworkPrinter(port), CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.Null(result.ErrorMessage);
@@ -43,7 +43,7 @@ public sealed class PrinterConnectionTesterTests
     [Fact]
     public async Task TestAsync_ReturnsFailure_WhenNothingIsListening()
     {
-        var result = await new PrinterConnectionTester().TestAsync(NetworkPrinter(GetUnusedPort()), CancellationToken.None);
+        var result = await new PrinterConnectionTester(new IppClient(new HttpClient())).TestAsync(NetworkPrinter(GetUnusedPort()), CancellationToken.None);
 
         Assert.False(result.IsSuccess);
         Assert.NotNull(result.ErrorMessage);
@@ -54,7 +54,7 @@ public sealed class PrinterConnectionTesterTests
     {
         var printer = new Printer { Name = "USB Printer", ConnectionType = PrinterConnectionType.Usb };
 
-        var result = await new PrinterConnectionTester().TestAsync(printer, CancellationToken.None);
+        var result = await new PrinterConnectionTester(new IppClient(new HttpClient())).TestAsync(printer, CancellationToken.None);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("USB", result.ErrorMessage);
@@ -65,9 +65,42 @@ public sealed class PrinterConnectionTesterTests
     {
         var printer = new Printer { Name = "Test", ConnectionType = PrinterConnectionType.IpAddress, Address = null };
 
-        var result = await new PrinterConnectionTester().TestAsync(printer, CancellationToken.None);
+        var result = await new PrinterConnectionTester(new IppClient(new HttpClient())).TestAsync(printer, CancellationToken.None);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("address", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Printer CupsQueue() => new()
+    {
+        Name = "Via CUPS",
+        ConnectionType = PrinterConnectionType.PrintServer,
+        PrintServerAddress = "cups.example",
+        Port = 631,
+        QueueName = "Brother_PT-P750W"
+    };
+
+    [Fact]
+    public async Task TestAsync_AsksThePrintServerForTheQueue_WhenAQueueNameIsSet()
+    {
+        var cups = new FakeIppServer(IppResponses.Printer(state: 3, acceptingJobs: true));
+
+        var result = await new PrinterConnectionTester(new IppClient(new HttpClient(cups)))
+            .TestAsync(CupsQueue(), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("http://cups.example:631/printers/Brother_PT-P750W", cups.Requests.Single().Uri.ToString());
+    }
+
+    [Fact]
+    public async Task TestAsync_ReportsThePrintServersMessage_WhenTheQueueDoesNotExist()
+    {
+        var cups = new FakeIppServer(IppResponses.Error(0x0406, "The printer or class does not exist."));
+
+        var result = await new PrinterConnectionTester(new IppClient(new HttpClient(cups)))
+            .TestAsync(CupsQueue(), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("does not exist", result.ErrorMessage);
     }
 }

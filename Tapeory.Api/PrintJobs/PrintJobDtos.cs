@@ -4,9 +4,16 @@ public sealed record PrintJobItemRequest(Dictionary<string, string>? FieldValues
 
 /// <summary>PrinterId selects a configured Printer (its name is snapshotted onto the job).
 /// PrinterName is used as-is only when PrinterId is omitted — e.g. no printers are configured
-/// yet, or the user just wants a label for a manual/offline print.</summary>
+/// yet, or the user just wants a label for a manual/offline print. Quality ("Standard" or
+/// "High") must be one the printer supports; it defaults to Standard. CutMode ("AutoCut",
+/// "HalfCut", "CutAtEnd" or "ChainPrinting") defaults to AutoCut.</summary>
 public sealed record CreatePrintJobRequest(
-    int TemplateId, int? PrinterId, string? PrinterName, List<PrintJobItemRequest>? Items);
+    int TemplateId,
+    int? PrinterId,
+    string? PrinterName,
+    List<PrintJobItemRequest>? Items,
+    string? Quality = null,
+    string? CutMode = null);
 
 /// <summary>Jobs still queued or printing are left alone and counted in SkippedInProgress.</summary>
 public sealed record DeleteAllPrintJobsResponse(int Deleted, int SkippedInProgress);
@@ -28,6 +35,8 @@ public sealed record PrintJobResponse(
     int TemplateVersionNumber,
     int? PrinterId,
     string? PrinterName,
+    string Quality,
+    string CutMode,
     string Status,
     string? ErrorMessage,
     DateTimeOffset CreatedAt,

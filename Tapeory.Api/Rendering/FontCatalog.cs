@@ -6,8 +6,9 @@ namespace Tapeory.Api.Rendering;
 public sealed record FontFile(byte[] Data, string ContentType);
 
 /// <summary>
-/// The font families the label renderer can actually draw with: everything installed on the
-/// server that has real Latin letters. The editor offers exactly this list, and can download the
+/// The font families the label renderer can actually draw with: the fonts bundled with Tapeory
+/// (see BundledFonts) plus everything installed on the server, as long as it has real Latin
+/// letters. The editor offers exactly this list, and can download the
 /// same files so its preview uses the very fonts the printed label will.
 /// </summary>
 public sealed class FontCatalog
@@ -22,7 +23,7 @@ public sealed class FontCatalog
 
     private readonly Lazy<IReadOnlyList<string>> _families;
 
-    public FontCatalog() : this(() => SKFontManager.Default.FontFamilies)
+    public FontCatalog() : this(() => [.. BundledFonts.FamilyNames, .. SKFontManager.Default.FontFamilies])
     {
     }
 
@@ -51,11 +52,12 @@ public sealed class FontCatalog
             return null;
         }
 
-        using var typeface = SKTypeface.FromFamilyName(
-            canonical,
-            bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
-            SKFontStyleWidth.Normal,
-            SKFontStyleSlant.Upright);
+        if (BundledFonts.Contains(canonical))
+        {
+            return BundledFonts.File(canonical, bold);
+        }
+
+        using var typeface = FontResolver.Typeface(canonical, bold);
 
         // Skia silently substitutes a default face for unknown names — never ship that under
         // the requested name.
@@ -114,7 +116,7 @@ public sealed class FontCatalog
                 continue;
             }
 
-            using var typeface = SKTypeface.FromFamilyName(family);
+            using var typeface = FontResolver.Typeface(family, bold: false);
             if (typeface is null || !string.Equals(typeface.FamilyName, family, StringComparison.OrdinalIgnoreCase))
             {
                 continue;

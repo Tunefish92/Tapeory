@@ -68,6 +68,41 @@ public sealed class TemplatesController(
         return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template));
     }
 
+    [HttpPost("{id:int}/duplicate")]
+    public async Task<IActionResult> DuplicateTemplate(
+        int id,
+        [FromBody] DuplicateTemplateRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var source = await templates.GetByIdAsync(id, cancellationToken);
+
+        if (source is null)
+        {
+            return NotFound();
+        }
+
+        var name = string.IsNullOrWhiteSpace(request?.Name) ? CopyName(source.Name) : request.Name.Trim();
+        var nameError = ValidateName(name);
+
+        if (nameError is not null)
+        {
+            return Problem(nameError, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var copy = await templates.DuplicateAsync(id, name, cancellationToken);
+
+        return copy is null
+            ? NotFound()
+            : CreatedAtAction(nameof(GetTemplate), new { id = copy.Id }, TemplateMapper.ToSummary(copy));
+    }
+
+    /// <summary>"Name (copy)", shortening the name so the result still fits.</summary>
+    private static string CopyName(string name)
+    {
+        const string suffix = " (copy)";
+        return name[..Math.Min(name.Length, MaxNameLength - suffix.Length)] + suffix;
+    }
+
     [HttpPost("groups/rename")]
     public async Task<IActionResult> RenameGroup(
         [FromBody] RenameGroupRequest request,

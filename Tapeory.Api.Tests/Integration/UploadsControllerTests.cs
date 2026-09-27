@@ -45,6 +45,33 @@ public sealed class UploadsControllerTests(TapeoryWebApplicationFactory factory)
         Assert.NotNull(response.Headers.Location);
     }
 
+    [Theory]
+    [InlineData("artwork.tif", "image/tiff")]
+    [InlineData("artwork.bmp", "image/bmp")]
+    public async Task UploadImage_StoresTiffAndBmpAsPng(string fileName, string contentType)
+    {
+        var bytes = contentType == "image/tiff" ? Unit.TestImages.BilevelTiff() : Unit.TestImages.Bmp();
+
+        var response = await _client.PostAsync("/api/uploads/images", BuildImageUpload(bytes, fileName, contentType));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var uploaded = await response.Content.ReadFromJsonAsync<UploadedImageResponse>(JsonOptions);
+        Assert.Equal("image/png", uploaded!.ContentType);
+        Assert.Equal(Path.ChangeExtension(fileName, ".png"), uploaded.OriginalFileName);
+
+        var stored = await _client.GetByteArrayAsync(uploaded.Url);
+        Assert.Equal([0x89, (byte)'P', (byte)'N', (byte)'G'], stored[..4]);
+    }
+
+    [Fact]
+    public async Task UploadImage_ReturnsBadRequest_ForATiffThatCannotBeRead()
+    {
+        var response = await _client.PostAsync(
+            "/api/uploads/images", BuildImageUpload([(byte)'I', (byte)'I', 42, 0, 1, 2, 3], "broken.tif", "image/tiff"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Fact]
     public async Task UploadImage_ReturnsBadRequest_ForDisallowedContentType()
     {

@@ -11,8 +11,9 @@ MariaDB database.
 
 > **Early release (0.2).** This is the first stable release, but Tapeory is still young.
 > Designing, storing, importing, and rendering labels work.
-> Sending jobs to a real printer is experimental: Tapeory sends a PNG over a raw TCP socket
-> (port 9100), which most Brother printers don't understand yet.
+> Printing is new: it works with Brother P-touch PT network printers with a 128-pin head
+> (PT-P750W, PT-E550W, PT-P710BT, PT-P700) in Brother's raster format, with live status over
+> SNMP. Other printers, including the QL series, aren't supported yet.
 
 Source, full documentation and issues: **https://github.com/Tunefish92/Tapeory**
 
@@ -86,7 +87,8 @@ Create an empty database and a user for it, then enter the connection in the web
 | `ConnectionStrings__Default` | | Optional connection string; skips the first-start setup screen |
 
 The container starts as root only long enough to give `/data` to `PUID:PGID`, then drops to that
-user. The image includes the Liberation and DejaVu fonts; to add more, build on top of it and
+user. The image includes thirteen Google Fonts (Roboto, Open Sans, Lato, Montserrat, Inter and more)
+plus Liberation and DejaVu; to add more, build on top of it and
 install extra font packages.
 
 ## Tags

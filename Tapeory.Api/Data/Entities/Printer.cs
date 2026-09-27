@@ -16,6 +16,10 @@ public sealed class Printer
 
     public string? PrintServerAddress { get; set; }
 
+    /// <summary>For a print server: the printer's queue name on it (CUPS/IPP, as in
+    /// http://server:631/printers/&lt;name&gt;). Without one, jobs go to the server's raw port.</summary>
+    public string? QueueName { get; set; }
+
     public string? UsbIdentifier { get; set; }
 
     public decimal? LabelMediaWidthMm { get; set; }

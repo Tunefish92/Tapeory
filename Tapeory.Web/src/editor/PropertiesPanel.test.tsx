@@ -49,6 +49,21 @@ describe("PropertiesPanel", () => {
     expect(onChange).toHaveBeenCalledWith({ text: "Updated" });
   });
 
+  it("groups a text object's settings into labelled sections", () => {
+    render(
+      <PropertiesPanel
+        object={createTextObject({ text: "Hello" })}
+        onChange={vi.fn()}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+
+    const sections = screen.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent);
+    expect(sections).toEqual(["Content", "Font", "Size and position", "Text fitting and options"]);
+  });
+
   it("edits a dynamic field's name, label, default value, and required flag", () => {
     const onChange = vi.fn();
     const object = createDynamicFieldObject({ fieldName: "sku", label: "SKU", required: true });

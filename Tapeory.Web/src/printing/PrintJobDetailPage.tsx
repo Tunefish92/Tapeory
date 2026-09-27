@@ -58,9 +58,14 @@ export function PrintJobDetailPage() {
     <section className="print-page page-enter">
       <div className="page-header">
         <h2>{t("printing.printJobDetail.title", { id: job.id })}</h2>
-        <Link className="btn" to="/print-jobs">
-          <span className="back-arrow" aria-hidden="true">←</span> {t("printing.printJobDetail.backToHistory")}
-        </Link>
+        <div className="page-header__actions">
+          <Link className="btn" to="/templates">
+            <span className="back-arrow" aria-hidden="true">←</span> {t("printing.printJobDetail.backToTemplates")}
+          </Link>
+          <Link className="btn" to="/print-jobs">
+            <span className="back-arrow" aria-hidden="true">←</span> {t("printing.printJobDetail.backToHistory")}
+          </Link>
+        </div>
       </div>
 
       <dl className="card print-job-summary">
@@ -71,6 +76,18 @@ export function PrintJobDetailPage() {
         </dd>
         <dt>{t("printing.printJobDetail.printer")}</dt>
         <dd>{job.printerName ?? "—"}</dd>
+        {job.quality && (
+          <>
+            <dt>{t("printing.quality.label")}</dt>
+            <dd>{t(`printing.quality.${job.quality.toLowerCase()}`, { defaultValue: job.quality })}</dd>
+          </>
+        )}
+        {job.cutMode && (
+          <>
+            <dt>{t("printing.cutMode.label")}</dt>
+            <dd>{t(`printing.cutMode.${job.cutMode}`, { defaultValue: job.cutMode })}</dd>
+          </>
+        )}
         <dt>{t("printing.printJobDetail.status")}</dt>
         <dd>
           <span className={`status-badge status-badge--${job.status.toLowerCase()}`}>
@@ -99,7 +116,12 @@ export function PrintJobDetailPage() {
                 {t(`printing.status.${item.status.toLowerCase()}`, { defaultValue: item.status })}
               </span>
             </p>
-            {item.errorMessage && <p role="alert">{item.errorMessage}</p>}
+            {item.errorMessage &&
+              (item.status === "Failed" ? (
+                <p role="alert">{item.errorMessage}</p>
+              ) : (
+                <p className="print-job-item__note">{item.errorMessage}</p>
+              ))}
             {item.previewUrl && (
               <img src={item.previewUrl} alt={t("printing.printJobDetail.itemPreviewAlt", { id: item.id })} />
             )}

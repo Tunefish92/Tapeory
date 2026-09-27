@@ -130,7 +130,11 @@
     },
     "confirmDelete": "Vorlage „{{name}}“ löschen?\n\nIhre Druckaufträge bleiben im Druckverlauf und zählen weiterhin in der Statistik.",
     "deleted": "Vorlage „{{name}}“ gelöscht.",
-    "deleteErrorFallback": "Die Vorlage konnte nicht gelöscht werden."
+    "deleteErrorFallback": "Die Vorlage konnte nicht gelöscht werden.",
+    "duplicate": "Duplizieren",
+    "copyName": "{{name}} (Kopie)",
+    "duplicated": "„{{name}}“ erstellt.",
+    "duplicateErrorFallback": "Die Vorlage konnte nicht dupliziert werden."
   },
   "editor": {
     "metadataName": "Name",
@@ -168,6 +172,10 @@
     },
     "properties": {
       "selectPrompt": "Wählen Sie ein Objekt aus, um dessen Eigenschaften zu bearbeiten.",
+      "sectionContent": "Inhalt",
+      "sectionFont": "Schrift",
+      "sectionLayout": "Größe und Position",
+      "sectionFit": "Textanpassung und Optionen",
       "x": "X (mm)",
       "y": "Y (mm)",
       "rotation": "Drehung (°)",
@@ -232,11 +240,9 @@
       "optionDisabledSuffix": " (deaktiviert)",
       "manualOption": "Manuell / kein Drucker konfiguriert",
       "printerNameOptional": "Druckername (optional)",
-      "updatePreview": "Vorschau aktualisieren",
       "rendering": "Wird gerendert…",
       "submit": "Druckauftrag senden",
       "submitting": "Wird gesendet…",
-      "previewPlaceholder": "Klicken Sie auf „Vorschau aktualisieren“, um das Etikett mit diesen Werten darzustellen.",
       "previewImageAlt": "Etikettenvorschau",
       "loading": "Vorlage wird geladen…",
       "loadErrorFallback": "Vorlage konnte nicht geladen werden.",
@@ -278,6 +284,7 @@
     },
     "printJobDetail": {
       "title": "Druckauftrag Nr. {{id}}",
+      "backToTemplates": "Zurück zu den Vorlagen",
       "backToHistory": "Zurück zum Verlauf",
       "template": "Vorlage",
       "printer": "Drucker",
@@ -294,7 +301,26 @@
       "queued": "In Warteschlange",
       "processing": "Wird verarbeitet",
       "completed": "Abgeschlossen",
-      "failed": "Fehlgeschlagen"
+      "failed": "Fehlgeschlagen",
+      "sending": "Wird gesendet",
+      "printing": "Wird gedruckt"
+    },
+    "quality": {
+      "label": "Druckqualität",
+      "standard": "Standard",
+      "high": "Hoch",
+      "option": "{{name}} ({{vertical}} × {{horizontal}} dpi)"
+    },
+    "cutMode": {
+      "label": "Schneiden",
+      "AutoCut": "Automatisch schneiden",
+      "AutoCutHint": "Schneidet jedes Etikett vollständig ab.",
+      "HalfCut": "Halbschnitt",
+      "HalfCutHint": "Schneidet das Etikett, aber nicht das Trägerpapier, sodass die Etiketten zusammenbleiben und sich leicht abziehen lassen. Nach dem letzten Etikett wird abgeschnitten.",
+      "CutAtEnd": "Am Ende schneiden",
+      "CutAtEndHint": "Keine Schnitte zwischen den Etiketten, ein Schnitt nach dem letzten.",
+      "ChainPrinting": "Kettendruck",
+      "ChainPrintingHint": "Schneidet zwischen den Etiketten, behält das letzte aber im Drucker, bis zum nächsten Druck oder zur Vorschubtaste. Spart das leere Band, das der Drucker zu Beginn jedes Auftrags vorschiebt."
     }
   },
   "printers": {
@@ -302,6 +328,8 @@
     "addPrinter": "Drucker hinzufügen",
     "editPrinter": "Drucker bearbeiten",
     "saveChanges": "Änderungen speichern",
+    "sectionPrinter": "Drucker",
+    "sectionConnection": "Verbindung",
     "name": "Name",
     "model": "Modell",
     "modelPlaceholder": "z. B. Brother QL-820NWB",
@@ -311,11 +339,18 @@
     "connectionTypePrintServer": "Druckserver",
     "connectionTypeUsb": "USB",
     "printServerAddress": "Druckserveradresse",
+    "printServerNote": "Für CUPS: In den Einstellungen der Warteschlange (Verwaltung → Drucker ändern) die Verbindung auf „AppSocket/HP JetDirect“ mit socket://<IP oder Hostname des Druckers>:9100 stellen. Automatisch gefundene Warteschlangen (dnssd://… .local) erreichen den Drucker oft nicht, besonders wenn CUPS in einem Container läuft.",
+    "queueName": "Warteschlange (optional)",
+    "queueNameHint": "Name des Druckers auf einem CUPS- oder IPP-Druckserver, wie in http://server:631/printers/<name>. Leer lassen, um an den Rohdruck-Port des Servers zu senden.",
     "usbIdentifier": "USB-Kennung",
     "usbIdentifierPlaceholder": "Optionale Gerätekennung",
     "port": "Port",
-    "labelWidth": "Etikettenbreite (mm)",
-    "labelHeight": "Etikettenhöhe (mm)",
+    "labelWidth": "Breite (mm)",
+    "labelHeight": "Höhe (mm)",
+    "testPrintSize": "Testdruck-Größe (optional)",
+    "testPrintSizeHint": "Wird nur für die Schaltfläche „Testdruck“ verwendet. Druckaufträge nutzen die Größe der Vorlage.",
+    "portHint": "Port für Rohdruck, meist 9100.",
+    "portHintIpp": "IPP-Port, meist 631.",
     "enabled": "Aktiviert",
     "loading": "Drucker werden geladen…",
     "empty": "Noch keine Drucker konfiguriert.",

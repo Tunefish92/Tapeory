@@ -7,7 +7,7 @@ namespace Tapeory.Api.Printing;
 /// immediately closing) a TCP connection. This is protocol-agnostic — it confirms something is
 /// listening on that host:port, not that it's specifically a Brother printer or that it will
 /// accept a print job correctly.</summary>
-public sealed class PrinterConnectionTester
+public sealed class PrinterConnectionTester(IppClient ipp)
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 
@@ -27,6 +27,11 @@ public sealed class PrinterConnectionTester
             return ConnectionTestResult.Failure("No address is configured for this printer.");
         }
 
+        if (printer is { ConnectionType: PrinterConnectionType.PrintServer, QueueName: { } queue })
+        {
+            return await TestQueueAsync(IppClient.QueueUri(target.Host, target.Port, queue), cancellationToken, timeout);
+        }
+
         using var client = new TcpClient();
         using var timeoutCts = new CancellationTokenSource(timeout ?? DefaultTimeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -43,6 +48,32 @@ public sealed class PrinterConnectionTester
         catch (SocketException ex)
         {
             return ConnectionTestResult.Failure($"Could not connect to {target.Host}:{target.Port}: {ex.Message}");
+        }
+    }
+
+    /// <summary>Asks the print server for the queue's status, which also proves the queue exists.</summary>
+    private async Task<ConnectionTestResult> TestQueueAsync(
+        Uri queueUri, CancellationToken cancellationToken, TimeSpan? timeout)
+    {
+        using var timeoutCts = new CancellationTokenSource(timeout ?? DefaultTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            var queue = await ipp.GetPrinterAttributesAsync(queueUri, linkedCts.Token);
+
+            return queue.IsSuccess
+                ? ConnectionTestResult.Success()
+                : ConnectionTestResult.Failure(
+                    $"The print server at {queueUri.Authority} says: {queue.Text("status-message") ?? "unknown error"}");
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return ConnectionTestResult.Failure($"The print server at {queueUri.Authority} didn't answer in time.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidDataException)
+        {
+            return ConnectionTestResult.Failure($"Could not reach the print server at {queueUri.Authority}: {ex.Message}");
         }
     }
 }

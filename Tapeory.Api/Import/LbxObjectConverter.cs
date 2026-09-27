@@ -8,9 +8,17 @@ namespace Tapeory.Api.Import;
 public sealed record LbxConversionResult(
     decimal WidthMm,
     decimal HeightMm,
-    string EditorJson,
+    ImportedLabelDocument Document,
     List<TemplateFieldDto> Fields,
-    List<string> Warnings);
+    List<string> Warnings)
+{
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>Images still waiting for LbxImportService to store their file.</summary>
+    public IEnumerable<ImportedImageObject> Images => Document.Objects.OfType<ImportedImageObject>();
+
+    public string EditorJson => JsonSerializer.Serialize(Document, Document.GetType(), JsonOptions);
+}
 
 /// <summary>
 /// Converts a parsed label.xml into Tapeory's native editor document format.
@@ -21,20 +29,19 @@ public sealed record LbxConversionResult(
 /// and undocumented. Matching is done by local element name only (ignoring namespace URIs) to
 /// be more tolerant of schema variations across P-touch Editor versions.
 ///
-/// Only text objects (text:text) are converted with confidence. A text object bound to a
+/// Text objects (text:text) and images (image:image) are converted. A text object bound to a
 /// P-touch "database merge" field (pt:expanded/@dbMergeFieldStyleName is non-empty) becomes a
 /// Tapeory dynamic field instead of fixed text — this is the "named object" -> dynamic field
-/// mapping described in the project plan. Barcodes, images (P-touch re-encodes embedded images
-/// as TIFF internally, which browsers can't render), and draw:* shapes are deliberately left
-/// unconverted with an explicit warning rather than guessed at, per the plan's "partial
-/// conversion with explicit warnings instead of silently discarding" approach.
+/// mapping described in the project plan. An image keeps its position and size and points at
+/// its file in the archive (imageStyle/@fileName, a BMP or TIFF); LbxImportService converts and
+/// stores that file. Barcodes and draw:* shapes are deliberately left unconverted with an
+/// explicit warning rather than guessed at, per the plan's "partial conversion with explicit
+/// warnings instead of silently discarding" approach.
 /// </summary>
 public static class LbxObjectConverter
 {
     private const decimal DefaultWidthMm = 50m;
     private const decimal DefaultHeightMm = 25m;
-
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public static LbxConversionResult Convert(XDocument labelXml)
     {
@@ -77,10 +84,10 @@ public static class LbxObjectConverter
             }
         }
 
+        (widthMm, heightMm) = ApplyOrientationAndAutoLength(root, widthMm, heightMm, imported);
         var document = new ImportedLabelDocument(1, widthMm, heightMm, imported);
-        var editorJson = JsonSerializer.Serialize(document, JsonOptions);
 
-        return new LbxConversionResult(widthMm, heightMm, editorJson, fields, warnings);
+        return new LbxConversionResult(widthMm, heightMm, document, fields, warnings);
     }
 
     /// <summary>Builds a valid (if empty) conversion result carrying just the given warning —
@@ -91,8 +98,7 @@ public static class LbxObjectConverter
     private static LbxConversionResult EmptyResult(List<string> warnings)
     {
         var document = new ImportedLabelDocument(1, DefaultWidthMm, DefaultHeightMm, []);
-        return new LbxConversionResult(
-            DefaultWidthMm, DefaultHeightMm, JsonSerializer.Serialize(document, JsonOptions), [], warnings);
+        return new LbxConversionResult(DefaultWidthMm, DefaultHeightMm, document, [], warnings);
     }
 
     private static (decimal WidthMm, decimal HeightMm) ReadPaperSize(XElement root, List<string> warnings)
@@ -111,6 +117,44 @@ public static class LbxObjectConverter
         return (width.Value, height.Value);
     }
 
+    /// <summary>
+    /// Tape labels are usually stored as landscape paper: its width is the tape width and its
+    /// height the length, while the objects are laid out along the tape. Swapping puts the
+    /// length first, like the editor. With auto length the stored length is only a maximum (for
+    /// example 1000 mm); the real label ends after its content, with as much space after the last
+    /// object as before the first.
+    /// </summary>
+    private static (decimal WidthMm, decimal HeightMm) ApplyOrientationAndAutoLength(
+        XElement root, decimal widthMm, decimal heightMm, List<object> imported)
+    {
+        var paper = root.Descendants().FirstOrDefault(e => e.Name.LocalName == "paper");
+
+        if (string.Equals((string?)paper?.Attribute("orientation"), "landscape", StringComparison.OrdinalIgnoreCase))
+        {
+            (widthMm, heightMm) = (heightMm, widthMm);
+        }
+
+        var autoLength = string.Equals((string?)paper?.Attribute("autoLength"), "true", StringComparison.OrdinalIgnoreCase);
+        var spans = imported.Select(HorizontalSpan).OfType<(decimal Start, decimal End)>().ToList();
+
+        if (autoLength && spans.Count > 0)
+        {
+            var start = Math.Max(spans.Min(span => span.Start), 0);
+            var end = spans.Max(span => span.End);
+            widthMm = Math.Min(widthMm, Math.Round(end + start, 2));
+        }
+
+        return (widthMm, heightMm);
+    }
+
+    private static (decimal Start, decimal End)? HorizontalSpan(object imported) => imported switch
+    {
+        ImportedTextObject text => (text.X, text.X + text.Width),
+        ImportedDynamicFieldObject field => (field.X, field.X + field.Width),
+        ImportedImageObject image => (image.X, image.X + image.Width),
+        _ => null
+    };
+
     private static void ConvertObject(
         XElement element,
         int index,
@@ -123,7 +167,7 @@ public static class LbxObjectConverter
         var objectStyle = element.Elements().FirstOrDefault(e => e.Name.LocalName == "objectStyle");
         var objectName = ReadObjectName(objectStyle) ?? $"{localName} #{index}";
 
-        if (localName != "text")
+        if (localName is not ("text" or "image"))
         {
             warnings.Add($"'{objectName}' ({localName}) was not converted — {UnsupportedReason(localName)}");
             return;
@@ -143,6 +187,22 @@ public static class LbxObjectConverter
             (string?)objectStyle.Attribute("angle"), NumberStyles.Float, CultureInfo.InvariantCulture, out var angle)
             ? angle
             : 0;
+
+        if (localName == "image")
+        {
+            var imageStyle = element.Elements().FirstOrDefault(e => e.Name.LocalName == "imageStyle");
+            var fileName = (string?)imageStyle?.Attribute("fileName");
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                warnings.Add($"'{objectName}' (image) was not converted — it doesn't name its image file.");
+                return;
+            }
+
+            imported.Add(new ImportedImageObject(
+                $"lbx-{index}-{Guid.NewGuid():N}", x, y, width, height, rotation, false, false, fileName, objectName));
+            return;
+        }
 
         var text = element.Elements().FirstOrDefault(e => e.Name.LocalName == "data")?.Value ?? string.Empty;
         var fontInfo = element.Elements().FirstOrDefault(e => e.Name.LocalName == "ptFontInfo");
@@ -202,7 +262,6 @@ public static class LbxObjectConverter
     private static string UnsupportedReason(string localName) => localName switch
     {
         "barcode" => "barcode objects aren't supported by the editor yet.",
-        "image" => "embedded images use a format (TIFF) the editor can't display yet.",
         _ => "this object type isn't supported yet."
     };
 

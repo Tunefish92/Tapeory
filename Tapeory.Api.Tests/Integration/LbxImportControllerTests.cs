@@ -118,6 +118,73 @@ public sealed class LbxImportControllerTests(TapeoryWebApplicationFactory factor
     }
 
     [Fact]
+    public async Task ImportLbx_ConvertsEmbeddedBmpAndTiffImages_ToPngUploads()
+    {
+        const string labelXml =
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <pt:document xmlns:pt="http://schemas.brother.info/ptouch/2007/lbx/main"
+                          xmlns:style="http://schemas.brother.info/ptouch/2007/lbx/style"
+                          xmlns:image="http://schemas.brother.info/ptouch/2007/lbx/image">
+              <pt:body>
+                <style:sheet>
+                  <style:paper width="68pt" height="200pt"/>
+                  <pt:objects>
+                    <image:image>
+                      <pt:objectStyle x="6.8pt" y="25.3pt" width="13.5pt" height="17pt" angle="0">
+                        <pt:expanded objectName="Bitmap9"/>
+                      </pt:objectStyle>
+                      <image:imageStyle originalName="3005.png" fileName="Object0.bmp"/>
+                    </image:image>
+                    <image:image>
+                      <pt:objectStyle x="27pt" y="8.3pt" width="101.5pt" height="51.2pt" angle="0">
+                        <pt:expanded objectName="Bitmap10"/>
+                      </pt:objectStyle>
+                      <image:imageStyle fileName="Object1.tif"/>
+                    </image:image>
+                    <image:image>
+                      <pt:objectStyle x="0pt" y="0pt" width="10pt" height="10pt" angle="0">
+                        <pt:expanded objectName="Bitmap11"/>
+                      </pt:objectStyle>
+                      <image:imageStyle fileName="Missing.bmp"/>
+                    </image:image>
+                  </pt:objects>
+                </style:sheet>
+              </pt:body>
+            </pt:document>
+            """;
+
+        using var stream = new MemoryStream();
+
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteEntry(archive, "label.xml", labelXml);
+            archive.CreateEntry("Object0.bmp").Open().Using(s => s.Write(Unit.TestImages.Bmp()));
+            archive.CreateEntry("Object1.tif").Open().Using(s => s.Write(Unit.TestImages.BilevelTiff()));
+        }
+
+        var response = await _client.PostAsync("/api/templates/import-lbx", BuildUpload(stream.ToArray(), "images.lbx"));
+        var detail = await response.Content.ReadFromJsonAsync<TemplateDetailResponse>(JsonOptions);
+
+        using var editor = JsonDocument.Parse(detail!.CurrentVersion.EditorJson);
+        var images = editor.RootElement.GetProperty("objects").EnumerateArray().ToList();
+        Assert.Equal(2, images.Count);
+        Assert.All(images, image => Assert.Equal("image", image.GetProperty("type").GetString()));
+
+        foreach (var image in images)
+        {
+            var id = image.GetProperty("uploadedFileId").GetInt32();
+            Assert.Equal($"/api/uploads/images/{id}", image.GetProperty("url").GetString());
+
+            var png = await _client.GetByteArrayAsync($"/api/uploads/images/{id}");
+            Assert.Equal([0x89, (byte)'P', (byte)'N', (byte)'G'], png[..4]);
+        }
+
+        var warning = Assert.Single(detail.ConversionWarnings);
+        Assert.Contains("Bitmap11", warning);
+    }
+
+    [Fact]
     public async Task ImportLbx_ReturnsBadRequest_ForANonLbxExtension()
     {
         var response = await _client.PostAsync(
@@ -221,5 +288,16 @@ public sealed class LbxImportControllerTests(TapeoryWebApplicationFactory factor
         var response = await _client.GetAsync("/api/templates/999999999/original-lbx");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}
+
+internal static class StreamTestExtensions
+{
+    public static void Using(this Stream stream, Action<Stream> write)
+    {
+        using (stream)
+        {
+            write(stream);
+        }
     }
 }

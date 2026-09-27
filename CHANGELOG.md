@@ -31,44 +31,65 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - `PUID`/`PGID` settings: the container gives the storage folder to that user on startup and
   runs the app as them. Folders that Docker creates as root, and Unraid's `99:100` appdata, work
   without manual `chown`.
-- Fonts in the image (Liberation and DejaVu), so the editor and renderer have fonts to use.
 - Unraid Community Applications template (`unraid/tapeory.xml`) using the prebuilt image, with
   an icon, screenshots, and the `ca_profile.xml` that Community Applications requires.
 - GitHub Actions CI: backend and frontend build and tests, a Docker image build with a smoke
   test, image publishing to GitHub Container Registry, and optional publishing to Docker Hub.
+- Several Tapeory instances can share one database: each queued print job is claimed by exactly
+  one of them.
 
 **Label editor**
-- Canvas editor with text, dynamic-field, rectangle, line, and image objects.
+- Canvas editor with text, dynamic-field, rectangle, line, and image objects. The canvas uses
+  the full width, with the selected object's properties in a wide panel below it; text and
+  dynamic fields group theirs into Content, Font, Size and position, and Text fitting and
+  options.
 - Move, resize, and rotate objects; change layer order; lock, hide, duplicate, and delete.
 - Undo/redo, zoom, arrow-key nudging, and keyboard shortcuts.
 - Text alignment and text fitting for each text box: overflow, shrink to fit, or wrap and shrink.
 - Brother media presets: TZe/HGe tape, HSe heat-shrink tube, DK continuous and die-cut rolls.
 - Preview mode that fills dynamic fields with sample values.
-- Font picker listing the fonts installed on the server. The editor loads the same font files,
-  so the preview matches the rendered label.
+- Thirteen Google Fonts ship with Tapeory, each in Regular and Bold: Roboto, Open Sans, Lato,
+  Montserrat, Inter, IBM Plex Sans and Serif, Roboto Slab, Bebas Neue, League Spartan,
+  Quicksand, Comic Neue, and Fira Code (`Tapeory.Api/Fonts`, with their licenses). They're
+  available on every system; the Docker image adds Liberation and DejaVu. The font picker lists
+  every font the server can render, and the editor loads the same files, so the preview matches
+  the printed label.
 
 **Templates**
-- Create, edit, and delete templates, with draft, published, and archived states.
+- Create, edit, duplicate, and delete templates, with draft, published, and archived states.
 - Immutable version history for every template.
 - Template groups with case- and accent-insensitive matching and bulk rename.
-- Template thumbnails and preview images.
+- Template thumbnails and preview images, in a card view and a list view.
 - Export and import in Tapeory's native JSON format.
-- `.lbx` import from Brother P-touch Editor. It converts text objects, and database-merge fields
-  become dynamic fields. Anything it can't convert is listed as a warning in the editor, and the
-  original file is stored unchanged and can be downloaded.
-- Image uploads (PNG, JPEG, WebP, SVG) with checks on file type and size.
+- `.lbx` import from Brother P-touch Editor. It converts text objects and images, and
+  database-merge fields become dynamic fields. Tape labels saved in landscape with automatic
+  length get the tape width as height and a length that fits their content. Anything it can't
+  convert is listed as a warning in the editor, and the original file is stored unchanged and
+  can be downloaded.
+- Image uploads (PNG, JPEG, WebP, SVG, and TIFF and BMP, which are converted to PNG) with checks
+  on file type and size.
 
-**Rendering and printing**
+**Printing**
+- Printing on Brother P-touch PT printers with a 128-pin head (PT-P750W, PT-E550W, PT-P710BT,
+  PT-P700) in Brother's raster format, over the network. The tape width follows the label
+  height, and each job starts with Brother's reset sequence.
+- A print form with field values, required-field checks, default values, quantity, printer
+  choice, and a preview that updates live while you type.
+- Print quality: standard (180 × 180 dpi), or high (180 × 360 dpi) on models that support it.
+- Cutting: auto cut (the default), half cut, cut at end, or chain printing.
+- Live print status: jobs show "Sending to printer" and "Printing", and complete only when the
+  printer's label counter (read over SNMP) confirms the labels came out. If the printer stops,
+  for example with no tape or an open cover, the job fails with the printer's own message.
+- Print server queues: a print-server printer can name a CUPS/IPP queue, and Tapeory submits the
+  job to it over IPP as raw data and follows it until CUPS reports it done. A job the server
+  can't finish is cancelled there, with CUPS's reason.
+- A background print queue with a job detail page, previews for each label, and a print
+  history. Jobs can be deleted from the history one at a time or all at once.
+- Printer management with IP address, hostname, print server, and USB connection types, a
+  default printer, and connection tests and test prints. The test print is centred on the tape
+  and sized to fit.
 - Server-side rendering of templates to PNG (300 DPI) and PDF with SkiaSharp, including SVG
   images and rotated objects.
-- A print form with field values, required-field checks, default values, quantity, printer
-  choice, and a live rendered preview.
-- A background print queue with job status, a job detail page, previews for each label, and a
-  print history. Jobs can be deleted from the history one at a time or all at once.
-- Printer management with IP address, hostname, print server, and USB connection types. Each
-  printer can have a label media size, be enabled or disabled, or be set as the default.
-  Connection tests and test prints show the last connection status.
-- **Experimental:** sending rendered labels to network printers over a raw TCP socket.
 
 **App**
 - **Database backup** card in Settings: saves a full SQL dump of the database on the server, and
@@ -80,8 +101,7 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - Dashboard with usage statistics, which can be reset and restored to all-time totals.
 - Settings for language, theme (light, dark, or system), and units (mm or inches), saved on the
   server.
-- 12 UI languages: English, German, French, Italian, Spanish, Portuguese, Russian, Chinese,
-  Hindi, Bengali, Arabic, and Indonesian.
+- 5 UI languages: English, German, French, Italian, and Spanish.
 
 ### Changed
 - The project was renamed from **Labelly** to **Tapeory**. Projects, namespaces, the Docker
@@ -92,15 +112,19 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - Every stored file gets a generated name, and a guard blocks path traversal outside the storage
   folder.
 - Uploaded SVG files are sanitized before they are stored or rendered.
+- Embedded `.lbx` images and uploaded TIFF/BMP files are size-limited before they're decoded.
 - Once a database connection is saved, the setup endpoints stop accepting new connection
   details.
 
 ### Known limitations
-- Printers get a PNG over a raw socket, not Brother's raster command protocol, so real Brother
-  hardware may not print it. This hasn't been tested on physical printers.
-- USB printers can be configured, but Tapeory can't send jobs to them yet.
+- Only Brother PT printers with a 128-pin head can print. QL printers and 360 dpi PT models
+  (such as the PT-P900 series) aren't supported yet, and neither are USB printers.
+- The printer's network port can't report which tape is loaded, so the tape width comes from
+  the label height.
+- Live print status needs SNMP (community `public`); without it, a job counts as done once it's
+  sent. Through a CUPS queue, the status is what CUPS reports.
 - The editor doesn't support barcodes or QR codes yet.
-- `.lbx` import doesn't convert barcodes, embedded images (TIFF), or shapes.
+- `.lbx` import doesn't convert barcodes or shapes.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 

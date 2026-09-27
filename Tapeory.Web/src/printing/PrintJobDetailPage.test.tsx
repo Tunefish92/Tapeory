@@ -62,6 +62,8 @@ describe("PrintJobDetailPage", () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText(/refreshing/i)).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: /back to templates/i })).toHaveAttribute("href", "/templates");
+    expect(screen.getByRole("link", { name: /back to history/i })).toHaveAttribute("href", "/print-jobs");
     expect(screen.getAllByText("Processing")).toHaveLength(2); // job status + item status
   });
 

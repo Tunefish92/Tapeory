@@ -16,7 +16,7 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
     private static string UniqueName(string prefix) => $"{prefix}-{Guid.NewGuid():N}";
 
     private static CreatePrinterRequest ValidIpPrinterRequest(string name, int port = 9100) => new(
-        name, "Brother QL-800", "IpAddress", "127.0.0.1", port, null, null, 62m, 29m, true);
+        name, "Brother PT-P750W", "IpAddress", "127.0.0.1", port, null, null, 62m, 29m, true);
 
     private async Task<PrinterResponse> CreatePrinterAsync(string? name = null, int port = 9100)
     {
@@ -38,8 +38,43 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
         Assert.Equal("IpAddress", printer.ConnectionType);
         Assert.Equal(9100, printer.Port);
         Assert.Equal("Unknown", printer.LastConnectionStatus);
+        Assert.Equal(["Standard", "High"], printer.Resolutions.Select(r => r.Quality));
         // Not necessarily true in a shared-container test run (other tests may have created
         // printers first), so only assert the invariant that at least one printer is default.
+    }
+
+    [Theory]
+    [InlineData("PrintServer", " Brother_PT-P750W ", "Brother_PT-P750W")]
+    [InlineData("IpAddress", "Brother_PT-P750W", null)] // only print servers have queues
+    public async Task CreatePrinter_StoresTheQueueName_ForPrintServers(string connectionType, string queue, string? expected)
+    {
+        var request = ValidIpPrinterRequest(UniqueName("Printer")) with
+        {
+            ConnectionType = connectionType,
+            PrintServerAddress = "10.0.0.10",
+            Port = 631,
+            QueueName = queue
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/printers", request, JsonOptions);
+        var created = await response.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
+
+        Assert.Equal(expected, created!.QueueName);
+    }
+
+    [Fact]
+    public async Task CreatePrinter_ReturnsBadRequest_ForAQueueNameWithASlash()
+    {
+        var request = ValidIpPrinterRequest(UniqueName("Printer")) with
+        {
+            ConnectionType = "PrintServer",
+            PrintServerAddress = "10.0.0.10",
+            QueueName = "printers/Brother"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/printers", request, JsonOptions);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -248,7 +283,7 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
     }
 
     [Fact]
-    public async Task TestPrint_SendsARenderedLabel_ToTheListeningSocket()
+    public async Task TestPrint_SendsABrotherRasterJob_ToTheListeningSocket()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -264,12 +299,12 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
         Assert.True(result!.IsSuccess);
 
         using var serverClient = await acceptTask;
-        var buffer = new byte[8];
-        var read = await serverClient.GetStream().ReadAsync(buffer);
+        var header = new byte[102];
+        await serverClient.GetStream().ReadExactlyAsync(header);
 
-        Assert.True(read > 0);
-        // PNG files always start with this fixed 8-byte signature.
-        Assert.Equal([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], buffer);
+        // A Brother raster job: 100 "invalidate" bytes, then ESC @ to initialize.
+        Assert.All(header[..100], b => Assert.Equal(0, b));
+        Assert.Equal([0x1B, 0x40], header[100..]);
     }
 
     [Fact]

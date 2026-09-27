@@ -63,6 +63,9 @@ namespace Tapeory.Api.Data.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("CutMode")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("datetime(6)");
 
@@ -75,6 +78,9 @@ namespace Tapeory.Api.Data.Migrations
                     b.Property<string>("PrinterName")
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<int>("Quality")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -184,6 +190,10 @@ namespace Tapeory.Api.Data.Migrations
                     b.Property<string>("PrintServerAddress")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
+
+                    b.Property<string>("QueueName")
+                        .HasMaxLength(127)
+                        .HasColumnType("varchar(127)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetime(6)");

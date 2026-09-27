@@ -20,7 +20,6 @@ public sealed class LabelRenderer
 {
     private const float PngDpi = 300f;
     private const float MmPerInch = 25.4f;
-    private const float PxPerMmAt300Dpi = PngDpi / MmPerInch;
     private const float PtPerMm = 72f / MmPerInch;
 
     /// <summary>Font sizes are authored in points; converting to millimeters here lets the same
@@ -32,21 +31,37 @@ public sealed class LabelRenderer
         IReadOnlyDictionary<string, string> fieldValues,
         ImageResolver resolveImage)
     {
-        var width = Math.Max(1, (int)MathF.Ceiling((float)document.WidthMm * PxPerMmAt300Dpi));
-        var height = Math.Max(1, (int)MathF.Ceiling((float)document.HeightMm * PxPerMmAt300Dpi));
+        using var bitmap = RenderBitmap(document, fieldValues, resolveImage, PngDpi, PngDpi);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
 
-        using var bitmap = new SKBitmap(width, height);
+    /// <summary>Renders onto a white bitmap at the given resolution, which may differ per axis.
+    /// The caller owns (and disposes) the result; printer drivers use this to render at the print
+    /// head's own resolution.</summary>
+    public SKBitmap RenderBitmap(
+        RenderableDocument document,
+        IReadOnlyDictionary<string, string> fieldValues,
+        ImageResolver resolveImage,
+        float horizontalDpi,
+        float verticalDpi)
+    {
+        var pxPerMmX = horizontalDpi / MmPerInch;
+        var pxPerMmY = verticalDpi / MmPerInch;
+        var width = Math.Max(1, (int)MathF.Ceiling((float)document.WidthMm * pxPerMmX));
+        var height = Math.Max(1, (int)MathF.Ceiling((float)document.HeightMm * pxPerMmY));
+
+        var bitmap = new SKBitmap(width, height);
 
         using (var canvas = new SKCanvas(bitmap))
         {
             canvas.Clear(SKColors.White);
-            canvas.Scale(PxPerMmAt300Dpi);
+            canvas.Scale(pxPerMmX, pxPerMmY);
             DrawObjects(canvas, document, fieldValues, resolveImage);
         }
 
-        using var image = SKImage.FromBitmap(bitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        return data.ToArray();
+        return bitmap;
     }
 
     public byte[] RenderPdf(
@@ -156,11 +171,7 @@ public sealed class LabelRenderer
             return;
         }
 
-        using var typeface = SKTypeface.FromFamilyName(
-            fontFamily,
-            fontWeight == "bold" ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
-            SKFontStyleWidth.Normal,
-            SKFontStyleSlant.Upright);
+        using var typeface = FontResolver.Typeface(fontFamily, fontWeight == "bold");
 
         // Measure at a fixed reference size and scale: glyph advances are linear in the size,
         // and it saves allocating a font per candidate size while fitting.

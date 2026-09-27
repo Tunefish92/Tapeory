@@ -61,14 +61,19 @@ public sealed class LbxObjectConverterTests
                 new XAttribute("y", "0pt"),
                 new XElement(Pt + "expanded", new XAttribute("objectName", objectName))));
 
-    private static XElement ImageObject(string objectName = "Image5") =>
+    private static XElement ImageObject(string objectName = "Image5", string? fileName = "Object0.bmp") =>
         new(
             ImageNs + "image",
             new XElement(
                 Pt + "objectStyle",
-                new XAttribute("x", "0pt"),
-                new XAttribute("y", "0pt"),
-                new XElement(Pt + "expanded", new XAttribute("objectName", objectName))));
+                new XAttribute("x", "6.8pt"),
+                new XAttribute("y", "25.3pt"),
+                new XAttribute("width", "13.5pt"),
+                new XAttribute("height", "17pt"),
+                new XElement(Pt + "expanded", new XAttribute("objectName", objectName))),
+            fileName is null
+                ? null
+                : new XElement(ImageNs + "imageStyle", new XAttribute("fileName", fileName)));
 
     private static XDocument BuildDocument(string paperWidth, string paperHeight, params XElement[] objects) =>
         new(
@@ -208,14 +213,60 @@ public sealed class LbxObjectConverterTests
     }
 
     [Fact]
-    public void Convert_WarnsAndSkips_ForImageObjects()
+    public void Convert_TurnsImageObjectsIntoImages_PointingAtTheirArchiveFile()
     {
-        var doc = BuildDocument("50pt", "25pt", ImageObject("Image5"));
+        var doc = BuildDocument("50pt", "25pt", ImageObject("Image5", "Object0.bmp"));
 
         var result = LbxObjectConverter.Convert(doc);
 
-        Assert.Equal(0, ParseObjects(result.EditorJson).GetArrayLength());
-        Assert.Contains(result.Warnings, w => w.Contains("Image5") && w.Contains("TIFF"));
+        var image = Assert.Single(result.Images);
+        Assert.Equal("Object0.bmp", image.SourceFileName);
+        Assert.Equal("Image5", image.Name);
+        Assert.Equal(LbxUnits.ParsePointsAsMm("6.8pt"), image.X);
+        Assert.Equal(LbxUnits.ParsePointsAsMm("17pt"), image.Height);
+
+        var json = ParseObjects(result.EditorJson)[0];
+        Assert.Equal("image", json.GetProperty("type").GetString());
+        Assert.False(json.TryGetProperty("sourceFileName", out _));
+        Assert.Empty(result.Warnings);
+    }
+
+    [Fact]
+    public void Convert_UsesTheTapeWidthAsHeight_AndSizesAnAutoLengthLabelToItsContent()
+    {
+        // A 24 mm tape label as P-touch Editor saves it: landscape paper 68pt (24 mm) wide with a
+        // 1000 mm maximum length; the image spans x 6.8pt..20.3pt (2.4..7.2 mm).
+        var doc = BuildDocument("68pt", "2834.4pt", ImageObject("Image5"));
+        var paper = doc.Descendants(Style + "paper").Single();
+        paper.SetAttributeValue("orientation", "landscape");
+        paper.SetAttributeValue("autoLength", "true");
+
+        var result = LbxObjectConverter.Convert(doc);
+
+        Assert.Equal(LbxUnits.ParsePointsAsMm("68pt"), result.HeightMm);
+        Assert.Equal(Math.Round(LbxUnits.ParsePointsAsMm("20.3pt")!.Value + LbxUnits.ParsePointsAsMm("6.8pt")!.Value, 2), result.WidthMm);
+    }
+
+    [Fact]
+    public void Convert_KeepsThePaperSize_ForAPortraitFixedLengthLabel()
+    {
+        var doc = BuildDocument("175.7pt", "319.8pt", ImageObject("Image5"));
+
+        var result = LbxObjectConverter.Convert(doc);
+
+        Assert.Equal(LbxUnits.ParsePointsAsMm("175.7pt"), result.WidthMm);
+        Assert.Equal(LbxUnits.ParsePointsAsMm("319.8pt"), result.HeightMm);
+    }
+
+    [Fact]
+    public void Convert_WarnsAndSkips_ImagesThatDoNotNameTheirFile()
+    {
+        var doc = BuildDocument("50pt", "25pt", ImageObject("Image5", fileName: null));
+
+        var result = LbxObjectConverter.Convert(doc);
+
+        Assert.Empty(result.Images);
+        Assert.Contains(result.Warnings, w => w.Contains("Image5"));
     }
 
     [Fact]

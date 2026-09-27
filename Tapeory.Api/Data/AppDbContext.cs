@@ -141,6 +141,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(printer => printer.Model).HasMaxLength(200);
             entity.Property(printer => printer.Address).HasMaxLength(255);
             entity.Property(printer => printer.PrintServerAddress).HasMaxLength(255);
+            entity.Property(printer => printer.QueueName).HasMaxLength(127);
             entity.Property(printer => printer.UsbIdentifier).HasMaxLength(255);
             entity.Property(printer => printer.LabelMediaWidthMm).HasColumnType("decimal(6,2)");
             entity.Property(printer => printer.LabelMediaHeightMm).HasColumnType("decimal(6,2)");

@@ -110,6 +110,57 @@ public sealed class TemplatesControllerTests(TapeoryWebApplicationFactory factor
     }
 
     [Fact]
+    public async Task DuplicateTemplate_CreatesADraftCopyOfTheCurrentVersion_AndLeavesTheOriginalAlone()
+    {
+        var original = await CreateTemplateAsync();
+        await _client.PutAsJsonAsync(
+            $"/api/templates/{original.Id}",
+            new UpdateTemplateMetadataRequest(original.Name, original.Description, original.Category, original.Tags, "Published"),
+            JsonOptions);
+
+        var response = await _client.PostAsJsonAsync($"/api/templates/{original.Id}/duplicate", new DuplicateTemplateRequest(null), JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var summary = await response.Content.ReadFromJsonAsync<TemplateSummaryResponse>(JsonOptions);
+
+        var copy = await _client.GetFromJsonAsync<TemplateDetailResponse>($"/api/templates/{summary!.Id}", JsonOptions);
+        Assert.NotEqual(original.Id, copy!.Id);
+        Assert.Equal($"{original.Name} (copy)", copy.Name);
+        Assert.Equal("Draft", copy.Status);
+        Assert.Equal(1, copy.CurrentVersion.VersionNumber);
+        Assert.Equal(original.Description, copy.Description);
+        Assert.Equal(original.Category, copy.Category);
+        Assert.Equal(original.Tags, copy.Tags);
+        Assert.Equal(original.CurrentVersion.WidthMm, copy.CurrentVersion.WidthMm);
+        Assert.Equal(original.CurrentVersion.HeightMm, copy.CurrentVersion.HeightMm);
+        Assert.Equal(original.CurrentVersion.EditorJson, copy.CurrentVersion.EditorJson);
+        Assert.Equal(original.CurrentVersion.Fields, copy.CurrentVersion.Fields);
+
+        var unchanged = await _client.GetFromJsonAsync<TemplateDetailResponse>($"/api/templates/{original.Id}", JsonOptions);
+        Assert.Equal(original.Name, unchanged!.Name);
+        Assert.Equal("Published", unchanged.Status);
+    }
+
+    [Fact]
+    public async Task DuplicateTemplate_UsesTheGivenName()
+    {
+        var original = await CreateTemplateAsync();
+        var name = UniqueName("Kopie");
+
+        var response = await _client.PostAsJsonAsync($"/api/templates/{original.Id}/duplicate", new DuplicateTemplateRequest(name), JsonOptions);
+        var summary = await response.Content.ReadFromJsonAsync<TemplateSummaryResponse>(JsonOptions);
+
+        Assert.Equal(name, summary!.Name);
+    }
+
+    [Fact]
+    public async Task DuplicateTemplate_ReturnsNotFound_ForUnknownId()
+    {
+        var response = await _client.PostAsJsonAsync("/api/templates/999999999/duplicate", new DuplicateTemplateRequest(null), JsonOptions);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetTemplate_ReturnsNotFound_ForUnknownId()
     {
         var response = await _client.GetAsync("/api/templates/999999999");

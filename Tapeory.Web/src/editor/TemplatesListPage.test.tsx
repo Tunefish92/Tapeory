@@ -176,6 +176,32 @@ describe("TemplatesListPage", () => {
     expect(await screen.findByText(/no preview available/i)).toBeInTheDocument();
   });
 
+  it.each(["cards", "list"])("duplicates a template from the %s view and adds the copy", async (view) => {
+    localStorage.setItem("tapeory.templatesView", view);
+    const copy = { ...shippingLabel, id: 6, name: "Shipping Label (copy)", status: "Draft", currentVersionNumber: 1 };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/templates/5/duplicate") && init?.method === "POST"
+        ? jsonResponse(copy)
+        : jsonResponse([shippingLabel]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <NotificationsProvider>
+        <MemoryRouter initialEntries={["/templates"]}>
+          <TemplatesListPage />
+        </MemoryRouter>
+      </NotificationsProvider>,
+    );
+    await screen.findAllByText("Shipping Label");
+
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate: Shipping Label" }));
+
+    expect(await screen.findAllByText("Shipping Label (copy)")).not.toHaveLength(0);
+    const request = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/duplicate"));
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({ name: "Shipping Label (copy)" });
+  });
+
   it("switches to a list view and remembers the choice", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([shippingLabel])));
 

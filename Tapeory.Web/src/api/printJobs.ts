@@ -1,5 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
+export type CutMode = "AutoCut" | "HalfCut" | "CutAtEnd" | "ChainPrinting";
+
+export const CUT_MODES: CutMode[] = ["AutoCut", "HalfCut", "CutAtEnd", "ChainPrinting"];
+
 export interface PrintJobItemRequest {
   fieldValues: Record<string, string>;
   quantity: number;
@@ -10,6 +14,8 @@ export interface CreatePrintJobRequest {
   printerId: number | null;
   printerName: string | null;
   items: PrintJobItemRequest[];
+  quality?: string;
+  cutMode?: CutMode;
 }
 
 export interface PrintJobItemResponse {
@@ -30,6 +36,8 @@ export interface PrintJobResponse {
   templateVersionNumber: number;
   printerId: number | null;
   printerName: string | null;
+  quality?: string;
+  cutMode?: string;
   status: string;
   errorMessage: string | null;
   createdAt: string;

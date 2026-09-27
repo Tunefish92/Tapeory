@@ -24,6 +24,10 @@ public sealed class PrintJob
 
     public PrintJobStatus Status { get; set; } = PrintJobStatus.Queued;
 
+    public PrintQuality Quality { get; set; } = PrintQuality.Standard;
+
+    public CutMode CutMode { get; set; } = CutMode.AutoCut;
+
     public string? ErrorMessage { get; set; }
 
     public List<PrintJobItem> Items { get; set; } = [];

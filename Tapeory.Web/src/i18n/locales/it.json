@@ -131,7 +131,11 @@
     },
     "confirmDelete": "Eliminare il modello “{{name}}”?\n\nI suoi lavori di stampa restano nella cronologia e continuano a contare nelle statistiche.",
     "deleted": "Modello “{{name}}” eliminato.",
-    "deleteErrorFallback": "Impossibile eliminare il modello."
+    "deleteErrorFallback": "Impossibile eliminare il modello.",
+    "duplicate": "Duplica",
+    "copyName": "{{name}} (copia)",
+    "duplicated": "Creato «{{name}}».",
+    "duplicateErrorFallback": "Impossibile duplicare il modello."
   },
   "editor": {
     "metadataName": "Nome",
@@ -169,6 +173,10 @@
     },
     "properties": {
       "selectPrompt": "Seleziona un oggetto per modificarne le proprietà.",
+      "sectionContent": "Contenuto",
+      "sectionFont": "Carattere",
+      "sectionLayout": "Dimensioni e posizione",
+      "sectionFit": "Adattamento del testo e opzioni",
       "x": "X (mm)",
       "y": "Y (mm)",
       "rotation": "Rotazione (°)",
@@ -234,11 +242,9 @@
       "optionDisabledSuffix": " (disabilitata)",
       "manualOption": "Manuale / nessuna stampante configurata",
       "printerNameOptional": "Nome stampante (facoltativo)",
-      "updatePreview": "Aggiorna anteprima",
       "rendering": "Rendering…",
       "submit": "Invia lavoro di stampa",
       "submitting": "Invio…",
-      "previewPlaceholder": "Fai clic su \"Aggiorna anteprima\" per visualizzare l'etichetta con questi valori.",
       "previewImageAlt": "Anteprima dell'etichetta",
       "loading": "Caricamento del modello…",
       "loadErrorFallback": "Impossibile caricare il modello.",
@@ -285,6 +291,7 @@
     },
     "printJobDetail": {
       "title": "Lavoro di stampa n. {{id}}",
+      "backToTemplates": "Torna ai modelli",
       "backToHistory": "Torna alla cronologia",
       "template": "Modello",
       "printer": "Stampante",
@@ -301,7 +308,26 @@
       "queued": "In coda",
       "processing": "In elaborazione",
       "completed": "Completato",
-      "failed": "Non riuscito"
+      "failed": "Non riuscito",
+      "sending": "Invio alla stampante",
+      "printing": "In stampa"
+    },
+    "quality": {
+      "label": "Qualità di stampa",
+      "standard": "Standard",
+      "high": "Alta",
+      "option": "{{name}} ({{vertical}} × {{horizontal}} dpi)"
+    },
+    "cutMode": {
+      "label": "Taglio",
+      "AutoCut": "Taglio automatico",
+      "AutoCutHint": "Taglia completamente ogni etichetta.",
+      "HalfCut": "Mezzo taglio",
+      "HalfCutHint": "Taglia l’etichetta ma non il supporto, così le etichette restano unite e si staccano facilmente. La striscia viene tagliata dopo l’ultima etichetta.",
+      "CutAtEnd": "Taglio alla fine",
+      "CutAtEndHint": "Nessun taglio tra le etichette, uno solo dopo l’ultima.",
+      "ChainPrinting": "Stampa a catena",
+      "ChainPrintingHint": "Taglia tra le etichette ma tiene l’ultima nella stampante fino alla stampa successiva o al tasto di avanzamento. Risparmia il nastro vuoto che la stampante fa avanzare all’inizio di ogni lavoro."
     }
   },
   "printers": {
@@ -309,6 +335,8 @@
     "addPrinter": "Aggiungi stampante",
     "editPrinter": "Modifica stampante",
     "saveChanges": "Salva modifiche",
+    "sectionPrinter": "Stampante",
+    "sectionConnection": "Connessione",
     "name": "Nome",
     "model": "Modello",
     "modelPlaceholder": "es. Brother QL-820NWB",
@@ -318,11 +346,18 @@
     "connectionTypePrintServer": "Server di stampa",
     "connectionTypeUsb": "USB",
     "printServerAddress": "Indirizzo del server di stampa",
+    "printServerNote": "Per CUPS: nelle impostazioni della coda (Amministrazione → Modifica stampante) imposta la connessione «AppSocket/HP JetDirect» con socket://<IP o nome host della stampante>:9100. Le code trovate automaticamente (dnssd://… .local) spesso non raggiungono la stampante, soprattutto se CUPS gira in un container.",
+    "queueName": "Nome della coda (facoltativo)",
+    "queueNameHint": "Nome della stampante su un server di stampa CUPS o IPP, come in http://server:631/printers/<nome>. Lascia vuoto per inviare alla porta raw del server.",
     "usbIdentifier": "Identificatore USB",
     "usbIdentifierPlaceholder": "Identificatore del dispositivo (facoltativo)",
     "port": "Porta",
-    "labelWidth": "Larghezza etichetta (mm)",
-    "labelHeight": "Altezza etichetta (mm)",
+    "labelWidth": "Larghezza (mm)",
+    "labelHeight": "Altezza (mm)",
+    "testPrintSize": "Dimensione della stampa di prova (facoltativa)",
+    "testPrintSizeHint": "Usato solo dal pulsante Stampa di prova. I lavori di stampa usano la dimensione del modello.",
+    "portHint": "Porta di stampa raw, di solito 9100.",
+    "portHintIpp": "Porta IPP, di solito 631.",
     "enabled": "Abilitata",
     "loading": "Caricamento delle stampanti…",
     "empty": "Nessuna stampante configurata.",

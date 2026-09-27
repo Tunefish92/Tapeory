@@ -48,7 +48,7 @@ describe("BackupCard", () => {
     expect(items).toHaveLength(2);
     expect(within(items[0]).getByText("Before restore")).toBeInTheDocument();
     expect(within(items[1]).queryByText("Before restore")).not.toBeInTheDocument();
-    expect(within(items[1]).getByText("2 KB")).toBeInTheDocument();
+    expect(within(items[1]).getByText("(2 KB)")).toBeInTheDocument();
     expect(within(items[1]).getByRole("link", { name: "Download" })).toHaveAttribute(
       "href",
       `/api/backups/database/${older.fileName}`,

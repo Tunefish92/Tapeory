@@ -13,7 +13,7 @@
 &#xD;
 Requires a MySQL 8 or MariaDB database, for example Unraid's "mariadb" template. Create an empty database and a user, then enter the connection in the web UI on first start.&#xD;
 &#xD;
-Early development (0.x): sending jobs to a real printer is experimental. Tapeory has no user accounts yet, so keep it on a trusted network.</Overview>
+Printing supports Brother PT network printers with a 128-pin head (PT-P750W, PT-E550W, PT-P710BT, PT-P700). Tapeory has no user accounts yet, so keep it on a trusted network.</Overview>
   <Category>Productivity: Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:8080]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Tunefish92/Tapeory/main/unraid/tapeory.xml</TemplateURL>
