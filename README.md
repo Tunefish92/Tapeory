@@ -297,14 +297,20 @@ files won't appear in the app.
 
 ## Unraid
 
-A Community Applications template is at [`unraid/tapeory.xml`](unraid/tapeory.xml). It needs a
-separate MySQL/MariaDB container, so install Unraid's official `mariadb` template first. The
-template asks for a storage path and a web UI port. You enter the database connection in the
-web UI on first start (see [First start](#first-start-database-connection)).
+Tapeory has a Community Applications template ([`unraid/tapeory.xml`](unraid/tapeory.xml)). It
+needs a separate MySQL/MariaDB container, so install Unraid's official `mariadb` template first.
+The template asks for a storage path and a web UI port, and sets `PUID=99` and `PGID=100`, so
+files in the storage path belong to Unraid's usual `nobody:users`. You enter the database
+connection in the web UI on first start (see [First start](#first-start-database-connection)).
 
-The template uses the prebuilt image and sets `PUID=99` and `PGID=100`, so files in the storage
-path belong to Unraid's usual `nobody:users`. To add it, use Unraid's "template URL" option with
-`https://raw.githubusercontent.com/Tunefish92/Tapeory/main/unraid/tapeory.xml`.
+To install it before it's listed in the Apps tab: on the **Docker** tab, click **Add Container**,
+add `https://github.com/Tunefish92/Tapeory` under **Template repositories** at the bottom, save,
+and pick **Tapeory** from the **Template** list.
+
+On the Docker page, the container shows the Tapeory icon, and its menu has a **WebUI** entry that
+opens the app. The image carries both as labels (`net.unraid.docker.icon` and
+`net.unraid.docker.webui`), so they also work for a container started without the template,
+for example with Compose.
 
 ## Known limitations
 
