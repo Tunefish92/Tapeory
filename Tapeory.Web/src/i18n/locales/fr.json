@@ -249,7 +249,8 @@
       "loading": "Chargement du modèle…",
       "loadErrorFallback": "Impossible de charger le modèle.",
       "previewErrorFallback": "Impossible de générer l’aperçu.",
-      "submitErrorFallback": "Impossible de lancer l’impression."
+      "submitErrorFallback": "Impossible de lancer l’impression.",
+      "tapeMismatch": "L’imprimante contient un ruban de {{loaded}} mm, mais ce modèle nécessite un ruban de {{needed}} mm. Chargez un ruban de {{needed}} mm avant d’imprimer."
     },
     "printJobsList": {
       "title": "Historique d’impression",
@@ -327,7 +328,9 @@
       "CutAtEnd": "Coupe à la fin",
       "CutAtEndHint": "Aucune coupe entre les étiquettes, une seule après la dernière.",
       "ChainPrinting": "Impression en chaîne",
-      "ChainPrintingHint": "Coupe entre les étiquettes mais garde la dernière dans l’imprimante jusqu’à la prochaine impression ou la touche d’avance. Économise le ruban vierge avancé au début de chaque tâche."
+      "ChainPrintingHint": "Coupe entre les étiquettes mais garde la dernière dans l’imprimante jusqu’à la prochaine impression ou la touche d’avance. Économise le ruban vierge avancé au début de chaque tâche.",
+      "CutMarks": "Repères de coupe",
+      "CutMarksHint": "Pas de coupe : toutes les étiquettes s’impriment en une bande, avec une ligne pointillée à chaque coupe, à couper à la main."
     }
   },
   "printers": {
@@ -380,6 +383,7 @@
     "setDefault": "Définir par défaut",
     "testingConnection": "Test de la connexion…",
     "connectionSucceeded": "Connexion réussie.",
+    "connectionSucceededWithTape": "Connexion réussie — ruban de {{tape}} mm chargé.",
     "connectionFailedFallback": "La connexion a échoué.",
     "connectionTestErrorFallback": "Le test de connexion a échoué.",
     "sendingTestPrint": "Envoi de l’impression de test…",

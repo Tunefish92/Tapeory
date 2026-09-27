@@ -3,7 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getTemplate, type TemplateDetailResponse } from "../api/templates";
 import { createPrintJob, CUT_MODES, previewTemplate, type CutMode } from "../api/printJobs";
-import { listPrinters, type PrinterResponse, type PrintQuality } from "../api/printers";
+import {
+  getPrinterStatus,
+  listPrinters,
+  tapeForLabelHeight,
+  type PrinterResponse,
+  type PrintQuality,
+} from "../api/printers";
 import "./printing.css";
 
 const MANUAL_PRINTER_OPTION = "manual";
@@ -123,6 +129,32 @@ export function PrintTemplatePage() {
   // The resolutions the selected printer's model supports; a choice the newly selected printer
   // can't do falls back to Standard.
   const selectedPrinter = printers.find((printer) => String(printer.id) === printerSelection);
+
+  // Ask the selected printer which tape is loaded, to warn before a label goes onto the wrong one.
+  const [loadedTape, setLoadedTape] = useState<{ printerId: number; mm: number | null } | null>(null);
+
+  useEffect(() => {
+    if (!selectedPrinter) return;
+
+    let cancelled = false;
+    const printerId = selectedPrinter.id;
+
+    getPrinterStatus(printerId)
+      .then((status) => {
+        if (!cancelled) setLoadedTape({ printerId, mm: status.loadedTapeMm });
+      })
+      .catch(() => {
+        // The warning is a convenience; without the status, printing still checks the tape.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPrinter]);
+
+  const neededTapeMm = template ? tapeForLabelHeight(template.currentVersion.heightMm) : null;
+  const loadedTapeMm = loadedTape?.printerId === selectedPrinter?.id ? loadedTape?.mm ?? null : null;
+  const tapeMismatch = loadedTapeMm !== null && neededTapeMm !== null && loadedTapeMm !== neededTapeMm;
   const resolutions = selectedPrinter?.resolutions ?? [];
   const effectiveQuality = resolutions.some((resolution) => resolution.quality === quality) ? quality : "Standard";
 
@@ -219,6 +251,12 @@ export function PrintTemplatePage() {
                 ))}
               </select>
             </label>
+          )}
+
+          {tapeMismatch && (
+            <p className="print-form__warning" role="alert">
+              {t("printing.printTemplate.tapeMismatch", { loaded: loadedTapeMm, needed: neededTapeMm })}
+            </p>
           )}
 
           {selectedPrinter && (

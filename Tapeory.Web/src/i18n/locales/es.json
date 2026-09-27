@@ -249,7 +249,8 @@
       "loading": "Cargando plantilla…",
       "loadErrorFallback": "No se pudo cargar la plantilla.",
       "previewErrorFallback": "No se pudo generar la vista previa.",
-      "submitErrorFallback": "No se pudo enviar el trabajo de impresión."
+      "submitErrorFallback": "No se pudo enviar el trabajo de impresión.",
+      "tapeMismatch": "La impresora tiene cargada cinta de {{loaded}} mm, pero esta plantilla necesita cinta de {{needed}} mm. Carga cinta de {{needed}} mm antes de imprimir."
     },
     "printJobsList": {
       "title": "Historial de impresión",
@@ -327,7 +328,9 @@
       "CutAtEnd": "Cortar al final",
       "CutAtEndHint": "Sin cortes entre etiquetas; un corte después de la última.",
       "ChainPrinting": "Impresión en cadena",
-      "ChainPrintingHint": "Corta entre etiquetas pero deja la última en la impresora hasta la siguiente impresión o el botón de avance. Ahorra la cinta en blanco que la impresora avanza al inicio de cada trabajo."
+      "ChainPrintingHint": "Corta entre etiquetas pero deja la última en la impresora hasta la siguiente impresión o el botón de avance. Ahorra la cinta en blanco que la impresora avanza al inicio de cada trabajo.",
+      "CutMarks": "Marcas de corte",
+      "CutMarksHint": "Sin corte: todas las etiquetas se imprimen en una tira, con una línea discontinua en cada corte, para cortar a mano."
     }
   },
   "printers": {
@@ -380,6 +383,7 @@
     "setDefault": "Establecer como predeterminada",
     "testingConnection": "Probando conexión…",
     "connectionSucceeded": "Conexión correcta.",
+    "connectionSucceededWithTape": "Conexión correcta: cinta de {{tape}} mm cargada.",
     "connectionFailedFallback": "Error de conexión.",
     "connectionTestErrorFallback": "Error al probar la conexión.",
     "sendingTestPrint": "Enviando impresión de prueba…",

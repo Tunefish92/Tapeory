@@ -8,6 +8,22 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-27
+
+### Added
+- Tape detection: Tapeory reads which tape a directly connected printer has loaded (over SNMP).
+  The print form warns when it doesn't match the template, a job for the wrong tape stops
+  before anything is printed, and Test Connection shows the loaded tape.
+- Cut marks: a cutting option that doesn't cut, printing all labels as one strip with a dashed
+  line at each cut to cut by hand.
+- The image carries Unraid's `net.unraid.docker.icon` and `net.unraid.docker.webui` labels, so
+  the icon and the WebUI link show up on Unraid's Docker page even without the template.
+- Support moved to GitHub Discussions; the Unraid template and Community Applications profile
+  link there.
+
+### Changed
+- CI uses the current major versions of its GitHub Actions.
+
 ## [0.2.0] - 2026-09-27
 
 The first public and first stable release. Tapeory is still early: expect rough edges and
@@ -128,5 +144,6 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Tunefish92/Tapeory/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Tunefish92/Tapeory/releases/tag/v0.2.0

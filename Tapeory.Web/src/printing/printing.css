@@ -171,6 +171,16 @@
   gap: 0.3rem;
 }
 
+.print-form__warning {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--color-danger-text);
+  background: var(--color-danger-bg);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+}
+
 .print-form__hint {
   font-size: var(--fs-xs);
   color: var(--color-text-muted);

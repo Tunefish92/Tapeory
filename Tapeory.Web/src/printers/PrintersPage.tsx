@@ -201,7 +201,9 @@ export function PrintersPage() {
         [printer.id]: {
           success: result.isSuccess,
           message: result.isSuccess
-            ? t("printers.connectionSucceeded")
+            ? result.loadedTapeMm
+              ? t("printers.connectionSucceededWithTape", { tape: result.loadedTapeMm })
+              : t("printers.connectionSucceeded")
             : result.errorMessage ?? t("printers.connectionFailedFallback"),
         },
       }));

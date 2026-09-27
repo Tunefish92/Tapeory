@@ -50,6 +50,12 @@ public sealed record PrinterResponse(
 
 public sealed record PrintResolutionResponse(string Quality, int HorizontalDpi, int VerticalDpi);
 
-public sealed record TestConnectionResponse(bool IsSuccess, string? ErrorMessage);
+/// <param name="LoadedTapeMm">The tape the printer reports loaded, when it says (directly
+/// connected printers with SNMP).</param>
+public sealed record TestConnectionResponse(bool IsSuccess, string? ErrorMessage, decimal? LoadedTapeMm = null);
+
+/// <summary>What a directly connected printer reports right now. Everything is null when it
+/// can't be asked (USB, print servers) or doesn't answer SNMP.</summary>
+public sealed record PrinterStatusResponse(bool Available, decimal? LoadedTapeMm, string? Display, string? Problem);
 
 public sealed record TestPrintResponse(bool IsSuccess, string? ErrorMessage);

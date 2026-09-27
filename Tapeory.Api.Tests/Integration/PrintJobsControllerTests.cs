@@ -285,6 +285,85 @@ public sealed class PrintJobsControllerTests(TapeoryWebApplicationFactory factor
         Assert.Equal("Completed", completed.Items[0].Status);
     }
 
+    private async Task<PrintJobResponse> PrintOnAsync(CreatePrinterRequest printerRequest)
+    {
+        var printerResponse = await _client.PostAsJsonAsync("/api/printers", printerRequest, JsonOptions);
+        var printer = await printerResponse.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
+        var template = await CreateTemplateWithFieldAsync();
+
+        var createJobResponse = await _client.PostAsJsonAsync(
+            "/api/print-jobs",
+            new CreatePrintJobRequest(
+                template.Id, printer!.Id, null,
+                [new PrintJobItemRequest(new Dictionary<string, string> { ["name"] = "Dana" }, 1)]),
+            JsonOptions);
+        var created = await createJobResponse.Content.ReadFromJsonAsync<PrintJobResponse>(JsonOptions);
+
+        return await WaitForTerminalStatusAsync(created!.Id, TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public async Task EndToEnd_AJobFails_WithThePrintersMessage_WhenThePrinterStopsWhilePrinting()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        _ = Task.Run(async () =>
+        {
+            using var client = await listener.AcceptTcpClientAsync();
+            await client.GetStream().CopyToAsync(Stream.Null);
+        });
+
+        // Ready before the job; then printing, then out of tape.
+        factory.PrinterStatus.Script(
+            new Api.Printing.PrinterStatusSnapshot(3, [0x00], "READY", 500),
+            new Api.Printing.PrinterStatusSnapshot(4, [0x00], "PRINTING", 500),
+            new Api.Printing.PrinterStatusSnapshot(1, [0x40], "NO TAPE", 500));
+
+        try
+        {
+            var job = await PrintOnAsync(new CreatePrinterRequest(
+                UniqueName("Printer"), "Brother PT-P750W", "IpAddress", "127.0.0.1", port, null, null, null, null, true));
+
+            Assert.Equal("Failed", job.Status);
+            Assert.Equal("Failed", job.Items[0].Status);
+            Assert.Contains("NO TAPE", job.Items[0].ErrorMessage);
+        }
+        finally
+        {
+            factory.PrinterStatus.Reset();
+        }
+    }
+
+    [Fact]
+    public async Task EndToEnd_AStuckPrintServerJob_IsCancelled_AndFailsWithTheServersReason()
+    {
+        const string reason = "Unable to locate printer \"BRW78465CA0DB3E.local\".";
+        factory.PrintServer.Script(operation => operation switch
+        {
+            0x000B => Unit.IppResponses.Printer(state: 4, acceptingJobs: true, message: reason), // Get-Printer-Attributes
+            0x0002 => Unit.IppResponses.Job(jobId: 31, state: 3),                                  // Print-Job: pending
+            0x0008 => Unit.IppResponses.Error(0x0000, ""),                                         // Cancel-Job
+            _ => Unit.IppResponses.Job(jobId: 31, state: 5)                                        // processing, forever
+        });
+
+        try
+        {
+            var job = await PrintOnAsync(new CreatePrinterRequest(
+                UniqueName("Printer"), "Brother PT-P750W", "PrintServer", null, 631, "cups.test", null, null, null, true,
+                QueueName: "Brother_PT-P750W"));
+
+            Assert.Equal("Failed", job.Status);
+            Assert.Contains(reason, job.Items[0].ErrorMessage);
+            Assert.Contains("cancelled", job.Items[0].ErrorMessage);
+            Assert.Contains(0x0008, factory.PrintServer.Operations);
+        }
+        finally
+        {
+            factory.PrintServer.Reset();
+        }
+    }
+
     [Fact]
     public async Task GetItemPreview_ReturnsNotFound_ForAnUnknownItem()
     {

@@ -63,11 +63,13 @@ every template, upload, and print job stays on your own server.
 
 **Printing**
 - Print form with values for each field, quantity, printer choice, print quality, cutting
-  (auto cut, half cut, cut at end, chain printing), and a preview that updates as you type
+  (auto cut, half cut, cut at end, chain printing, cut marks), and a preview that updates as you type
 - Server-side rendering to PNG (300 DPI) and PDF with SkiaSharp
 - Background print queue, with a job history and per-label previews
 - Printing on Brother PT printers in Brother's raster format, in standard (180 × 180 dpi) or,
   where the model supports it, high (180 × 360 dpi) quality. The tape width follows the label height.
+- Tape detection: Tapeory reads which tape the printer has loaded, warns in the print form when
+  it doesn't match the template, and stops the job before printing onto the wrong tape
 - Live print status from the printer (over SNMP): sending, printing, and finished once the
   printer's label counter confirms the labels came out, or the printer's own error, such as no
   tape or an open cover
@@ -133,7 +135,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | Latest build of `main` |
-| `0.2.0`, `0.2` | A release (from Git tags such as `v0.2.0`) |
+| `0.2.1`, `0.2` | A release (from Git tags such as `v0.2.1`) |
 | `sha-<commit>` | One specific commit |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
@@ -324,8 +326,8 @@ version (Settings page), your printer model, and the container log.
   PT-P700). QL printers and 360 dpi PT models (such as the PT-P900 series) aren't supported yet.
 - **Print status needs SNMP.** Tapeory reads it with the `public` community, which Brother
   printers enable by default. Without SNMP, jobs are marked done once they're sent.
-- **The loaded tape isn't detected.** The printer's network port doesn't report it, so the
-  tape width comes from the label height; the printer stops with an error if they differ.
+- **Tape detection needs SNMP too**, and works only for printers reached directly (not through
+  a print server); without it, the tape width simply follows the label height.
 - **USB printers** can be added, but Tapeory can't send jobs to them yet.
 - **Barcodes and QR codes** aren't available in the editor yet.
 - **`.lbx` import** converts text, merge fields, and images. Barcodes and shapes are reported
@@ -375,7 +377,7 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.2.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.2.1 && git push --tags`.
 
 ### Tech stack
 

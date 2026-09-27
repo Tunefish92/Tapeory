@@ -6,7 +6,7 @@ public sealed record PrintJobItemRequest(Dictionary<string, string>? FieldValues
 /// PrinterName is used as-is only when PrinterId is omitted — e.g. no printers are configured
 /// yet, or the user just wants a label for a manual/offline print. Quality ("Standard" or
 /// "High") must be one the printer supports; it defaults to Standard. CutMode ("AutoCut",
-/// "HalfCut", "CutAtEnd" or "ChainPrinting") defaults to AutoCut.</summary>
+/// "HalfCut", "CutAtEnd", "ChainPrinting" or "CutMarks") defaults to AutoCut.</summary>
 public sealed record CreatePrintJobRequest(
     int TemplateId,
     int? PrinterId,

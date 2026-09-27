@@ -140,6 +140,56 @@ public sealed class BrotherPtRasterEncoderTests
         Assert.Equal(mode, job[IndexOf(job, [0x1B, 0x69, 0x4B]) + 3]);
     }
 
+    [Fact]
+    public void Encode_WithCutMarks_PrintsOneUncutStrip_WithADashedMarkAtEveryCut()
+    {
+        using var label = WhiteLabel(10, 64);
+
+        var job = BrotherPtRasterEncoder.Encode([label, label], NineMm, cutMode: CutMode.CutMarks);
+
+        // One page (a single print command, no form feeds) with auto cut off.
+        Assert.Equal(0, job.Count(b => b == 0x0C));
+        Assert.Equal(0x00, job[IndexOf(job, [0x1B, 0x69, 0x4D]) + 3]);
+
+        // 3 marks + 2 labels × (10 lines + 2 × 14 gap lines) = 79 raster lines.
+        var info = IndexOf(job, [0x1B, 0x69, 0x7A]);
+        Assert.Equal(3 + 2 * (10 + 2 * 14), BitConverter.ToInt32(job, info + 7));
+
+        var raster = RasterSection(job);
+        Assert.Equal([0x47, 17, 0x00, 15], raster[..4]); // starts with a mark
+        var mark = raster[4..20];
+        // 9 mm tape: printable pins start at bit 39. Pins 0-2 (bits 39-41) are set, 3-5 (42-44) clear.
+        bool Bit(int bit) => (mark[bit / 8] & (0x80 >> (bit % 8))) != 0;
+        Assert.True(Bit(39) && Bit(40) && Bit(41));
+        Assert.False(Bit(42) || Bit(43) || Bit(44));
+        Assert.False(Bit(38)); // outside the printable band
+        Assert.Equal(3, CountSequence(raster, [0x47, 17, 0x00, 15]));
+    }
+
+    private static int CountSequence(byte[] data, byte[] pattern)
+    {
+        var count = 0;
+        for (var i = 0; i <= data.Length - pattern.Length; i++)
+        {
+            if (data.AsSpan(i, pattern.Length).SequenceEqual(pattern)) count++;
+        }
+
+        return count;
+    }
+
+    [Theory]
+    [InlineData("9mm(0.35\")", 9.0)]
+    [InlineData("3.5mm(0.14\")", 3.5)]
+    [InlineData(" 24 mm", 24.0)]
+    [InlineData("No Tape", null)]
+    [InlineData(null, null)]
+    public void LoadedTapeMm_ReadsTheWidthFromThePrintersMediaName(string? mediaName, double? expected)
+    {
+        var snapshot = new PrinterStatusSnapshot(3, [0], "READY", 0, mediaName);
+
+        Assert.Equal(expected is null ? null : (decimal)expected, snapshot.LoadedTapeMm);
+    }
+
     [Theory]
     [InlineData(3.5, 3.5)]
     [InlineData(9, 9)]

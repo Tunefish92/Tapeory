@@ -85,6 +85,11 @@ public sealed class BrotherPtPrinterDriver(
             return PrintOutcome.Failure($"The printer reports a problem: {problem}.");
         }
 
+        if (before?.LoadedTapeMm is { } loaded && loaded != tape.WidthMm)
+        {
+            return PrintOutcome.Failure(TapeMismatchMessage(loaded, tape.WidthMm));
+        }
+
         await onStage(PrintStage.Sending);
         var sent = await sender.SendAsync(printer, data, cancellationToken);
 
@@ -169,6 +174,10 @@ public sealed class BrotherPtPrinterDriver(
             return PrintOutcome.Failure($"Could not reach the print server at {queueUri.Authority}: {ex.Message}");
         }
     }
+
+    public static string TapeMismatchMessage(decimal loadedMm, decimal labelMm) =>
+        $"The printer has {loadedMm:0.#} mm tape loaded, but this label needs {labelMm:0.#} mm tape. "
+        + $"Load {labelMm:0.#} mm tape, or use a template that's {loadedMm:0.#} mm high.";
 
     private static string DescribeQueue(IppResponse queue) =>
         queue.Text("printer-state-message") is { Length: > 0 } message

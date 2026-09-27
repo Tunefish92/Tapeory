@@ -247,7 +247,8 @@
       "loading": "Loading template…",
       "loadErrorFallback": "Failed to load template.",
       "previewErrorFallback": "Failed to render preview.",
-      "submitErrorFallback": "Failed to submit print job."
+      "submitErrorFallback": "Failed to submit print job.",
+      "tapeMismatch": "The printer has {{loaded}} mm tape loaded, but this template needs {{needed}} mm tape. Load {{needed}} mm tape before printing."
     },
     "printJobsList": {
       "title": "Print History",
@@ -320,7 +321,9 @@
       "CutAtEnd": "Cut at end",
       "CutAtEndHint": "No cuts between labels; one cut after the last.",
       "ChainPrinting": "Chain printing",
-      "ChainPrintingHint": "Cuts between labels but keeps the last one in the printer until the next print or the feed button. Saves the blank tape the printer feeds at the start of each job."
+      "ChainPrintingHint": "Cuts between labels but keeps the last one in the printer until the next print or the feed button. Saves the blank tape the printer feeds at the start of each job.",
+      "CutMarks": "Cut marks",
+      "CutMarksHint": "No cutting: all labels print as one strip with a dashed line at each cut, to cut by hand."
     }
   },
   "printers": {
@@ -373,6 +376,7 @@
     "setDefault": "Set Default",
     "testingConnection": "Testing connection…",
     "connectionSucceeded": "Connection succeeded.",
+    "connectionSucceededWithTape": "Connection succeeded — {{tape}} mm tape loaded.",
     "connectionFailedFallback": "Connection failed.",
     "connectionTestErrorFallback": "Connection test failed.",
     "sendingTestPrint": "Sending test print…",

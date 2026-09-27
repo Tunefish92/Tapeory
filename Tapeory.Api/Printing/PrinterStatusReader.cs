@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using Lextm.SharpSnmpLib;
 using Lextm.SharpSnmpLib.Messaging;
 
@@ -7,8 +9,22 @@ namespace Tapeory.Api.Printing;
 
 /// <summary>What a printer reports about itself over SNMP (standard Host Resources and Printer
 /// MIBs, which Brother's network printers implement).</summary>
-public sealed record PrinterStatusSnapshot(int DeviceStatus, byte[] ErrorState, string Display, long? LabelCount)
+/// <param name="MediaName">What the printer calls its loaded media, e.g. "9mm(0.35\")".</param>
+public sealed partial record PrinterStatusSnapshot(
+    int DeviceStatus, byte[] ErrorState, string Display, long? LabelCount, string? MediaName = null)
 {
+    /// <summary>The loaded tape width in mm, read from the media name ("9mm(0.35\")", "3.5mm…"),
+    /// or null when the printer doesn't say or has no tape.</summary>
+    public decimal? LoadedTapeMm =>
+        MediaName is not null
+        && TapeWidthPattern().Match(MediaName) is { Success: true } match
+        && decimal.TryParse(match.Groups[1].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var mm)
+            ? mm
+            : null;
+
+    [GeneratedRegex(@"^\s*(\d+(?:\.\d+)?)\s*mm", RegexOptions.IgnoreCase)]
+    private static partial Regex TapeWidthPattern();
+
     /// <summary>hrPrinterStatus: 3 idle, 4 printing, 5 warming up; 1 "other" usually means an
     /// error the printer is waiting on.</summary>
     public bool IsPrinting => DeviceStatus is 4 or 5;
@@ -58,6 +74,7 @@ public sealed class SnmpPrinterStatusReader(ILogger<SnmpPrinterStatusReader> log
     private static readonly ObjectIdentifier ErrorStateOid = new("1.3.6.1.2.1.25.3.5.1.2.1"); // hrPrinterDetectedErrorState
     private static readonly ObjectIdentifier DisplayOid = new("1.3.6.1.2.1.43.16.5.1.2.1.1"); // prtConsoleDisplayBufferText
     private static readonly ObjectIdentifier LabelCountOid = new("1.3.6.1.2.1.43.10.2.1.4.1.1"); // prtMarkerLifeCount
+    private static readonly ObjectIdentifier MediaNameOid = new("1.3.6.1.2.1.43.8.2.1.12.1.1"); // prtInputMediaName
 
     public async Task<PrinterStatusSnapshot?> ReadAsync(string host, CancellationToken cancellationToken)
     {
@@ -74,7 +91,7 @@ public sealed class SnmpPrinterStatusReader(ILogger<SnmpPrinterStatusReader> log
                 VersionCode.V2,
                 new IPEndPoint(address, 161),
                 Community,
-                [new(DeviceStatusOid), new(ErrorStateOid), new(DisplayOid), new(LabelCountOid)],
+                [new(DeviceStatusOid), new(ErrorStateOid), new(DisplayOid), new(LabelCountOid), new(MediaNameOid)],
                 linkedCts.Token);
 
             var byId = results.ToDictionary(variable => variable.Id, variable => variable.Data);
@@ -88,7 +105,8 @@ public sealed class SnmpPrinterStatusReader(ILogger<SnmpPrinterStatusReader> log
                     Counter32 counter => (long)counter.ToUInt32(),
                     Integer32 integer => integer.ToInt32(),
                     _ => null
-                });
+                },
+                byId.GetValueOrDefault(MediaNameOid) is OctetString media ? media.ToString() : null);
         }
         catch (Exception ex) when (ex is OperationCanceledException or SocketException or SnmpException
                                        or InvalidOperationException && !cancellationToken.IsCancellationRequested)
