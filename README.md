@@ -347,6 +347,7 @@ To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.1.0 &&
 - `Tapeory.Web/`: React + TypeScript frontend (Vite)
 - `Tapeory.Api.Tests/`: backend unit and integration tests
 - `scripts/`: local development launch scripts
-- `unraid/`: Unraid Community Applications template
+- `unraid/`: Unraid Community Applications template and icon
+- `ca_profile.xml`: repository profile for Unraid Community Applications
 - `docs/screenshots/`: the screenshots in this README
 - `.github/workflows/`: CI pipeline
