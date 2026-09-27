@@ -8,6 +8,11 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+### Changed
+- Docker images are published only for releases, tagged with the version (`0.3.0`) and `latest`
+  (the newest release). The `sha-<commit>` and `0.3`-style tags are gone; a manual "Clean up
+  image tags" workflow removed the old ones.
+
 ## [0.3.0] - 2026-09-27
 
 Barcodes, QL printers and 360 dpi P-touch printers. QL and PT-P900-series printing is built from
