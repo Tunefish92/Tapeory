@@ -10,13 +10,20 @@ public sealed record UpdateCheckResponse(
     bool UpdateAvailable,
     string? ReleaseUrl,
     DateTimeOffset? CheckedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    IReadOnlyList<ReleaseAsset>? Assets = null);
+
+/// <summary>A file attached to the release (e.g. the desktop app's installer), which the desktop
+/// app downloads to update itself.</summary>
+/// <param name="Sha256">The file's SHA-256 as hex, from GitHub's asset digest; null when GitHub
+/// doesn't give one.</param>
+public sealed record ReleaseAsset(string Name, string DownloadUrl, long Size, string? Sha256);
 
 /// <summary>
 /// Asks GitHub for Tapeory's latest release. The answer is cached for a few hours, so opening the
 /// settings page doesn't call GitHub every time (its API allows 60 requests an hour without a token).
 /// </summary>
-public sealed class UpdateChecker(HttpClient http, TimeProvider time)
+public sealed class UpdateChecker(HttpClient http, TimeProvider time, string? feedUrl = null)
 {
     public const string LatestReleaseUrl = "https://api.github.com/repos/Tunefish92/Tapeory/releases/latest";
 
@@ -52,7 +59,7 @@ public sealed class UpdateChecker(HttpClient http, TimeProvider time)
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseUrl);
+            using var request = new HttpRequestMessage(HttpMethod.Get, string.IsNullOrWhiteSpace(feedUrl) ? LatestReleaseUrl : feedUrl);
             request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Tapeory", CurrentVersion));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
 
@@ -74,12 +81,36 @@ public sealed class UpdateChecker(HttpClient http, TimeProvider time)
                 IsNewer(latest, CurrentVersion),
                 url,
                 now,
-                null);
+                null,
+                ReadAssets(json.RootElement));
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException)
         {
             return Failed("GitHub couldn't be reached.");
         }
+    }
+
+    private static List<ReleaseAsset> ReadAssets(JsonElement release)
+    {
+        var assets = new List<ReleaseAsset>();
+        if (!release.TryGetProperty("assets", out var list) || list.ValueKind != JsonValueKind.Array)
+        {
+            return assets;
+        }
+
+        foreach (var asset in list.EnumerateArray())
+        {
+            if (asset.TryGetProperty("name", out var name) && name.GetString() is { } fileName
+                && asset.TryGetProperty("browser_download_url", out var download) && download.GetString() is { } downloadUrl)
+            {
+                var size = asset.TryGetProperty("size", out var bytes) && bytes.TryGetInt64(out var value) ? value : 0;
+                var digest = asset.TryGetProperty("digest", out var hash) ? hash.GetString() : null;
+                var sha256 = digest?.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) == true ? digest["sha256:".Length..] : null;
+                assets.Add(new ReleaseAsset(fileName, downloadUrl, size, sha256));
+            }
+        }
+
+        return assets;
     }
 
     // A failed check isn't cached, so the next visit tries again.

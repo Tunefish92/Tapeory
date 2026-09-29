@@ -4,6 +4,7 @@ import {
   createPrinter,
   deletePrinter,
   listPrinterModels,
+  listUsbPrinters,
   listPrinters,
   setDefaultPrinter,
   testPrinterConnection,
@@ -13,6 +14,7 @@ import {
   type PrinterRequest,
   type PrinterResponse,
   type PrinterModelResponse,
+  type UsbPrinterInfo,
 } from "../api/printers";
 import { useNotifications } from "../notifications/NotificationsContext";
 import "./printers.css";
@@ -157,6 +159,7 @@ export function PrintersPage() {
   // The Brother models Tapeory knows, offered in the model dropdown. A saved name that matches one
   // ("Brother P750W") selects it; anything else is "Other model" with its own text field.
   const [models, setModels] = useState<PrinterModelResponse[]>([]);
+  const [usbPrinters, setUsbPrinters] = useState<UsbPrinterInfo[]>([]);
   const [customModel, setCustomModel] = useState(false);
   const matchedModel = matchModel(form.model, models);
   const modelSelection = customModel || (form.model?.trim() && !matchedModel) ? OTHER_MODEL : (matchedModel?.name ?? "");
@@ -166,6 +169,11 @@ export function PrintersPage() {
       .then(setModels)
       .catch(() => {
         // Suggestions only; the field still takes any model name.
+      });
+    listUsbPrinters()
+      .then(setUsbPrinters)
+      .catch(() => {
+        // Suggestions only, too.
       });
   }, []);
 
@@ -471,7 +479,16 @@ export function PrintersPage() {
                     value={form.usbIdentifier ?? ""}
                     onChange={(e) => setForm((prev) => ({ ...prev, usbIdentifier: e.target.value }))}
                     placeholder={t("printers.usbIdentifierPlaceholder")}
+                    list="usb-printer-options"
+                    required
                   />
+                  <datalist id="usb-printer-options">
+                    {usbPrinters.map((found) => (
+                      <option key={found.identifier} value={found.identifier}>
+                        {found.name}
+                      </option>
+                    ))}
+                  </datalist>
                 </label>
               )}
 
@@ -576,6 +593,11 @@ export function PrintersPage() {
                     <span className="printer-card__badges">
                       {printer.isDefault && <span className="badge badge--default">{t("printers.default")}</span>}
                       {!printer.enabled && <span className="badge badge--disabled">{t("printers.disabled")}</span>}
+                      {printer.onThisComputer === false && (
+                        <span className="badge badge--disabled">
+                          {t("printers.onComputer", { name: printer.computerName ?? "?" })}
+                        </span>
+                      )}
                       <span className={`badge badge--${printer.lastConnectionStatus.toLowerCase()}`}>
                         {STATUS_LABELS[printer.lastConnectionStatus]}
                       </span>
@@ -606,17 +628,27 @@ export function PrintersPage() {
                   </p>
                 )}
 
+                {printer.onThisComputer === false && (
+                  <p className="printer-card__error">
+                    {t("printers.elsewhereNote", { name: printer.computerName ?? "?" })}
+                  </p>
+                )}
+
                 <div className="printer-card__actions">
-                  <button
-                    type="button"
-                    onClick={() => handleTestConnection(printer)}
-                    disabled={rowBusy}
-                  >
-                    {t("printers.testConnection")}
-                  </button>
-                  <button type="button" onClick={() => handleTestPrint(printer)} disabled={rowBusy}>
-                    {t("printers.testPrint")}
-                  </button>
+                  {printer.onThisComputer !== false && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleTestConnection(printer)}
+                        disabled={rowBusy}
+                      >
+                        {t("printers.testConnection")}
+                      </button>
+                      <button type="button" onClick={() => handleTestPrint(printer)} disabled={rowBusy}>
+                        {t("printers.testPrint")}
+                      </button>
+                    </>
+                  )}
                   <div className="printer-card__secondary-actions">
                     <button type="button" onClick={() => openEditForm(printer)} disabled={rowBusy}>
                       {t("common.edit")}

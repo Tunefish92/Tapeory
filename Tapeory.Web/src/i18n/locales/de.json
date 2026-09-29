@@ -290,7 +290,8 @@
       "loadErrorFallback": "Vorlage konnte nicht geladen werden.",
       "previewErrorFallback": "Vorschau konnte nicht gerendert werden.",
       "submitErrorFallback": "Druckauftrag konnte nicht gesendet werden.",
-      "tapeMismatch": "Im Drucker ist {{loaded}}-mm-Band eingelegt, diese Vorlage braucht aber {{needed}}-mm-Band. Legen Sie vor dem Drucken {{needed}}-mm-Band ein."
+      "tapeMismatch": "Im Drucker ist {{loaded}}-mm-Band eingelegt, diese Vorlage braucht aber {{needed}}-mm-Band. Legen Sie vor dem Drucken {{needed}}-mm-Band ein.",
+      "optionElsewhereSuffix": " (an {{name}})"
     },
     "printJobsList": {
       "title": "Druckverlauf",
@@ -387,7 +388,7 @@
     "modelGroupQl": "QL",
     "modelHintEmpty": "Brother P-touch- (PT) oder QL-Modell.",
     "modelHintNetwork": "{{model}} ({{dpi}} dpi) druckt direkt über das Netzwerk: per IP-Adresse oder Hostname hinzufügen.",
-    "modelHintUsb": "{{model}} ({{dpi}} dpi) wird per USB angeschlossen: über einen CUPS-Server freigeben und diesen hier als Druckserver mit Warteschlange hinzufügen.",
+    "modelHintUsb": "{{model}} ({{dpi}} dpi) wird per USB angeschlossen: wähle ihn unter USB auf dem Computer, an dem er steckt, oder gib ihn über einen CUPS-Server frei und füge diesen hier als Druckserver hinzu.",
     "modelHintUnknown": "Tapeory kennt dieses Modell nicht; es druckt wie ein PT-P750W (180 dpi, Band bis 24 mm).",
     "connectionType": "Verbindungstyp",
     "connectionTypeIpAddress": "IP-Adresse",
@@ -399,7 +400,7 @@
     "queueName": "Warteschlange (optional)",
     "queueNameHint": "Name des Druckers auf einem CUPS- oder IPP-Druckserver, wie in http://server:631/printers/<name>. Leer lassen, um an den Rohdruck-Port des Servers zu senden.",
     "usbIdentifier": "USB-Kennung",
-    "usbIdentifierPlaceholder": "Optionale Gerätekennung",
+    "usbIdentifierPlaceholder": "Das Gerät des Druckers (Linux, z. B. /dev/usb/lp0) oder sein Name in Windows",
     "port": "Port",
     "labelWidth": "Breite (mm)",
     "labelHeight": "Höhe (mm)",
@@ -437,7 +438,9 @@
     "testPrintFailedFallback": "Testdruck fehlgeschlagen.",
     "testPrintErrorFallback": "Testdruck fehlgeschlagen.",
     "lastError": "Letzter Fehler: {{message}}",
-    "unknownModel": "Unbekanntes Modell"
+    "unknownModel": "Unbekanntes Modell",
+    "onComputer": "an {{name}}",
+    "elsewhereNote": "Mit {{name}} verbunden. Teste und drucke mit Tapeory auf diesem Computer."
   },
   "footer": {
     "copyright": "© {{year}} von"
@@ -543,7 +546,14 @@
     "save": "Speichern und weiter",
     "saving": "Datenbank wird eingerichtet…",
     "failedFallback": "Keine Verbindung zur Datenbank möglich.",
-    "completed": "Datenbank verbunden. Tapeory ist bereit."
+    "completed": "Datenbank verbunden. Tapeory ist bereit.",
+    "desktopIntro": "Wo soll Tapeory deine Vorlagen, Drucker und den Druckverlauf speichern?",
+    "desktopChoiceLabel": "Datenbank",
+    "localTitle": "Auf diesem Computer (empfohlen)",
+    "localText": "Eine lokale Datenbank in deinem Benutzerordner. Sonst ist nichts einzurichten.",
+    "serverTitle": "Auf einem MySQL- oder MariaDB-Server",
+    "serverText": "Alles mit einem Tapeory-Server teilen, zum Beispiel deiner Docker-Installation.",
+    "creatingLocal": "Lokale Datenbank wird angelegt…"
   },
   "auth": {
     "signInTitle": "Anmelden",
@@ -576,5 +586,36 @@
     "roleUser": "Benutzer",
     "openBanner": "Jeder in deinem Netzwerk kann Tapeory verwenden. Erstelle ein Administratorkonto, damit eine Anmeldung nötig ist.",
     "openBannerAction": "Konto erstellen"
+  },
+  "desktop": {
+    "starting": "Tapeory wird gestartet…",
+    "engineFailedTitle": "Tapeory konnte nicht starten",
+    "retry": "Erneut versuchen",
+    "engineHint": "Die Engine von Tapeory: rendert Etiketten und schickt sie an deine Drucker.",
+    "exportTemplate": "Exportieren…",
+    "imageFailed": "Das Bild konnte nicht hinzugefügt werden: {{message}}",
+    "imagesFilter": "Bilder",
+    "importFilter": "P-touch-Editor-Etiketten und Tapeory-Vorlagen",
+    "logs": "Protokolldateien",
+    "saved": "Gespeichert unter {{path}}.",
+    "templateSaved": "Vorlage gespeichert.",
+    "units": "Einheiten",
+    "usbChoose": "Drucker wählen…",
+    "usbNone": "Kein USB-Drucker gefunden. Schließe den Drucker an und schalte ihn ein, dann aktualisiere die Liste.",
+    "usbRefresh": "Liste aktualisieren",
+    "time": {
+      "now": "gerade eben",
+      "minutesAgo_one": "vor {{count}} Minute",
+      "minutesAgo_other": "vor {{count}} Minuten",
+      "hoursAgo_one": "vor {{count}} Stunde",
+      "hoursAgo_other": "vor {{count}} Stunden",
+      "daysAgo_one": "vor {{count}} Tag",
+      "daysAgo_other": "vor {{count}} Tagen"
+    },
+    "updateNow": "Jetzt aktualisieren",
+    "updateDownloading": "Update wird heruntergeladen… {{percent}} %",
+    "updateFailed": "Das Update ist fehlgeschlagen: {{message}}",
+    "updateManual": "Lade die neue Version von der Release-Seite herunter und ersetze diese Kopie damit.",
+    "updateRestarting": "Das Update wird installiert – Tapeory startet gleich neu."
   }
 }

@@ -292,7 +292,8 @@
       "loadErrorFallback": "Impossible de charger le modèle.",
       "previewErrorFallback": "Impossible de générer l’aperçu.",
       "submitErrorFallback": "Impossible de lancer l’impression.",
-      "tapeMismatch": "L’imprimante contient un ruban de {{loaded}} mm, mais ce modèle nécessite un ruban de {{needed}} mm. Chargez un ruban de {{needed}} mm avant d’imprimer."
+      "tapeMismatch": "L’imprimante contient un ruban de {{loaded}} mm, mais ce modèle nécessite un ruban de {{needed}} mm. Chargez un ruban de {{needed}} mm avant d’imprimer.",
+      "optionElsewhereSuffix": " (sur {{name}})"
     },
     "printJobsList": {
       "title": "Historique d’impression",
@@ -394,7 +395,7 @@
     "modelGroupQl": "QL",
     "modelHintEmpty": "Modèle Brother P-touch (PT) ou QL.",
     "modelHintNetwork": "{{model}} ({{dpi}} ppp) imprime directement via le réseau : ajoutez-la par adresse IP ou nom d’hôte.",
-    "modelHintUsb": "{{model}} ({{dpi}} ppp) se connecte en USB : partagez-la via un serveur CUPS et ajoutez ce serveur ici comme serveur d’impression avec le nom de la file.",
+    "modelHintUsb": "{{model}} ({{dpi}} dpi) se branche en USB : choisissez-la sous USB sur l’ordinateur auquel elle est reliée, ou partagez-la depuis un serveur CUPS et ajoutez ici ce serveur comme serveur d’impression.",
     "modelHintUnknown": "Tapeory ne connaît pas ce modèle ; il imprime comme une PT-P750W (180 ppp, ruban jusqu’à 24 mm).",
     "connectionType": "Type de connexion",
     "connectionTypeIpAddress": "Adresse IP",
@@ -406,7 +407,7 @@
     "queueName": "Nom de la file (facultatif)",
     "queueNameHint": "Nom de l’imprimante sur un serveur d’impression CUPS ou IPP, comme dans http://serveur:631/printers/<nom>. Laissez vide pour envoyer au port d’impression brute du serveur.",
     "usbIdentifier": "Identifiant USB",
-    "usbIdentifierPlaceholder": "Identifiant d’appareil facultatif",
+    "usbIdentifierPlaceholder": "Le périphérique de l’imprimante (Linux, p. ex. /dev/usb/lp0) ou son nom dans Windows",
     "port": "Port",
     "labelWidth": "Largeur (mm)",
     "labelHeight": "Hauteur (mm)",
@@ -444,7 +445,9 @@
     "testPrintFailedFallback": "L’impression de test a échoué.",
     "testPrintErrorFallback": "L’impression de test a échoué.",
     "lastError": "Dernière erreur : {{message}}",
-    "unknownModel": "Modèle inconnu"
+    "unknownModel": "Modèle inconnu",
+    "onComputer": "sur {{name}}",
+    "elsewhereNote": "Connectée à {{name}}. Testez et imprimez avec Tapeory sur cet ordinateur."
   },
   "footer": {
     "copyright": "© {{year}} par"
@@ -550,7 +553,14 @@
     "save": "Enregistrer et continuer",
     "saving": "Configuration de la base de données…",
     "failedFallback": "Impossible de se connecter à la base de données.",
-    "completed": "Base de données connectée. Tapeory est prêt."
+    "completed": "Base de données connectée. Tapeory est prêt.",
+    "desktopIntro": "Où Tapeory doit-il enregistrer vos modèles, imprimantes et l’historique d’impression ?",
+    "desktopChoiceLabel": "Base de données",
+    "localTitle": "Sur cet ordinateur (recommandé)",
+    "localText": "Une base de données locale dans votre dossier utilisateur. Rien d’autre à configurer.",
+    "serverTitle": "Sur un serveur MySQL ou MariaDB",
+    "serverText": "Partagez tout avec un serveur Tapeory, par exemple votre installation Docker.",
+    "creatingLocal": "Création de la base de données locale…"
   },
   "auth": {
     "signInTitle": "Se connecter",
@@ -583,5 +593,39 @@
     "roleUser": "Utilisateur",
     "openBanner": "Tout le monde sur votre réseau peut utiliser Tapeory. Créez un compte administrateur pour exiger une connexion.",
     "openBannerAction": "Créer un compte"
+  },
+  "desktop": {
+    "starting": "Démarrage de Tapeory…",
+    "engineFailedTitle": "Tapeory n’a pas pu démarrer",
+    "retry": "Réessayer",
+    "engineHint": "Le moteur de Tapeory : prépare les étiquettes et les envoie à vos imprimantes.",
+    "exportTemplate": "Exporter…",
+    "imageFailed": "L’image n’a pas pu être ajoutée : {{message}}",
+    "imagesFilter": "Images",
+    "importFilter": "Étiquettes P-touch Editor et modèles Tapeory",
+    "logs": "Fichiers journaux",
+    "saved": "Enregistré dans {{path}}.",
+    "templateSaved": "Modèle enregistré.",
+    "units": "Unités",
+    "usbChoose": "Choisir une imprimante…",
+    "usbNone": "Aucune imprimante USB trouvée. Branchez l’imprimante et allumez-la, puis actualisez la liste.",
+    "usbRefresh": "Actualiser la liste",
+    "time": {
+      "now": "à l’instant",
+      "minutesAgo_one": "il y a {{count}} minute",
+      "minutesAgo_other": "il y a {{count}} minutes",
+      "minutesAgo_many": "il y a {{count}} minutes",
+      "hoursAgo_one": "il y a {{count}} heure",
+      "hoursAgo_other": "il y a {{count}} heures",
+      "hoursAgo_many": "il y a {{count}} heures",
+      "daysAgo_one": "il y a {{count}} jour",
+      "daysAgo_other": "il y a {{count}} jours",
+      "daysAgo_many": "il y a {{count}} jours"
+    },
+    "updateNow": "Mettre à jour",
+    "updateDownloading": "Téléchargement de la mise à jour… {{percent}} %",
+    "updateFailed": "La mise à jour a échoué : {{message}}",
+    "updateManual": "Téléchargez la nouvelle version depuis la page de la version et remplacez cette copie.",
+    "updateRestarting": "Installation de la mise à jour — Tapeory redémarre dans un instant."
   }
 }

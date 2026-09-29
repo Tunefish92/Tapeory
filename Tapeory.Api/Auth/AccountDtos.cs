@@ -2,7 +2,8 @@ using Tapeory.Api.Data.Entities;
 
 namespace Tapeory.Api.Auth;
 
-public sealed record AuthStateResponse(bool HasUsers, CurrentUserResponse? User);
+/// <param name="Desktop">Running in the desktop app, where no accounts is the normal case.</param>
+public sealed record AuthStateResponse(bool HasUsers, CurrentUserResponse? User, bool Desktop = false);
 
 public sealed record CurrentUserResponse(
     int Id,

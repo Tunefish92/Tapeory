@@ -1,6 +1,8 @@
 using SkiaSharp;
 using Tapeory.Api.Data.Entities;
 
+using Tapeory.Api.Printing.Usb;
+
 namespace Tapeory.Api.Printing;
 
 public enum PrintStage
@@ -34,7 +36,8 @@ public sealed class BrotherPrinterDriver(
     PrinterRawSocketSender sender,
     IPrinterStatusReader statusReader,
     IppClient ipp,
-    ILogger<BrotherPrinterDriver> logger)
+    ILogger<BrotherPrinterDriver> logger,
+    IUsbPrinterPort? usb = null)
 {
     public TimeSpan PollInterval { get; init; } = TimeSpan.FromMilliseconds(500);
 
@@ -55,9 +58,8 @@ public sealed class BrotherPrinterDriver(
     {
         if (printer.ConnectionType == PrinterConnectionType.Usb)
         {
-            return PrintOutcome.Failure("Printing to USB printers isn't supported yet.");
+            return await PrintViaUsbAsync(printer, labels, media, resolution, cutMode, onStage, cancellationToken);
         }
-
 
         var target = PrinterNetworkResolver.Resolve(printer);
 
@@ -99,6 +101,35 @@ public sealed class BrotherPrinterDriver(
 
         await onStage(PrintStage.Printing);
         return await WaitUntilPrintedAsync(target.Host, before, labels.Count, media, cancellationToken);
+    }
+
+    /// <summary>
+    /// A printer on this computer's USB port. It gets the same raster data; there's no SNMP to
+    /// check the tape or follow the job, so the job counts as done once the printer took the data.
+    /// </summary>
+    private async Task<PrintOutcome> PrintViaUsbAsync(
+        Printer printer,
+        IReadOnlyList<SKBitmap> labels,
+        BrotherMedia media,
+        PrintResolution resolution,
+        CutMode cutMode,
+        Func<PrintStage, Task> onStage,
+        CancellationToken cancellationToken)
+    {
+        if (usb is null || string.IsNullOrWhiteSpace(printer.UsbIdentifier))
+        {
+            return PrintOutcome.Failure("No USB printer is chosen for this printer.");
+        }
+
+        var model = BrotherCatalog.Find(printer.Model);
+        var data = BrotherRasterEncoder.Encode(labels, model, media, resolution.Quality == PrintQuality.High, cutMode);
+
+        await onStage(PrintStage.Sending);
+        var sent = await usb.SendAsync(printer.UsbIdentifier, data, cancellationToken);
+
+        return sent.IsSuccess
+            ? PrintOutcome.SentUnconfirmed()
+            : PrintOutcome.Failure(sent.ErrorMessage ?? "Could not send to the printer.");
     }
 
     /// <summary>Why the printer shouldn't get this job (an error it reports, or the wrong tape), or

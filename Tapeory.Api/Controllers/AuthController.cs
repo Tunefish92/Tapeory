@@ -9,7 +9,7 @@ namespace Tapeory.Api.Controllers;
 /// <summary>Signing in and out, the first account, and changing your own password.</summary>
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(AccountService accounts, UserDirectory directory, AppDbContext db) : ControllerBase
+public sealed class AuthController(AccountService accounts, UserDirectory directory, AppDbContext db, IConfiguration configuration) : ControllerBase
 {
     /// <summary>Whether accounts exist yet, and who is signed in: tells the web UI to show the app,
     /// the sign-in page, or "create your account".</summary>
@@ -20,7 +20,10 @@ public sealed class AuthController(AccountService accounts, UserDirectory direct
         var hasUsers = await directory.HasUsersAsync(cancellationToken);
         var user = AuthClaims.UserId(User) is { } id ? await db.Users.FindAsync([id], cancellationToken) : null;
 
-        return Ok(new AuthStateResponse(hasUsers, user is null ? null : CurrentUserResponse.From(user)));
+        return Ok(new AuthStateResponse(
+            hasUsers,
+            user is null ? null : CurrentUserResponse.From(user),
+            Desktop.DesktopGuard.IsDesktop(configuration)));
     }
 
     /// <summary>Creates the first account, which is the administrator. Refused once any exists.</summary>

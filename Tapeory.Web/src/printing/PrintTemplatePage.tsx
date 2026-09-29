@@ -72,7 +72,8 @@ export function PrintTemplatePage() {
       .then((results) => {
         if (cancelled) return;
         setPrinters(results);
-        const defaultPrinter = results.find((p) => p.isDefault);
+        // Another computer's USB printer can't be printed to from here.
+        const defaultPrinter = results.find((p) => p.isDefault && p.onThisComputer !== false);
         if (defaultPrinter) {
           setPrinterSelection(String(defaultPrinter.id));
         }
@@ -226,8 +227,11 @@ export function PrintTemplatePage() {
             {t("printing.printTemplate.printer")}
             <select value={printerSelection} onChange={(e) => setPrinterSelection(e.target.value)}>
               {printers.map((printer) => (
-                <option key={printer.id} value={printer.id}>
+                <option key={printer.id} value={printer.id} disabled={printer.onThisComputer === false}>
                   {printer.name}
+                  {printer.onThisComputer === false
+                    ? t("printing.printTemplate.optionElsewhereSuffix", { name: printer.computerName ?? "?" })
+                    : ""}
                   {printer.isDefault ? t("printing.printTemplate.optionDefaultSuffix") : ""}
                   {!printer.enabled ? t("printing.printTemplate.optionDisabledSuffix") : ""}
                 </option>

@@ -8,6 +8,37 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+Tapeory as a desktop app for Windows and Linux, and printing to USB printers.
+
+### Added
+- A desktop app for Windows 10/11 (x64) and Linux (x86_64, glibc 2.35 or newer: Ubuntu 22.04,
+  Debian 12 and later), without Docker or a server:
+  a Windows setup (per user, no administrator rights) and a portable zip, a Linux AppImage and a
+  tar.gz, attached to each GitHub release. Everything it needs is included. It has the web app's
+  features and look (editor, `.lbx` import, printing, print history, printers, backups,
+  statistics, accounts, five languages, light and dark), written in Rust with egui, with
+  Tapeory's server running invisibly as its engine. The editor draws with the same fonts the
+  label is printed with; its tools sit in a column on the right, and the canvas and the
+  selected object's properties fit the window together, with the zoom fitted to the label. Tested on Windows and on Ubuntu 22.04 and 24.04, Debian 12, Fedora,
+  openSUSE Tumbleweed and Arch.
+- On first start, the desktop app keeps its data in a local database on the computer (SQLite, no
+  accounts) or in a MySQL/MariaDB database shared with a Tapeory server.
+- The Windows setup and the AppImage update themselves from Settings → About: the new release is
+  downloaded, checked against its SHA-256, installed and started.
+- USB printers: the desktop app prints to Brother printers plugged into the computer (on Linux
+  through `/dev/usb/lp*`, on Windows through the printer installed in Windows), listed by name in
+  the printer form. With a shared database, a USB printer belongs to the computer it's plugged
+  into, and only that computer prints its jobs.
+- A real-life test (`Tapeory.Desktop/tests/engine_realtest.py`) that runs the packaged engine
+  through every feature against a fake printer and leaves a sample database behind.
+- Tapeory's server runs on SQLite as well as MySQL; the test suite runs on both.
+- The update check lists the release's files and their checksums.
+
+### Changed
+- Database queries are no longer written to the log at the Information level, so the print
+  queue doesn't add a log line every second.
+- The server no longer writes to the Windows event log.
+
 ## [0.4.0] - 2026-09-27
 
 User accounts with administrator and user roles, and private and public templates.

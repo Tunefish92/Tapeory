@@ -3,8 +3,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Tapeory.Api.Data;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+/// <summary>
+/// Tapeory's database on MySQL/MariaDB, with the migrations in Data/Migrations.
+/// <see cref="SqliteAppDbContext"/> is the same model on SQLite, with its own migrations.
+/// </summary>
+public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
+
+    protected AppDbContext(DbContextOptions options)
+        : base(options)
+    {
+    }
+
     public DbSet<ApplicationSetting> ApplicationSettings => Set<ApplicationSetting>();
 
     public DbSet<Template> Templates => Set<Template>();
@@ -139,6 +153,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
             // Likewise for a deleted account: PrintedByName keeps who printed it.
             entity.Property(job => job.PrintedByName).HasMaxLength(100);
+            entity.Property(job => job.InstanceId).HasMaxLength(32);
             entity.HasOne(job => job.PrintedByUser)
                 .WithMany()
                 .HasForeignKey(job => job.PrintedByUserId)
@@ -167,6 +182,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(printer => printer.LabelMediaWidthMm).HasColumnType("decimal(6,2)");
             entity.Property(printer => printer.LabelMediaHeightMm).HasColumnType("decimal(6,2)");
             entity.Property(printer => printer.LastErrorMessage).HasColumnType("text");
+            entity.Property(printer => printer.InstanceId).HasMaxLength(32);
+            entity.Property(printer => printer.ComputerName).HasMaxLength(100);
         });
 
         modelBuilder.Entity<User>(entity =>

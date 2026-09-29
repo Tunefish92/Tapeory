@@ -43,7 +43,7 @@ public sealed class SetupControllerTests(TapeoryWebApplicationFactory configured
         Assert.False(health.GetProperty("databaseConnected").GetBoolean());
     }
 
-    [Fact]
+    [MySqlFact]
     public async Task TestConnection_ReportsWrongPassword()
     {
         var client = CreateUnconfiguredClient();
@@ -67,7 +67,7 @@ public sealed class SetupControllerTests(TapeoryWebApplicationFactory configured
         Assert.False((await client.GetFromJsonAsync<SetupStatus>("/api/setup/status", JsonOptions))!.Configured);
     }
 
-    [Fact]
+    [MySqlFact]
     public async Task Setup_SavesTheConnection_UnlocksTheApi_AndLocksItself()
     {
         var client = CreateUnconfiguredClient();

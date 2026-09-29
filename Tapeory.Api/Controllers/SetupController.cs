@@ -1,3 +1,4 @@
+using Tapeory.Api.Desktop;
 using Tapeory.Api.Setup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,30 @@ namespace Tapeory.Api.Controllers;
 [ApiController]
 [AllowAnonymous]
 [Route("api/setup")]
-public sealed class SetupController(DatabaseConfigStore store, DatabaseSetupService setup) : ControllerBase
+public sealed class SetupController(DatabaseConfigStore store, DatabaseSetupService setup, IConfiguration configuration) : ControllerBase
 {
     [HttpGet("status")]
-    public IActionResult GetStatus() => Ok(new SetupStatusResponse(store.IsConfigured));
+    public IActionResult GetStatus() =>
+        Ok(new SetupStatusResponse(store.IsConfigured, DesktopGuard.IsDesktop(configuration)));
+
+    /// <summary>The desktop app's "On this computer": a local database, no server needed.</summary>
+    [HttpPost("database/local")]
+    public async Task<IActionResult> ConfigureLocalDatabase(CancellationToken cancellationToken)
+    {
+        if (!DesktopGuard.IsDesktop(configuration))
+        {
+            return NotFound();
+        }
+
+        var result = await setup.ConfigureSqliteAsync(cancellationToken);
+
+        return result.Outcome switch
+        {
+            DatabaseSetupOutcome.Configured => Ok(new SetupStatusResponse(true, Desktop: true)),
+            DatabaseSetupOutcome.AlreadyConfigured => AlreadyConfigured(),
+            _ => Problem(title: "Could not create the local database.", detail: result.ErrorMessage, statusCode: StatusCodes.Status500InternalServerError)
+        };
+    }
 
     [HttpPost("database/test")]
     public async Task<IActionResult> TestDatabase(DatabaseSetupRequest request, CancellationToken cancellationToken)

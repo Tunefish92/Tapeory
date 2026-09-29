@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Tapeory.Api.Printing;
+using Tapeory.Api.Printing.Usb;
 using Testcontainers.MySql;
 
 namespace Tapeory.Api.Tests.Integration;
@@ -22,12 +23,20 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
 
     private readonly string _storagePath = Directory.CreateTempSubdirectory("tapeory-tests-").FullName;
 
+    /// <summary>
+    /// TAPEORY_TEST_DATABASE=sqlite runs every integration test against a local SQLite file
+    /// instead of MySQL (and without Docker). Tests that only make sense on MySQL use
+    /// <see cref="MySqlFactAttribute"/>.
+    /// </summary>
+    public static bool UseSqlite { get; } =
+        string.Equals(Environment.GetEnvironmentVariable("TAPEORY_TEST_DATABASE"), "sqlite", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Lets setup tests enter this container's details into an unconfigured host.</summary>
-    public string MySqlHost => _mysql.Hostname;
+    public string MySqlHost => UseSqlite ? "localhost" : _mysql.Hostname;
 
-    public int MySqlPort => _mysql.GetMappedPublicPort(MySqlBuilder.MySqlPort);
+    public int MySqlPort => UseSqlite ? MySqlBuilder.MySqlPort : _mysql.GetMappedPublicPort(MySqlBuilder.MySqlPort);
 
-    public Task InitializeAsync() => _mysql.StartAsync();
+    public Task InitializeAsync() => UseSqlite ? Task.CompletedTask : _mysql.StartAsync();
 
     async Task IAsyncLifetime.DisposeAsync()
     {
@@ -47,7 +56,7 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:Default"] = _mysql.GetConnectionString(),
+                [UseSqlite ? "TAPEORY_DATABASE" : "ConnectionStrings:Default"] = UseSqlite ? "sqlite" : _mysql.GetConnectionString(),
                 ["TAPEORY_STORAGE_PATH"] = _storagePath,
                 ["TAPEORY_AUTO_MIGRATE"] = "true"
             });
@@ -60,18 +69,47 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<IPrinterStatusReader>(PrinterStatus);
+            services.AddSingleton<IUsbPrinterPort>(UsbPort);
             services.AddSingleton(new IppClient(new HttpClient(PrintServer)));
             services.AddSingleton(provider => new BrotherPrinterDriver(
                 provider.GetRequiredService<PrinterRawSocketSender>(),
                 provider.GetRequiredService<IPrinterStatusReader>(),
                 provider.GetRequiredService<IppClient>(),
-                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BrotherPrinterDriver>>())
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BrotherPrinterDriver>>(),
+                provider.GetRequiredService<IUsbPrinterPort>())
             {
                 PollInterval = TimeSpan.FromMilliseconds(20),
                 BaseTimeout = TimeSpan.FromSeconds(2),
                 TimeoutPerLabel = TimeSpan.Zero
             });
         });
+    }
+
+    /// <summary>The (fake) USB printers on "this computer", and what was sent to them.</summary>
+    public FakeUsbPort UsbPort { get; } = new();
+
+    public sealed class FakeUsbPort : IUsbPrinterPort
+    {
+        public const string Device = "/dev/usb/lp0";
+
+        public List<byte[]> Sent { get; } = [];
+
+        public IReadOnlyList<UsbPrinterInfo> List() => [new(Device, "Brother PT-P750W", "PT-P750W")];
+
+        public Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken)
+        {
+            if (identifier != Device)
+            {
+                return Task.FromResult(RawSendResult.Failure($"{identifier} isn't connected."));
+            }
+
+            lock (Sent)
+            {
+                Sent.Add(data);
+            }
+
+            return Task.FromResult(RawSendResult.Success());
+        }
     }
 
     /// <summary>What the (fake) printer reports over SNMP. Reset it after a test that scripts it.</summary>

@@ -1,144 +1,17 @@
 using Tapeory.Api;
 using Tapeory.Api.Auth;
-using Tapeory.Api.Backups;
-using Tapeory.Api.Data;
-using Tapeory.Api.Import;
-using Tapeory.Api.PrintJobs;
-using Tapeory.Api.Printers;
-using Tapeory.Api.Printing;
-using Tapeory.Api.Rendering;
-using Tapeory.Api.Settings;
-using Tapeory.Api.Setup;
-using Tapeory.Api.Stats;
-using Tapeory.Api.Storage;
-using Tapeory.Api.Templates;
-using Tapeory.Api.Updates;
-using Microsoft.EntityFrameworkCore;
+using Tapeory.Api.Desktop;
+
+// `--engine`: the engine under the Rust desktop app (see EngineMode).
+if (args is [EngineMode.Argument, ..])
+{
+    return await EngineMode.RunAsync();
+}
 
 // `tapeory reset-password <user>` runs a command instead of the server.
 var command = args is [ResetPasswordCommand.Name, ..] ? args : null;
 
-var builder = WebApplication.CreateBuilder(command is null ? args : []);
-
-builder.Services.AddControllers();
-builder.Services.AddProblemDetails();
-builder.Services.AddSingleton<StorageService>();
-builder.Services.AddSingleton<FileStorageService>();
-builder.Services.AddScoped<TemplateService>();
-builder.Services.AddScoped<LbxImportService>();
-builder.Services.AddSingleton<LabelRenderer>();
-builder.Services.AddScoped<UploadedFileImageResolver>();
-builder.Services.AddScoped<PrintJobService>();
-builder.Services.AddHostedService<PrintJobProcessor>();
-builder.Services.AddScoped<PrinterService>();
-builder.Services.AddScoped<StatsService>();
-builder.Services.AddScoped<AppSettingsService>();
-builder.Services.AddSingleton<FontCatalog>();
-builder.Services.AddSingleton<PrinterConnectionTester>();
-builder.Services.AddSingleton<PrinterRawSocketSender>();
-builder.Services.AddSingleton<IPrinterStatusReader, SnmpPrinterStatusReader>();
-builder.Services.AddSingleton(new IppClient(new HttpClient { Timeout = TimeSpan.FromSeconds(30) }));
-builder.Services.AddSingleton<BrotherPrinterDriver>();
-builder.Services.AddSingleton<DatabaseConfigStore>();
-builder.Services.AddSingleton<DatabaseSetupService>();
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<BackupStore>();
-builder.Services.AddSingleton<DatabaseBackupService>();
-builder.Services.AddScoped<LabelBackupService>();
-builder.Services.AddTapeoryAuth();
-builder.Services.AddSingleton(services => new UpdateChecker(
-    new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
-    services.GetRequiredService<TimeProvider>()));
-
-// The connection string is read per scope rather than once at startup: on a fresh install there
-// is none until the first-run setup saves one, and the app switches over without a restart.
-builder.Services.AddDbContext<AppDbContext>((services, options) =>
-{
-    var connectionString = services.GetRequiredService<DatabaseConfigStore>().ConnectionString;
-
-    if (connectionString is null)
-    {
-        // Lets the context be constructed (and `dotnet ef migrations add` run); any actual
-        // query would fail, which the setup-required middleware below prevents.
-        options.UseMySql(DatabaseSetupService.ServerVersion);
-    }
-    else
-    {
-        options.UseMySql(connectionString, DatabaseSetupService.ServerVersion);
-    }
-});
-
-var app = builder.Build();
-
-app.UseExceptionHandler();
-
-// Serves the built React app (copied into wwwroot by the production Docker image) so the API
-// and web UI ship as a single container. In local development wwwroot is empty and these two
-// calls are inert — the frontend is served separately by the Vite dev server instead.
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-app.UseAuthentication();
-app.UseCsrfCheck();
-app.UseAuthorization();
-
-// Until the database connection has been entered, only setup and health work; every other API
-// call answers 503 so the web UI knows to show the setup screen.
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path;
-    var needsDatabase = path.StartsWithSegments("/api")
-        && !path.StartsWithSegments("/api/setup")
-        && !path.StartsWithSegments("/api/health");
-
-    if (needsDatabase && !context.RequestServices.GetRequiredService<DatabaseConfigStore>().IsConfigured)
-    {
-        await Results.Problem(
-            title: "The database connection has not been set up yet.",
-            detail: "Open Tapeory in a browser to enter the database connection details.",
-            statusCode: StatusCodes.Status503ServiceUnavailable,
-            extensions: new Dictionary<string, object?> { ["setupRequired"] = true })
-            .ExecuteAsync(context);
-        return;
-    }
-
-    await next(context);
-});
-
-app.MapControllers();
-
-app.MapGet("/api/health", async (StorageService storage, DatabaseConfigStore database, AppDbContext db) =>
-{
-    var canConnect = database.IsConfigured && await db.Database.CanConnectAsync();
-
-    return Results.Ok(new
-    {
-        status = "ok",
-        storagePath = storage.RootPath,
-        databaseConfigured = database.IsConfigured,
-        databaseConnected = canConnect
-    });
-}).AllowAnonymous();
-
-// Client-side routing fallback: any GET that isn't an API route or a real static file falls
-// through to index.html so React Router can handle it.
-app.MapFallbackToFile("index.html").AllowAnonymous();
-
-app.Lifetime.ApplicationStarted.Register(() =>
-{
-    app.Services.GetRequiredService<StorageService>().EnsureDirectories();
-});
-
-if (!app.Services.GetRequiredService<DatabaseConfigStore>().IsConfigured)
-{
-    app.Logger.LogWarning(
-        "No database connection configured yet. Open the web UI to enter it; migrations run once it's saved.");
-}
-else if (app.Configuration.GetValue("TAPEORY_AUTO_MIGRATE", true))
-{
-    using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
-}
+var app = TapeoryApp.Build(command is null ? args : []);
 
 if (command is not null)
 {

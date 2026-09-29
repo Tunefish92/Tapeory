@@ -14,6 +14,10 @@ MariaDB database.
 > Printing works with 34 Brother P-touch (PT) and QL label printers in Brother's raster format,
 > with live status over SNMP; see the [supported printers](https://github.com/Tunefish92/Tapeory/blob/main/docs/printers.md).
 
+No server? Tapeory also runs as a **desktop app for Windows and Linux**, with everything
+included: [download it from the latest release](https://github.com/Tunefish92/Tapeory/releases/latest).
+It can also share its database with this container.
+
 Source, full documentation and issues: **https://github.com/Tunefish92/Tapeory**
 Questions and help: **https://github.com/Tunefish92/Tapeory/discussions**
 

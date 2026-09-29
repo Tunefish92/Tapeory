@@ -16,7 +16,8 @@ public sealed record DatabaseSetupRequest(string? Host, int? Port, string? Datab
         Password ?? "");
 }
 
-public sealed record SetupStatusResponse(bool Configured);
+/// <param name="Desktop">Tapeory runs in the desktop app, which can also use a local database.</param>
+public sealed record SetupStatusResponse(bool Configured, bool Desktop = false);
 
 /// <param name="DatabaseExists">False when the server is reachable but the database doesn't
 /// exist yet — setup then creates it (if the user is allowed to).</param>
@@ -73,6 +74,45 @@ public sealed class DatabaseSetupService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return Fail(settings, ex);
+        }
+    }
+
+    /// <summary>The desktop app's "On this computer": a SQLite file in the data folder.</summary>
+    public async Task<DatabaseSetupResult> ConfigureSqliteAsync(CancellationToken cancellationToken)
+    {
+        await _configureGate.WaitAsync(cancellationToken);
+
+        try
+        {
+            if (store.IsConfigured)
+            {
+                return new DatabaseSetupResult(DatabaseSetupOutcome.AlreadyConfigured);
+            }
+
+            try
+            {
+                var options = new DbContextOptionsBuilder<SqliteAppDbContext>()
+                    .UseSqlite($"Data Source={store.SqlitePath}")
+                    .Options;
+
+                await using var db = new SqliteAppDbContext(options);
+                await db.Database.MigrateAsync(CancellationToken.None);
+                await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Creating the local database failed.");
+                return new DatabaseSetupResult(
+                    DatabaseSetupOutcome.Failed,
+                    $"Creating the local database at {store.SqlitePath} failed: {ex.Message}");
+            }
+
+            store.SaveSqlite();
+            return new DatabaseSetupResult(DatabaseSetupOutcome.Configured);
+        }
+        finally
+        {
+            _configureGate.Release();
         }
     }
 

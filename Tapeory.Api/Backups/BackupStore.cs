@@ -69,9 +69,9 @@ public sealed class BackupStore(StorageService storage, TimeProvider time)
     /// Runs <paramref name="write"/> against a temporary file and only gives it its backup name
     /// once writing succeeded, so a failed or half-written backup never shows up in the list.
     /// </summary>
-    public async Task<BackupInfo> WriteAsync(BackupKind kind, bool beforeRestore, Func<string, Task> write)
+    public async Task<BackupInfo> WriteAsync(BackupKind kind, bool beforeRestore, Func<string, Task> write, string? extension = null)
     {
-        var fileName = BackupFileNames.Create(kind, time.GetUtcNow(), beforeRestore);
+        var fileName = BackupFileNames.Create(kind, time.GetUtcNow(), beforeRestore, extension);
         var path = StoragePathGuard.ResolveWithinRoot(GetDirectory(kind), fileName);
         var partialPath = path + PartialSuffix;
 

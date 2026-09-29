@@ -48,7 +48,11 @@ public sealed record PrinterResponse(
     // The cutting options this model offers, e.g. no half cut on QL printers.
     List<string> CutModes,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    // A USB printer's computer; null for network printers.
+    string? ComputerName = null,
+    // False for a USB printer connected to another computer: it can't be printed to from here.
+    bool OnThisComputer = true);
 
 public sealed record PrintResolutionResponse(string Quality, int HorizontalDpi, int VerticalDpi);
 

@@ -113,13 +113,57 @@ public sealed class DatabaseConfigStoreTests : IDisposable
         Assert.Equal(new DatabaseConnectionSettings("db", 3306, "tapeory", "user", " secret "), settings);
     }
 
-    private DatabaseConfigStore CreateStore(string? connectionString = null)
+    [Fact]
+    public void SaveSqlite_UsesALocalDatabaseFile_AndIsLoadedOnNextStart()
+    {
+        var store = CreateStore();
+
+        store.SaveSqlite();
+
+        Assert.Equal(DatabaseProvider.Sqlite, store.Provider);
+        Assert.Contains(Path.Combine(_storagePath, "tapeory.db"), store.ConnectionString);
+        var reloaded = CreateStore();
+        Assert.Equal(DatabaseProvider.Sqlite, reloaded.Provider);
+        Assert.Equal(store.ConnectionString, reloaded.ConnectionString);
+    }
+
+    [Fact]
+    public void SavingMySqlSettings_SwitchesBackFromSqlite()
+    {
+        var store = CreateStore();
+        store.SaveSqlite();
+
+        store.Save(ValidSettings);
+
+        Assert.Equal(DatabaseProvider.MySql, store.Provider);
+        Assert.Equal(DatabaseProvider.MySql, CreateStore().Provider);
+    }
+
+    [Fact]
+    public void TapeoryDatabaseSqlite_SkipsTheSetup()
+    {
+        var store = CreateStore(database: "sqlite");
+
+        Assert.True(store.IsConfigured);
+        Assert.Equal(DatabaseProvider.Sqlite, store.Provider);
+    }
+
+    [Fact]
+    public void AConnectionString_WinsOverTapeoryDatabase()
+    {
+        var store = CreateStore("Server=override;Database=tapeory", database: "sqlite");
+
+        Assert.Equal(DatabaseProvider.MySql, store.Provider);
+    }
+
+    private DatabaseConfigStore CreateStore(string? connectionString = null, string? database = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["TAPEORY_STORAGE_PATH"] = _storagePath,
-                ["ConnectionStrings:Default"] = connectionString
+                ["ConnectionStrings:Default"] = connectionString,
+                ["TAPEORY_DATABASE"] = database
             })
             .Build();
 

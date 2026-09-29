@@ -1,12 +1,21 @@
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Instances;
 using Tapeory.Api.Printing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Tapeory.Api.Printers;
 
-public sealed class PrinterService(AppDbContext db)
+public sealed class PrinterService(AppDbContext db, TapeoryInstance instance)
 {
+    /// <summary>A USB printer belongs to the computer it's added (or last edited) on.</summary>
+    private void BindToComputer(Printer printer)
+    {
+        var usb = printer.ConnectionType == PrinterConnectionType.Usb;
+        printer.InstanceId = usb ? instance.Id : null;
+        printer.ComputerName = usb ? instance.Name : null;
+    }
+
     public Task<List<Printer>> ListAsync(CancellationToken cancellationToken) =>
         db.Printers.OrderBy(printer => printer.Name).ToListAsync(cancellationToken);
 
@@ -34,6 +43,7 @@ public sealed class PrinterService(AppDbContext db)
             Enabled = request.Enabled,
             IsDefault = isFirstPrinter
         };
+        BindToComputer(printer);
 
         db.Printers.Add(printer);
         await db.SaveChangesAsync(cancellationToken);
@@ -62,6 +72,7 @@ public sealed class PrinterService(AppDbContext db)
         printer.LabelMediaHeightMm = request.LabelMediaHeightMm;
         printer.Enabled = request.Enabled;
         printer.UpdatedAt = DateTimeOffset.UtcNow;
+        BindToComputer(printer);
 
         await db.SaveChangesAsync(cancellationToken);
 

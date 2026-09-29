@@ -46,6 +46,10 @@ export interface PrinterResponse {
   resolutions: PrintResolution[];
   /** The cutting options this printer's model offers. */
   cutModes?: PrinterCutMode[];
+  /** A USB printer's computer; null for network printers. */
+  computerName?: string | null;
+  /** False for a USB printer connected to another computer: only Tapeory there can print to it. */
+  onThisComputer?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,6 +158,18 @@ export async function setDefaultPrinter(id: number): Promise<void> {
 
 export async function testPrinterConnection(id: number): Promise<TestConnectionResponse> {
   const response = await fetch(`${API_BASE_URL}/printers/${id}/test-connection`, { method: "POST" });
+  return parseJsonOrThrow(response);
+}
+
+/** A printer connected to the server's computer by USB (on Windows: installed in Windows). */
+export interface UsbPrinterInfo {
+  identifier: string;
+  name: string;
+  model: string | null;
+}
+
+export async function listUsbPrinters(): Promise<UsbPrinterInfo[]> {
+  const response = await fetch(`${API_BASE_URL}/printers/usb`);
   return parseJsonOrThrow(response);
 }
 

@@ -72,6 +72,10 @@ namespace Tapeory.Api.Data.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
+                    b.Property<string>("InstanceId")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<string>("PrintedByName")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
@@ -157,6 +161,10 @@ namespace Tapeory.Api.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("ComputerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<int>("ConnectionType")
                         .HasColumnType("int");
 
@@ -165,6 +173,10 @@ namespace Tapeory.Api.Data.Migrations
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("InstanceId")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("tinyint(1)");

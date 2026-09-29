@@ -1,13 +1,15 @@
 using System.Net.Sockets;
 using Tapeory.Api.Data.Entities;
 
+using Tapeory.Api.Printing.Usb;
+
 namespace Tapeory.Api.Printing;
 
 /// <summary>Checks whether a printer's configured network address is reachable, by opening (and
 /// immediately closing) a TCP connection. This is protocol-agnostic — it confirms something is
 /// listening on that host:port, not that it's specifically a Brother printer or that it will
 /// accept a print job correctly.</summary>
-public sealed class PrinterConnectionTester(IppClient ipp)
+public sealed class PrinterConnectionTester(IppClient ipp, IUsbPrinterPort? usb = null)
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
 
@@ -16,8 +18,11 @@ public sealed class PrinterConnectionTester(IppClient ipp)
     {
         if (printer.ConnectionType == PrinterConnectionType.Usb)
         {
-            return ConnectionTestResult.Failure(
-                "USB connection testing isn't supported yet — verify the printer is connected and powered on.");
+            // Connected means the system lists it right now.
+            return usb?.List().Any(found => found.Identifier == printer.UsbIdentifier) == true
+                ? ConnectionTestResult.Success()
+                : ConnectionTestResult.Failure(
+                    $"{printer.UsbIdentifier} isn't connected. Check the USB cable and that the printer is switched on.");
         }
 
         var target = PrinterNetworkResolver.Resolve(printer);

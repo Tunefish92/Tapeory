@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Tapeory
+Comment=Design and print Brother P-touch labels
+Exec=tapeory
+Icon=tapeory
+Categories=Office;Graphics;
+Terminal=false
+StartupWMClass=tapeory
