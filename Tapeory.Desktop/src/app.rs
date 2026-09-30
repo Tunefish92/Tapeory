@@ -81,6 +81,8 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> App {
+        // The renderer works: from here on, errors don't mean "try another renderer".
+        crate::STARTED.store(true, std::sync::atomic::Ordering::SeqCst);
         let data_folder = engine::data_folder();
         let folder = data_folder.clone();
         let task = Task::spawn(&cc.egui_ctx, move || Engine::start(&folder));

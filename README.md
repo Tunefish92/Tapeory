@@ -120,7 +120,7 @@ On first start, Tapeory asks where to keep your data:
 
 The app has the same features as the web app (label editor, `.lbx` import, printing, print
 history, printers, backups, statistics, accounts) plus printing to **USB printers** plugged into
-the computer. It is available in the same five languages, in light and dark. The editor draws
+the computer (on Linux for now, see below). It is available in the same five languages, in light and dark. The editor draws
 with the same font files the printed label is rendered with, so what you see is what prints.
 Tested on Windows and on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
 
@@ -131,7 +131,8 @@ instead. Your data stays where it is when updating or uninstalling.
 
 Good to know:
 
-- Windows builds aren't code-signed, so SmartScreen may warn on first start: choose
+- Windows builds aren't code-signed yet (they will be, see
+  [Code signing policy](#code-signing-policy)), so SmartScreen may warn on first start: choose
   **More info → Run anyway**.
 - Linux needs glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Linux Mint 21 or later, and current
   Fedora, openSUSE Tumbleweed and Arch.
@@ -139,8 +140,10 @@ Good to know:
   KDE, Xfce, Cinnamon, MATE) has. The AppImage also needs FUSE (`libfuse2` on older
   distributions); without it, run it with `--appimage-extract-and-run` or use the tar.gz.
 - USB printing on Linux needs your user in the `lp` group
-  (`sudo usermod -aG lp $USER`, then sign out and in again). On Windows, Tapeory prints to the
-  printer as Windows knows it, so install Brother's driver for the printer first.
+  (`sudo usermod -aG lp $USER`, then sign out and in again).
+- USB printing on Windows is switched off for now: Windows Defender mistook the code that sends
+  jobs to Windows printers for an exploit. It comes back once the Windows builds are code-signed.
+  Printers on the network work on Windows as usual.
 - With a shared database, each USB printer belongs to the computer it's plugged into: other
   computers see it but can't print to it, and their print jobs never end up on it.
 - Logs are in the data folder under `logs/` (Settings → About shows the path).
@@ -449,6 +452,31 @@ It's entirely voluntary and a thank-you only: it doesn't buy features, priority 
 warranty, and the software stays under the MIT license either way. Please don't send money as
 "Friends and Family" on PayPal.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+The Windows programs and setup of each release are built from this repository by GitHub Actions
+and signed there; Windows shows "SignPath Foundation" as their publisher. Only Tapeory's own
+programs are signed (`tapeory.exe`, `Tapeory.Api.exe`, `Tapeory.Api.dll` and the setup), not
+the third-party libraries shipped with them.
+
+- Committers and reviewers: [Tunefish92](https://github.com/Tunefish92)
+- Approvers: [Tunefish92](https://github.com/Tunefish92)
+
+### Privacy
+
+Tapeory doesn't collect data and sends nothing to its authors. It contacts only:
+
+- **GitHub**, to check for a new release (`api.github.com`, when you open the Settings page or
+  Settings → About in the desktop app) and, when you choose **Update now**, to download it;
+- the printers, print servers and database server you set up yourself.
+
+## License
+
+Tapeory is released under the [MIT License](LICENSE).
+
 ## Known limitations
 
 - **Only Brother PT and QL printers with a published raster protocol can print** (34 models, see
@@ -457,7 +485,7 @@ warranty, and the software stays under the MIT license either way. Please don't 
 - **Tested on real hardware: the PT-P750W.** QL and 360 dpi P-touch printing follows Brother's
   Raster Command References exactly, but hasn't been tried on those printers yet. Reports are
   welcome in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions).
-- **USB-only models print from the computer they're plugged into**: with the desktop app, or
+- **USB-only models print from the computer they're plugged into**: with the desktop app on Linux, or
   through a CUPS server with a raw queue; a Docker container needs the device passed in
   (`--device /dev/usb/lp0`).
 - **Print status needs SNMP.** Tapeory reads it with the `public` community, which Brother
@@ -465,9 +493,9 @@ warranty, and the software stays under the MIT license either way. Please don't 
 - **Tape detection needs SNMP too.** Behind a CUPS server it works when the queue prints to the
   printer's network address (socket://, ipp://, lpd://), not for USB or dnssd:// queues; without
   it, the tape width simply follows the label height.
-- **USB printers** print from the computer they're plugged into (on Linux through
-  `/dev/usb/lp*`, which needs the user in the `lp` group; on Windows through the printer
-  installed in Windows). There's no tape detection or print confirmation over USB: a job counts
+- **USB printers** print from the computer they're plugged into, through `/dev/usb/lp*` on
+  Linux (the user needs to be in the `lp` group); on Windows, USB printing is switched off for
+  now. There's no tape detection or print confirmation over USB: a job counts
   as done once the printer took it.
 - **`.lbx` import** converts text, merge fields, images, barcodes, rectangles, ellipses, lines,
   and frames (as simple borders). Free-form shapes and a few rare barcode types are reported as
@@ -516,7 +544,9 @@ cd Tapeory.Desktop && cargo run                   # the app
 are built by `Tapeory.Desktop/packaging/linux/build.sh <version>` (tar.gz and AppImage) and, on
 Windows, by the CI steps with `Tapeory.Desktop/packaging/windows/tapeory.iss` (Inno Setup).
 `TAPEORY_UPDATE_FEED` points the update check at another "latest release" address, to try an
-update before publishing it.
+update before publishing it. `TAPEORY_RENDERER` picks the renderers to try, in order (`wgpu`,
+`glow`, or e.g. `glow,wgpu`); by default Windows tries Direct3D through wgpu first and Linux
+OpenGL through glow.
 
 The Windows packages can also be built on Linux, with Docker:
 

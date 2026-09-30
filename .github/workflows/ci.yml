@@ -162,8 +162,49 @@ jobs:
           New-Item -ItemType Directory -Force build/Tapeory | Out-Null
           Copy-Item Tapeory.Desktop/target/release/tapeory.exe build/Tapeory/
           Move-Item build/engine build/Tapeory/engine
-          New-Item -ItemType Directory -Force dist | Out-Null
-          Compress-Archive -Path build/Tapeory -DestinationPath "dist/Tapeory-$env:TAPEORY_VERSION-windows-x64.zip"
+
+      # Releases are signed by SignPath Foundation (see "Code signing policy" in the README), once
+      # the repository variable SIGNPATH_ORGANIZATION_ID and the secret SIGNPATH_API_TOKEN are set.
+      # Each request waits for a maintainer's approval in SignPath. The artifact configurations
+      # are in Tapeory.Desktop/packaging/windows/signpath/.
+      - name: Signing enabled?
+        id: signing
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* && -n "${{ vars.SIGNPATH_ORGANIZATION_ID }}" ]]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Upload the programs for signing
+        id: unsigned-files
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-files
+          path: build/Tapeory/
+          retention-days: 1
+
+      - name: Sign the programs
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: tapeory
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: app-files
+          github-artifact-id: ${{ steps.unsigned-files.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/signed
+
+      - name: Use the signed programs
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          Remove-Item build/Tapeory -Recurse
+          Move-Item build/signed build/Tapeory
+          Get-AuthenticodeSignature build/Tapeory/tapeory.exe, build/Tapeory/engine/Tapeory.Api.exe, build/Tapeory/engine/Tapeory.Api.dll |
+            ForEach-Object { if ($_.Status -ne 'Valid') { throw "$($_.Path) isn't signed: $($_.Status)" } }
 
       - name: Smoke test
         shell: pwsh
@@ -181,11 +222,52 @@ jobs:
           $engine.StandardInput.Close()
           if (-not $engine.WaitForExit(15000)) { throw "The engine didn't stop when its input closed." }
 
-      - name: Installer
+      - name: Zip and installer
+        shell: pwsh
+        env:
+          TAPEORY_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path build/Tapeory -DestinationPath "dist/Tapeory-$env:TAPEORY_VERSION-windows-x64.zip"
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:TAPEORY_VERSION" "/DSourceDir=$PWD\build\Tapeory" "/DOutputDir=$PWD\build\setup" Tapeory.Desktop\packaging\windows\tapeory.iss
+
+      - name: Upload the setup for signing
+        id: unsigned-setup
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-setup
+          path: build/setup/
+          retention-days: 1
+
+      - name: Sign the setup
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: tapeory
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: setup
+          github-artifact-id: ${{ steps.unsigned-setup.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/setup-signed
+
+      - name: Use the signed setup
+        if: steps.signing.outputs.enabled == 'true'
         shell: pwsh
         run: |
-          choco install innosetup --no-progress -y
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.version.outputs.version }}" "/DSourceDir=$PWD\build\Tapeory" "/DOutputDir=$PWD\dist" Tapeory.Desktop\packaging\windows\tapeory.iss
+          $setup = Get-ChildItem build/setup-signed -Filter *.exe
+          if ((Get-AuthenticodeSignature $setup.FullName).Status -ne 'Valid') { throw "The setup isn't signed." }
+          Remove-Item build/setup -Recurse
+          Move-Item build/setup-signed build/setup
+
+      - name: Collect
+        shell: pwsh
+        run: Copy-Item build/setup/*.exe dist/
 
       - uses: actions/upload-artifact@v7
         with:

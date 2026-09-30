@@ -22,6 +22,13 @@ AppName=Tapeory
 AppVersion={#AppVersion}
 AppVerName=Tapeory {#AppVersion}
 AppPublisher=Tunefish
+; The setup's own version details (Explorer → Properties → Details).
+VersionInfoVersion={#AppVersion}
+VersionInfoProductName=Tapeory
+VersionInfoProductVersion={#AppVersion}
+VersionInfoProductTextVersion={#AppVersion}
+VersionInfoCompany=Tunefish
+VersionInfoCopyright=Copyright (c) 2026 Tunefish, MIT License
 AppPublisherURL=https://github.com/Tunefish92/Tapeory
 AppSupportURL=https://github.com/Tunefish92/Tapeory/issues
 AppUpdatesURL=https://github.com/Tunefish92/Tapeory/releases

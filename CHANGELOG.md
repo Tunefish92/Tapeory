@@ -25,10 +25,20 @@ Tapeory as a desktop app for Windows and Linux, and printing to USB printers.
   accounts) or in a MySQL/MariaDB database shared with a Tapeory server.
 - The Windows setup and the AppImage update themselves from Settings → About: the new release is
   downloaded, checked against its SHA-256, installed and started.
-- USB printers: the desktop app prints to Brother printers plugged into the computer (on Linux
-  through `/dev/usb/lp*`, on Windows through the printer installed in Windows), listed by name in
-  the printer form. With a shared database, a USB printer belongs to the computer it's plugged
-  into, and only that computer prints its jobs.
+- USB printers: the desktop app on Linux prints to Brother printers plugged into the computer
+  (through `/dev/usb/lp*`), listed by name in the printer form. With a shared database, a USB
+  printer belongs to the computer it's plugged into, and only that computer prints its jobs.
+  USB printing on Windows is switched off for now: Windows Defender flagged the code that sends
+  jobs to Windows printers as an exploit (a false positive). It returns once the Windows builds
+  are code-signed.
+- The desktop app draws with Direct3D on Windows (through wgpu), falling back to OpenGL, and the
+  other way round on Linux, so it also opens on computers without a working OpenGL driver, e.g.
+  virtual machines. If no renderer works, it says so in a message box instead of failing
+  silently, and startup problems and crashes are written to `logs/app.log`.
+- Preparation for code signing through SignPath Foundation: releases are signed in CI once the
+  project is approved; the README has the code signing policy and a privacy section, and the
+  Windows programs and setup carry the product name and version.
+- A `LICENSE` file (MIT).
 - A real-life test (`Tapeory.Desktop/tests/engine_realtest.py`) that runs the packaged engine
   through every feature against a fake printer and leaves a sample database behind.
 - Tapeory's server runs on SQLite as well as MySQL; the test suite runs on both.
@@ -37,6 +47,10 @@ Tapeory as a desktop app for Windows and Linux, and printing to USB printers.
 ### Changed
 - Database queries are no longer written to the log at the Information level, so the print
   queue doesn't add a log line every second.
+- Libraries updated, none with known vulnerabilities: EF Core 9.0.20, MySqlConnector 2.6.2,
+  SkiaSharp 4.153.1, the test packages, the web app's build tools, and in the desktop app
+  reqwest 0.13, rfd 0.17, dirs 7 and sha2 0.11. EF Core stays on 9 until there's a MySQL provider
+  for EF Core 10 (see `docs/feature-requests/mysql-provider-for-ef-core-10.md`).
 - The server no longer writes to the Windows event log.
 
 ## [0.4.0] - 2026-09-27

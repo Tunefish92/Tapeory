@@ -16,10 +16,9 @@ public interface IUsbPrinterPort
 
     Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken);
 
+    // Windows (WindowsUsbPrinterPort) is switched off for now, see Tapeory.Api.csproj.
     public static IUsbPrinterPort ForThisSystem() =>
-        OperatingSystem.IsWindows() ? new WindowsUsbPrinterPort()
-        : OperatingSystem.IsLinux() ? new LinuxUsbPrinterPort()
-        : new UnsupportedUsbPrinterPort();
+        OperatingSystem.IsLinux() ? new LinuxUsbPrinterPort() : new UnsupportedUsbPrinterPort();
 }
 
 internal sealed class UnsupportedUsbPrinterPort : IUsbPrinterPort
@@ -27,5 +26,5 @@ internal sealed class UnsupportedUsbPrinterPort : IUsbPrinterPort
     public IReadOnlyList<UsbPrinterInfo> List() => [];
 
     public Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken) =>
-        Task.FromResult(RawSendResult.Failure("USB printing is available on Windows and Linux."));
+        Task.FromResult(RawSendResult.Failure("USB printing is only available on Linux for now."));
 }

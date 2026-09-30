@@ -109,6 +109,8 @@ public sealed class UsbPrinterPortTests : IDisposable
         Assert.Equal(new Ieee1284Id(manufacturer, model), Ieee1284Id.Parse(text));
     }
 
+    // WindowsUsbPrinterPort is switched off for now, see Tapeory.Api.csproj.
+#if WINDOWS_USB
     [Theory]
     [InlineData("Brother PT-P750W", "PT-P750W")]
     [InlineData("Brother QL-820NWB (Copy 1)", "QL-820NWB")]
@@ -117,4 +119,5 @@ public sealed class UsbPrinterPortTests : IDisposable
     {
         Assert.Equal(model, WindowsUsbPrinterPort.ModelIn(name));
     }
+#endif
 }

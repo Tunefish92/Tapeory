@@ -109,7 +109,7 @@ pub fn download(asset: &ReleaseAsset, install: &Install, progress: Arc<Progress>
     if asset.size > 0 && done != asset.size {
         return fail(format!("The download is incomplete ({done} of {} bytes).", asset.size));
     }
-    let digest = format!("{:x}", hasher.finalize());
+    let digest = hex(&hasher.finalize());
     if let Some(expected) = &asset.sha256
         && !expected.eq_ignore_ascii_case(&digest)
     {
@@ -119,6 +119,11 @@ pub fn download(asset: &ReleaseAsset, install: &Install, progress: Arc<Progress>
     let ready = folder.join(&asset.name);
     std::fs::rename(&target, &ready).map_err(|e| e.to_string())?;
     Ok(ready)
+}
+
+/// A hash as lowercase hex, the form GitHub gives a release file's SHA-256 in.
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 /// What to do once the window has closed (and the engine has stopped).
@@ -194,6 +199,11 @@ mod tests {
             Some("Tapeory-1.0.0-linux-x86_64.AppImage")
         );
         assert_eq!(asset_for(&Install::Manual, &assets), None);
+    }
+
+    #[test]
+    fn writes_the_checksum_like_github() {
+        assert_eq!(hex(&Sha256::digest(b"abc")), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
 
     #[test]
