@@ -126,8 +126,11 @@ jobs:
           name: desktop-linux
           path: dist/*
 
+  # Switched off while the Windows version is on hold: nothing for Windows is built or published.
+  # To bring it back, remove the `if` here and see the note at desktop-release.
   desktop-windows:
     name: Desktop app (Windows)
+    if: false
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7

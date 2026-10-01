@@ -578,9 +578,8 @@ On every push and pull request to `main`, GitHub Actions:
 1. runs both test suites and type-checks and builds the frontend
 2. builds the Docker image, starts it, and checks that it answers, fixes the storage folder
    owner, runs as the app user, and ships its fonts
-3. builds the desktop app for Linux (AppImage and tar.gz) and Windows (setup and zip), and checks
-   that the packaged engine starts in desktop mode; only the Linux files are attached to a
-   release while the Windows version is on hold
+3. builds the desktop app for Linux (AppImage and tar.gz) and checks that the packaged engine
+   starts in desktop mode; the Windows job is switched off while the Windows version is on hold
 
 Pushes to `main` and version tags (`v*`) then publish a multi-arch image (`amd64`, `arm64`) to
 GitHub Container Registry. If the repository variable `DOCKERHUB_USERNAME` and the secret
