@@ -104,8 +104,9 @@ public sealed class BrotherPrinterDriver(
     }
 
     /// <summary>
-    /// A printer on this computer's USB port. It gets the same raster data; there's no SNMP to
-    /// check the tape or follow the job, so the job counts as done once the printer took the data.
+    /// A printer on this computer's USB port. It gets the same raster data. Where it can be asked
+    /// on that connection (Linux), it tells the loaded tape and reports each label as it comes
+    /// out; otherwise the job counts as done once the printer took the data.
     /// </summary>
     private async Task<PrintOutcome> PrintViaUsbAsync(
         Printer printer,
@@ -124,12 +125,20 @@ public sealed class BrotherPrinterDriver(
         var model = BrotherCatalog.Find(printer.Model);
         var data = BrotherRasterEncoder.Encode(labels, model, media, resolution.Quality == PrintQuality.High, cutMode);
 
-        await onStage(PrintStage.Sending);
-        var sent = await usb.SendAsync(printer.UsbIdentifier, data, cancellationToken);
+        // Where the printer answers on its USB connection, it's asked first (errors, wrong tape).
+        var before = await usb.ReadStatusAsync(printer.UsbIdentifier, cancellationToken);
 
-        return sent.IsSuccess
-            ? PrintOutcome.SentUnconfirmed()
-            : PrintOutcome.Failure(sent.ErrorMessage ?? "Could not send to the printer.");
+        if (ProblemBeforePrinting(before, media) is { } refusal)
+        {
+            return PrintOutcome.Failure(refusal);
+        }
+
+        await onStage(PrintStage.Sending);
+        var result = await usb.PrintAsync(printer.UsbIdentifier, data, labels.Count, cancellationToken);
+
+        return !result.IsSuccess ? PrintOutcome.Failure(result.ErrorMessage ?? "Could not send to the printer.")
+            : result.Confirmed ? PrintOutcome.Printed()
+            : PrintOutcome.SentUnconfirmed();
     }
 
     /// <summary>Why the printer shouldn't get this job (an error it reports, or the wrong tape), or

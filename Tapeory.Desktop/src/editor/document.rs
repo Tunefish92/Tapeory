@@ -242,6 +242,33 @@ impl LabelObject {
         object
     }
 
+    /// Moves and shrinks a new object so it lies inside a label of this size: the default boxes
+    /// are higher than a narrow tape. Round shapes and images keep their proportions.
+    pub fn fit_into(&mut self, label_width: f64, label_height: f64) {
+        const EDGE: f64 = 1.0;
+        let (room_x, room_y) = ((label_width - 2.0 * EDGE).max(1.0), (label_height - 2.0 * EDGE).max(1.0));
+
+        if let Some([x1, y1, x2, _]) = self.points {
+            let length = (x2 - x1).abs().min(room_x);
+            self.points = Some([x1, y1, x1 + length, y1]);
+            self.x = self.x.min(label_width - EDGE - length).max(EDGE);
+            self.y = self.y.min(label_height / 2.0);
+            return;
+        }
+
+        let (Some(width), Some(height)) = (self.width, self.height) else { return };
+        let (width, height) = if matches!(self.kind, Kind::Ellipse | Kind::Image) {
+            let scale = (room_x / width).min(room_y / height).min(1.0);
+            (width * scale, height * scale)
+        } else {
+            (width.min(room_x), height.min(room_y))
+        };
+        self.width = Some(width);
+        self.height = Some(height);
+        self.x = self.x.min(label_width - EDGE - width).max(EDGE);
+        self.y = self.y.min(label_height - EDGE - height).max(EDGE);
+    }
+
     pub fn w(&self) -> f64 {
         self.width.unwrap_or(0.0)
     }
@@ -385,6 +412,37 @@ mod tests {
         let again = LabelDocument::parse(&document.to_json()).unwrap();
         assert_eq!(again.objects[0].text.as_deref(), Some("Hi"));
         assert!(!document.to_json().contains("uploadedFileId"));
+    }
+
+    #[test]
+    fn new_objects_are_placed_inside_a_narrow_label() {
+        // 9 mm tape, 40 mm long: every default box is higher than that.
+        for mut object in [
+            LabelObject::new_text(),
+            LabelObject::new_field("name"),
+            LabelObject::new_rect(),
+            LabelObject::new_ellipse(),
+            LabelObject::new_barcode(),
+            LabelObject::new_image(1, "/x", 20.0, 20.0),
+        ] {
+            object.fit_into(40.0, 9.0);
+            assert!(object.x >= 1.0 && object.x + object.w() <= 39.0, "{:?} across", object.kind);
+            assert!(object.y >= 1.0 && object.y + object.h() <= 8.0, "{:?} down", object.kind);
+        }
+
+        let mut ellipse = LabelObject::new_ellipse();
+        ellipse.fit_into(40.0, 9.0);
+        assert_eq!(ellipse.w(), ellipse.h(), "a circle stays round");
+
+        let mut line = LabelObject::new_line();
+        line.fit_into(12.0, 9.0);
+        let [x1, _, x2, _] = line.points.unwrap();
+        assert!(line.x + (x2 - x1) <= 11.0 && line.y <= 4.5);
+
+        // A label with room for the defaults keeps them.
+        let mut text = LabelObject::new_text();
+        text.fit_into(62.0, 29.0);
+        assert_eq!((text.x, text.y, text.w(), text.h()), (5.0, 5.0, 30.0, 8.0));
     }
 
     #[test]

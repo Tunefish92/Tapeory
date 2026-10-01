@@ -212,7 +212,8 @@ impl EditorPage {
         if let Some(result) = finished(&mut self.upload) {
             match result {
                 Ok(image) => {
-                    let object = LabelObject::new_image(image.id, &image.url, 20.0, 20.0);
+                    let mut object = LabelObject::new_image(image.id, &image.url, 20.0, 20.0);
+                    object.fit_into(self.document.width_mm, self.document.height_mm);
                     self.selected = Some(object.id.clone());
                     self.document.objects.push(object);
                 }
@@ -562,7 +563,13 @@ impl EditorPage {
             });
             ui.allocate_ui_with_layout(egui::vec2(SIDEBAR, height), egui::Layout::top_down(egui::Align::Min), |ui| {
                 ui.set_width(SIDEBAR);
-                self.toolbar(ui, c);
+                if fit {
+                    // Where notices above leave too little height for all the tools, they scroll,
+                    // so Save and Publish stay within reach.
+                    egui::ScrollArea::vertical().id_salt("editor-tools").max_height(height).show(ui, |ui| self.toolbar(ui, c));
+                } else {
+                    self.toolbar(ui, c);
+                }
             });
         });
     }
@@ -587,7 +594,16 @@ impl EditorPage {
                 ];
                 for (key, make) in adds {
                     if ui.add(PillButton::new(&t(key), Kind::Secondary).enabled(editing).min_width(width)).clicked() {
-                        let object = make();
+                        let mut object = make();
+                        object.fit_into(self.document.width_mm, self.document.height_mm);
+                        // Text starts in a font this computer has: Arial where it's installed
+                        // (Windows), otherwise the bundled Inter.
+                        if let Some(family) = &mut object.font_family
+                            && !c.fonts.families.is_empty()
+                            && !c.fonts.families.iter().any(|known| known == family)
+                        {
+                            *family = c.fonts.families.iter().find(|known| *known == "Inter").unwrap_or(&c.fonts.families[0]).clone();
+                        }
                         self.selected = Some(object.id.clone());
                         self.document.objects.push(object);
                     }
@@ -604,15 +620,19 @@ impl EditorPage {
                     }));
                 }
                 ui.separator();
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 8.0;
-                    let (undo_label, redo_label) = (t("editor.toolbar.undo"), t("editor.toolbar.redo"));
+                // Side by side, or one below the other where the labels are too long for that
+                // ("Rückgängig", "Wiederholen").
+                let (undo_label, redo_label) = (t("editor.toolbar.undo"), t("editor.toolbar.redo"));
+                let side_by_side = widgets::pill_width(ui, &undo_label).max(widgets::pill_width(ui, &redo_label)) <= half;
+                let each = if side_by_side { half } else { width };
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing = egui::vec2(8.0, 8.0);
                     let undo = PillButton::new(&undo_label, Kind::Secondary).enabled(!self.undo.is_empty());
-                    if ui.add(undo.min_width(half)).clicked() {
+                    if ui.add(undo.min_width(each)).clicked() {
                         self.undo();
                     }
                     let redo = PillButton::new(&redo_label, Kind::Secondary).enabled(!self.redo.is_empty());
-                    if ui.add(redo.min_width(half)).clicked() {
+                    if ui.add(redo.min_width(each)).clicked() {
                         self.redo();
                     }
                 });

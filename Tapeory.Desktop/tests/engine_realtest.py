@@ -213,8 +213,15 @@ status, test = js("POST", f"/api/printers/{pid}/test-connection")
 check("test the connection (fake printer)", status == 200 and test["isSuccess"], test)
 check("printer status answers", js("GET", f"/api/printers/{pid}/status")[0] == 200)
 before = len(received)
-status, body = js("POST", f"/api/printers/{pid}/test-print", {"tapeWidthMm": 12})
-check("test print", status == 200 and body["isSuccess"], body)
+# The fake printer can't say which tape it has, so without a test print size nothing is sent.
+status, body = js("POST", f"/api/printers/{pid}/test-print")
+check("a test print for an unknown tape is refused", status == 200 and not body["isSuccess"] and "test print size" in body["errorMessage"], body)
+time.sleep(1)
+check("and nothing is sent to the printer", len(received) == before)
+js("PUT", f"/api/printers/{pid}", {"name": "Workshop P750W", "model": "PT-P750W", "connectionType": "IpAddress", "address": "127.0.0.1",
+                                    "port": 9100, "labelMediaWidthMm": 50, "labelMediaHeightMm": 12, "enabled": True})
+status, body = js("POST", f"/api/printers/{pid}/test-print")
+check("test print with a size set", status == 200 and body["isSuccess"], body)
 time.sleep(1)
 check("the fake printer got the test print", len(received) > before)
 status, offline = js("POST", "/api/printers", {"name": "Offline", "model": "PT-P750W", "connectionType": "IpAddress",

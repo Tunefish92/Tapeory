@@ -160,6 +160,11 @@ public sealed class PrintersController(
     /// a queue, or a queue whose printer has no network address, can't be asked.</summary>
     private async Task<PrinterStatusSnapshot?> ReadStatusAsync(Printer printer, CancellationToken cancellationToken)
     {
+        if (printer is { ConnectionType: PrinterConnectionType.Usb, UsbIdentifier: { } device })
+        {
+            return await usb.ReadStatusAsync(device, cancellationToken);
+        }
+
         if (PrinterNetworkResolver.Resolve(printer) is not { } target)
         {
             return null;
@@ -207,8 +212,23 @@ public sealed class PrintersController(
             return elsewhere;
         }
 
+        // Without a size of its own, the test label is as high as the tape the printer reports, so
+        // it prints on whatever is loaded. A guess isn't sent: a job for the wrong tape width
+        // leaves the printer waiting with an error until someone cancels it there.
+        var loadedTapeMm = printer.LabelMediaHeightMm is null
+            ? (await ReadStatusAsync(printer, cancellationToken))?.LoadedTapeMm
+            : null;
+
+        if (printer.LabelMediaHeightMm is null && loadedTapeMm is null)
+        {
+            return Ok(new TestPrintResponse(
+                false,
+                "Tapeory can't tell which tape is in this printer. Edit the printer and set the test print size: " +
+                "its height is the tape's width, e.g. 12 mm."));
+        }
+
         var widthMm = printer.LabelMediaWidthMm ?? 50m;
-        var heightMm = printer.LabelMediaHeightMm ?? 25m;
+        var heightMm = printer.LabelMediaHeightMm ?? loadedTapeMm!.Value;
         var model = BrotherCatalog.Find(printer.Model);
         var testDocument = TestLabel.Build(widthMm, heightMm, model);
         var resolution = PrinterCapabilities.Resolve(printer.Model, PrintQuality.Standard);

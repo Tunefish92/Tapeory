@@ -18,11 +18,16 @@ public sealed class PrinterConnectionTester(IppClient ipp, IUsbPrinterPort? usb 
     {
         if (printer.ConnectionType == PrinterConnectionType.Usb)
         {
-            // Connected means the system lists it right now.
-            return usb?.List().Any(found => found.Identifier == printer.UsbIdentifier) == true
-                ? ConnectionTestResult.Success()
-                : ConnectionTestResult.Failure(
+            // Connected means the system lists it right now, and Tapeory may write to it.
+            if (usb?.List().Any(found => found.Identifier == printer.UsbIdentifier) != true)
+            {
+                return ConnectionTestResult.Failure(
                     $"{printer.UsbIdentifier} isn't connected. Check the USB cable and that the printer is switched on.");
+            }
+
+            return usb.WriteProblem(printer.UsbIdentifier!) is { } problem
+                ? ConnectionTestResult.Failure(problem)
+                : ConnectionTestResult.Success();
         }
 
         var target = PrinterNetworkResolver.Resolve(printer);

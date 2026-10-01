@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <!-- The version details of Tapeory.Api.dll/.exe, which SignPath checks before it signs a
          release: the product version must be exactly the release's (no "+<commit>" suffix). -->
     <Product>Tapeory</Product>
@@ -16,12 +16,6 @@
   <ItemGroup>
     <!-- Bundled Google Fonts (see Fonts/README.md), shipped next to the app. -->
     <None Include="Fonts\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- USB printing on Windows is switched off for now: Windows Defender flagged the engine DLL
-         (Exploit:Win64/Butespo!dha), and its winspool calls are the main suspect. -->
-    <Compile Remove="Printing\Usb\WindowsUsbPrinterPort.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -33,7 +33,12 @@ public sealed class UsbPrinterPortTests : IDisposable
         return path;
     }
 
-    private LinuxUsbPrinterPort Port() => new(_devices, _sys);
+    // The fake devices are plain files that never answer, so waiting for them is kept short.
+    private LinuxUsbPrinterPort Port() => new(_devices, _sys)
+    {
+        StatusTimeout = TimeSpan.FromMilliseconds(100),
+        FirstReplyTimeout = TimeSpan.FromMilliseconds(100),
+    };
 
     [Fact]
     public void Lists_TheConnectedPrinters_WithTheModelTheyReport()
@@ -92,6 +97,62 @@ public sealed class UsbPrinterPortTests : IDisposable
     }
 
     [Fact]
+    public async Task Print_WritesTheJob_AndLeavesItUnconfirmed_WhenNothingAnswers()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var device = AddPrinter("lp0", null);
+
+        var result = await Port().PrintAsync(device, [0x1B, 0x40, 0x0C], 1, CancellationToken.None);
+
+        Assert.True(result is { IsSuccess: true, Confirmed: false });
+        Assert.Equal(new byte[] { 0x1B, 0x40, 0x0C }, File.ReadAllBytes(device));
+    }
+
+    [Fact]
+    public async Task Print_ExplainsAMissingDevice_AndStatusIsNullWithoutAnAnswer()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var missing = await Port().PrintAsync(Path.Combine(_devices, "lp3"), [1], 1, CancellationToken.None);
+        Assert.False(missing.IsSuccess);
+        Assert.Contains("isn't connected", missing.ErrorMessage);
+
+        Assert.Null(await Port().ReadStatusAsync(AddPrinter("lp0", null), CancellationToken.None));
+        Assert.Null(await Port().ReadStatusAsync(Path.Combine(_devices, "lp3"), CancellationToken.None));
+    }
+
+    [Fact]
+    public void WriteProblem_IsNull_ForAPrinterThatCanBeWrittenTo_AndSendsNothing()
+    {
+        var device = AddPrinter("lp0", null);
+
+        Assert.Null(Port().WriteProblem(device));
+        Assert.Empty(File.ReadAllBytes(device));
+    }
+
+    [Fact]
+    public void WriteProblem_ExplainsAMissingDevice_AndMissingPermission()
+    {
+        Assert.Contains("isn't connected", Port().WriteProblem(Path.Combine(_devices, "lp3")));
+        Assert.Contains("isn't a USB printer device", Port().WriteProblem(Path.Combine(_root, "somewhere-else")));
+
+        if (OperatingSystem.IsLinux() && Environment.UserName != "root")
+        {
+            var device = AddPrinter("lp0", null);
+            File.SetUnixFileMode(device, UnixFileMode.None);
+
+            Assert.Contains("No permission", Port().WriteProblem(device));
+        }
+    }
+
+    [Fact]
     public async Task Send_OnlyWritesToUsbPrinterDevices()
     {
         var result = await Port().SendAsync(Path.Combine(_root, "somewhere-else"), [1], CancellationToken.None);
@@ -109,8 +170,6 @@ public sealed class UsbPrinterPortTests : IDisposable
         Assert.Equal(new Ieee1284Id(manufacturer, model), Ieee1284Id.Parse(text));
     }
 
-    // WindowsUsbPrinterPort is switched off for now, see Tapeory.Api.csproj.
-#if WINDOWS_USB
     [Theory]
     [InlineData("Brother PT-P750W", "PT-P750W")]
     [InlineData("Brother QL-820NWB (Copy 1)", "QL-820NWB")]
@@ -119,5 +178,4 @@ public sealed class UsbPrinterPortTests : IDisposable
     {
         Assert.Equal(model, WindowsUsbPrinterPort.ModelIn(name));
     }
-#endif
 }

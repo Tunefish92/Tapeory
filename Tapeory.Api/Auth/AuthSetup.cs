@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
 using Tapeory.Api.Setup;
@@ -28,6 +32,26 @@ public static class AuthSetup
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<AccountService>();
         services.AddSingleton<IAuthorizationHandler, SignedInHandler>();
+
+        // The keys that sign the session cookie live in the storage folder, next to the database
+        // settings. By default they'd sit in the user profile, which in a container is gone with
+        // every update: everyone would be signed out each time.
+        services.AddDataProtection().SetApplicationName("Tapeory");
+        services.AddOptions<KeyManagementOptions>().Configure<StorageService>((options, storage) =>
+        {
+            var folder = Path.Combine(storage.RootPath, DatabaseConfigStore.ConfigDirectoryName, "keys");
+
+            if (OperatingSystem.IsWindows())
+            {
+                Directory.CreateDirectory(folder);
+            }
+            else
+            {
+                Directory.CreateDirectory(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+
+            options.XmlRepository = new FileSystemXmlRepository(new DirectoryInfo(folder), NullLoggerFactory.Instance);
+        });
 
         services.AddAuthentication(Scheme).AddCookie(Scheme, options =>
         {

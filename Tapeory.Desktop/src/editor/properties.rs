@@ -55,28 +55,62 @@ pub fn show(ui: &mut egui::Ui, object: &mut LabelObject, c: &mut Context) -> Opt
         Kind::Unknown => "editor.properties.selectPrompt",
     });
 
-    ui.horizontal_wrapped(|ui| {
-        ui.label(widgets::heading(title).size(18.0));
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.spacing_mut().item_spacing.x = 6.0;
-            if ui.add(PillButton::new(&t("editor.properties.delete"), ButtonKind::Danger)).clicked() {
-                action = Some(Action::Delete);
-            }
-            if ui.add(PillButton::new(&t("editor.properties.duplicate"), ButtonKind::Secondary)).clicked() {
-                action = Some(Action::Duplicate);
-            }
-            for (key, reorder) in [
-                ("editor.properties.sendToBack", Reorder::Back),
-                ("editor.properties.backward", Reorder::Backward),
-                ("editor.properties.forward", Reorder::Forward),
-                ("editor.properties.bringToFront", Reorder::Front),
-            ] {
-                if ui.add(PillButton::new(&t(key), ButtonKind::Secondary)).clicked() {
-                    action = Some(Action::Reorder(reorder));
+    // The object's kind on the left and its actions on the right, in one row where they fit;
+    // longer labels (e.g. in German) go on rows of their own below the title instead of pushing
+    // the panel out of the window.
+    let reorders = [
+        ("editor.properties.bringToFront", Reorder::Front),
+        ("editor.properties.forward", Reorder::Forward),
+        ("editor.properties.backward", Reorder::Backward),
+        ("editor.properties.sendToBack", Reorder::Back),
+    ];
+    let (duplicate, delete) = (t("editor.properties.duplicate"), t("editor.properties.delete"));
+    let gap = 6.0;
+    let title_width =
+        ui.painter().layout_no_wrap(title.clone(), egui::FontId::new(18.0, face(fonts::HEADING)), egui::Color32::PLACEHOLDER).size().x;
+    let buttons_width: f32 = reorders.iter().map(|(key, _)| widgets::pill_width(ui, &t(key)) + gap).sum::<f32>()
+        + widgets::pill_width(ui, &duplicate)
+        + gap
+        + widgets::pill_width(ui, &delete);
+    let one_row = title_width + 24.0 + buttons_width <= ui.available_width();
+
+    let mut buttons = |ui: &mut egui::Ui, reversed: bool| {
+        ui.spacing_mut().item_spacing = egui::vec2(gap, 6.0);
+        let mut order: Vec<usize> = (0..6).collect();
+        if reversed {
+            order.reverse();
+        }
+        for index in order {
+            match index {
+                4 => {
+                    if ui.add(PillButton::new(&duplicate, ButtonKind::Secondary)).clicked() {
+                        action = Some(Action::Duplicate);
+                    }
+                }
+                5 => {
+                    if ui.add(PillButton::new(&delete, ButtonKind::Danger)).clicked() {
+                        action = Some(Action::Delete);
+                    }
+                }
+                _ => {
+                    let (key, reorder) = reorders[index];
+                    if ui.add(PillButton::new(&t(key), ButtonKind::Secondary)).clicked() {
+                        action = Some(Action::Reorder(reorder));
+                    }
                 }
             }
+        }
+    };
+
+    if one_row {
+        ui.horizontal(|ui| {
+            ui.label(widgets::heading(title).size(18.0));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| buttons(ui, true));
         });
-    });
+    } else {
+        ui.label(widgets::heading(title).size(18.0));
+        ui.horizontal_wrapped(|ui| buttons(ui, false));
+    }
     ui.separator();
 
     let sections: Vec<Section> = match object.kind {
@@ -89,11 +123,33 @@ pub fn show(ui: &mut egui::Ui, object: &mut LabelObject, c: &mut Context) -> Opt
         Kind::Unknown => vec![],
     };
 
-    // As many sections side by side as fit at 200 points or more (the web's auto-fit grid).
-    let per_row = ((ui.available_width() + 18.0) / (200.0 + 18.0)).floor().clamp(1.0, sections.len().max(1) as f32) as usize;
-    for (row, chunk) in sections.chunks(per_row).enumerate() {
-        widgets::columns(ui, &format!("properties-{row}"), &vec![1.0; per_row], |index, ui| {
-            if let Some(section) = chunk.get(index) {
+    // As many sections side by side as fit at their smallest width (the web's auto-fit grid);
+    // they share the row in proportion to it. A section never gets less: wider content would
+    // push the whole editor out of the window.
+    let smallest = |section: &Section| match section {
+        // The "Fixed value | From a field" switch.
+        Section::BarcodeContent => 290.0,
+        // Two fields side by side with labels like "Schriftgröße (pt)".
+        Section::Font => 230.0,
+        Section::BarcodeAppearance => 190.0,
+        Section::Layout { .. } => 185.0,
+        Section::Options => 170.0,
+        _ => 200.0,
+    };
+    let available = ui.available_width();
+    let mut rows: Vec<Vec<Section>> = Vec::new();
+    for section in sections {
+        match rows.last_mut() {
+            Some(row) if row.iter().map(smallest).sum::<f32>() + smallest(&section) + 18.0 * row.len() as f32 <= available => {
+                row.push(section);
+            }
+            _ => rows.push(vec![section]),
+        }
+    }
+    for (index, row) in rows.iter().enumerate() {
+        let weights: Vec<f32> = row.iter().map(smallest).collect();
+        widgets::columns(ui, &format!("properties-{index}"), &weights, |column, ui| {
+            if let Some(section) = row.get(column) {
                 section_box(ui, *section, object, c);
             }
         });
@@ -224,7 +280,12 @@ fn field(ui: &mut egui::Ui, label: &str, add: impl FnOnce(&mut egui::Ui)) {
     let palette = theme::palette(ui.ctx());
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing.y = 3.0;
-        ui.add(egui::Label::new(RichText::new(label).family(face(fonts::BODY_MEDIUM)).size(13.0).color(palette.muted)).truncate());
+        // A label too long for a narrow column ("Corner radius (mm)") gets a little smaller before
+        // it's cut off.
+        let font = |size: f32| egui::FontId::new(size, face(fonts::BODY_MEDIUM));
+        let fits = |size: f32| ui.painter().layout_no_wrap(label.to_string(), font(size), palette.muted).size().x <= ui.available_width();
+        let size = [13.0, 12.0, 11.0].into_iter().find(|&size| fits(size)).unwrap_or(11.0);
+        ui.add(egui::Label::new(RichText::new(label).family(face(fonts::BODY_MEDIUM)).size(size).color(palette.muted)).truncate());
         add(ui);
     });
 }

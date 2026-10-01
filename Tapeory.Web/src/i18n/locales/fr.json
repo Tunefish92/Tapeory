@@ -412,7 +412,7 @@
     "labelWidth": "Largeur (mm)",
     "labelHeight": "Hauteur (mm)",
     "testPrintSize": "Taille de l’impression test (facultatif)",
-    "testPrintSizeHint": "Utilisé uniquement par le bouton « Impression de test ». Les tâches d’impression utilisent la taille du modèle.",
+    "testPrintSizeHint": "Utilisé uniquement par le bouton « Impression de test » ; les tâches d’impression utilisent la taille du modèle. Laissez vide pour utiliser le ruban signalé par l’imprimante.",
     "portHint": "Port d’impression brute, généralement 9100.",
     "portHintIpp": "Port IPP, généralement 631.",
     "enabled": "Activée",
@@ -626,6 +626,9 @@
     "updateDownloading": "Téléchargement de la mise à jour… {{percent}} %",
     "updateFailed": "La mise à jour a échoué : {{message}}",
     "updateManual": "Téléchargez la nouvelle version depuis la page de la version et remplacez cette copie.",
-    "updateRestarting": "Installation de la mise à jour — Tapeory redémarre dans un instant."
+    "updateRestarting": "Installation de la mise à jour — Tapeory redémarre dans un instant.",
+    "storedNote": "Ces informations sont enregistrées dans un fichier sur cet ordinateur : vous n’avez à les saisir qu’une seule fois.",
+    "backupDatabaseText": "Une copie complète de la base de données (modèles, imprimantes, historique d’impression et paramètres), enregistrée dans le dossier de données de Tapeory sur cet ordinateur. Les images et les fichiers .lbx n’y sont pas inclus : ils se trouvent dans la sauvegarde des étiquettes.",
+    "backupLabelsText": "Tous les modèles d’étiquettes avec leurs images et leurs fichiers .lbx d’origine, enregistrés dans une seule archive dans le dossier de données de Tapeory sur cet ordinateur."
   }
 }

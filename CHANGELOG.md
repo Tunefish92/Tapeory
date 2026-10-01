@@ -8,36 +8,40 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
-Tapeory as a desktop app for Windows and Linux, and printing to USB printers.
+## [0.5.0] - 2026-10-01
+
+Tapeory as a desktop app for Linux, and printing to USB printers.
 
 ### Added
-- A desktop app for Windows 10/11 (x64) and Linux (x86_64, glibc 2.35 or newer: Ubuntu 22.04,
-  Debian 12 and later), without Docker or a server:
-  a Windows setup (per user, no administrator rights) and a portable zip, a Linux AppImage and a
-  tar.gz, attached to each GitHub release. Everything it needs is included. It has the web app's
-  features and look (editor, `.lbx` import, printing, print history, printers, backups,
-  statistics, accounts, five languages, light and dark), written in Rust with egui, with
-  Tapeory's server running invisibly as its engine. The editor draws with the same fonts the
-  label is printed with; its tools sit in a column on the right, and the canvas and the
-  selected object's properties fit the window together, with the zoom fitted to the label. Tested on Windows and on Ubuntu 22.04 and 24.04, Debian 12, Fedora,
-  openSUSE Tumbleweed and Arch.
+- A desktop app for Linux (x86_64, glibc 2.35 or newer: Ubuntu 22.04, Debian 12 and later),
+  without Docker or a server: an AppImage and a tar.gz, attached to each GitHub release.
+  Everything it needs is included. It has the web app's features and look (editor, `.lbx`
+  import, printing, print history, printers, backups, statistics, accounts, five languages,
+  light and dark), written in Rust with egui, with Tapeory's server running invisibly as its
+  engine. The editor draws with the same fonts the label is printed with; its tools sit in a
+  column on the right, and the canvas and the selected object's properties fit the window
+  together, with the zoom fitted to the label. Tested on Ubuntu 22.04 and 24.04, Debian 12,
+  Fedora, openSUSE Tumbleweed and Arch.
+- The Windows version of the desktop app is built but on hold: Windows Defender blocks the
+  unsigned program as a false positive, so releases don't include it until the builds are
+  code-signed. Code signing through SignPath Foundation is prepared (signing steps in CI, the
+  code signing policy and a privacy section in the README, product name and version in the
+  Windows programs and setup).
 - On first start, the desktop app keeps its data in a local database on the computer (SQLite, no
   accounts) or in a MySQL/MariaDB database shared with a Tapeory server.
-- The Windows setup and the AppImage update themselves from Settings → About: the new release is
-  downloaded, checked against its SHA-256, installed and started.
-- USB printers: the desktop app on Linux prints to Brother printers plugged into the computer
-  (through `/dev/usb/lp*`), listed by name in the printer form. With a shared database, a USB
-  printer belongs to the computer it's plugged into, and only that computer prints its jobs.
-  USB printing on Windows is switched off for now: Windows Defender flagged the code that sends
-  jobs to Windows printers as an exploit (a false positive). It returns once the Windows builds
-  are code-signed.
-- The desktop app draws with Direct3D on Windows (through wgpu), falling back to OpenGL, and the
-  other way round on Linux, so it also opens on computers without a working OpenGL driver, e.g.
-  virtual machines. If no renderer works, it says so in a message box instead of failing
-  silently, and startup problems and crashes are written to `logs/app.log`.
-- Preparation for code signing through SignPath Foundation: releases are signed in CI once the
-  project is approved; the README has the code signing policy and a privacy section, and the
-  Windows programs and setup carry the product name and version.
+- The AppImage updates itself from Settings → About: the new release is downloaded, checked
+  against its SHA-256, installed and started.
+- USB printers: Tapeory prints to Brother printers plugged into the computer (on Linux through
+  `/dev/usb/lp*`), listed by name in the printer form. Over USB the printer is asked which tape
+  is loaded, a label for another tape width is refused before it's sent, and each label is
+  followed until it's out, as over the network. With a shared database, a USB printer belongs
+  to the computer it's plugged into, and only that computer prints its jobs.
+- In Docker, a USB printer passed in with `--device /dev/usb/lp0` works without further setup:
+  the container joins the device's group.
+- The desktop app draws with OpenGL and falls back to Vulkan through wgpu (Direct3D first on
+  Windows), so it also opens on computers without a working OpenGL driver, e.g. virtual
+  machines. If no renderer works, it says so in a message box instead of failing silently, and
+  startup problems and crashes are written to `logs/app.log`.
 - A `LICENSE` file (MIT).
 - A real-life test (`Tapeory.Desktop/tests/engine_realtest.py`) that runs the packaged engine
   through every feature against a fake printer and leaves a sample database behind.
@@ -45,6 +49,19 @@ Tapeory as a desktop app for Windows and Linux, and printing to USB printers.
 - The update check lists the release's files and their checksums.
 
 ### Changed
+- Test Print uses the tape the printer reports instead of a fixed 25 mm label, and is refused
+  with an explanation when the tape isn't known and no test print size is set. A job for the
+  wrong tape width leaves the printer waiting with an error until it's cancelled there.
+- A printer that has stopped with an error its status bits don't show (the display says ERROR,
+  e.g. while a job for another tape waits) is recognised: jobs are refused with the reason
+  instead of being sent.
+- Printers added by hostname keep their tape detection and print status where looking the name
+  up is slow (e.g. in a container): the lookup no longer counts against the status timeout.
+- The USB connection test also checks that Tapeory may write to the printer, instead of
+  reporting success for a printer every job would then fail on.
+- New text, fields, shapes, barcodes and images are placed inside the label, also on narrow
+  tape, and new text starts in a font the server has (Inter where Arial isn't installed).
+- German texts address the reader informally throughout.
 - Database queries are no longer written to the log at the Information level, so the print
   queue doesn't add a log line every second.
 - Libraries updated, none with known vulnerabilities: EF Core 9.0.20, MySqlConnector 2.6.2,
@@ -52,6 +69,22 @@ Tapeory as a desktop app for Windows and Linux, and printing to USB printers.
   reqwest 0.13, rfd 0.17, dirs 7 and sha2 0.11. EF Core stays on 9 until there's a MySQL provider
   for EF Core 10 (see `docs/feature-requests/mysql-provider-for-ef-core-10.md`).
 - The server no longer writes to the Windows event log.
+
+### Fixed
+- Signing in survives a container update: the keys that sign the session cookie are kept in the
+  storage folder (`config/keys`) instead of the container's temporary files, where every new
+  container signed everyone out.
+- Web app: on the printers page, long button labels (e.g. in German) no longer wrap inside the
+  buttons; a user without administrator rights who opens the page by its address sees the list
+  without the buttons the server refuses anyway; the template details in the editor no longer
+  take up a whole phone screen.
+- Desktop app: the Add Printer dialog shows its buttons and error messages without scrolling;
+  printer cards keep to the page width and their buttons no longer overlap with long labels;
+  the editor stays inside the window when a barcode is selected or labels are long, and Save
+  and Publish stay within reach below an import notice; the template search field keeps its
+  width; the status column fits "Veröffentlicht"; files are saved to the Downloads folder by
+  default; texts say "on this computer" where the web app says "on the server"; an error isn't
+  shown twice on a printer card.
 
 ## [0.4.0] - 2026-09-27
 
@@ -274,7 +307,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Tunefish92/Tapeory/compare/v0.2.0...v0.2.1

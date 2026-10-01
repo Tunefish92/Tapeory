@@ -74,7 +74,13 @@ impl Ctx<'_> {
     pub fn save_file(&mut self, suggested: String, fetch: impl FnOnce(&Api) -> ApiResult<Vec<u8>> + Send + 'static) {
         let api = self.api.clone();
         self.files.push(Task::spawn(self.egui, move || {
-            let path = rfd::FileDialog::new().set_file_name(&suggested).save_file().ok_or_else(ApiError::cancelled)?;
+            // Starts in the Downloads folder (or the home folder) rather than wherever the app was
+            // started from.
+            let mut dialog = rfd::FileDialog::new().set_file_name(&suggested);
+            if let Some(folder) = dirs::download_dir().filter(|folder| folder.is_dir()).or_else(dirs::home_dir) {
+                dialog = dialog.set_directory(folder);
+            }
+            let path = dialog.save_file().ok_or_else(ApiError::cancelled)?;
             let bytes = fetch(&api)?;
             std::fs::write(&path, bytes).map_err(ApiError::io)?;
             Ok(crate::i18n::tf("desktop.saved", &[("path", &path.display().to_string())]))

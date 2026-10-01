@@ -7,11 +7,11 @@
 Tapeory is a self-hosted web app for label templates. Design a label in the browser editor, add
 named fields like "Name" or "Room", and fill them in when you print. You can also import
 existing P-touch Editor `.lbx` files. It runs as a single Docker container next to MySQL, or as
-a [desktop app for Windows and Linux](#desktop-app-windows-and-linux), and every template,
+a [desktop app for Linux](#desktop-app-linux), and every template,
 upload, and print job stays with you.
 
 > [!WARNING]
-> **Early release (0.4).** Tapeory is still young: expect rough edges between minor versions.
+> **Early release (0.5).** Tapeory is still young: expect rough edges between minor versions.
 > Designing, storing, importing, and rendering labels work and are covered by tests.
 > **Printing** works with Brother P-touch (PT) and QL label printers in Brother's raster format:
 > 34 models, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. See
@@ -95,7 +95,7 @@ upload, and print job stays with you.
 - Light, dark, or system theme; millimetres or inches
 - Runs on `linux/amd64` and `linux/arm64`, with an Unraid Community Applications template
 
-## Desktop app (Windows and Linux)
+## Desktop app (Linux)
 
 Tapeory also runs as a standalone app, without Docker or a server: download it from the
 [latest release](https://github.com/Tunefish92/Tapeory/releases/latest) and start it.
@@ -104,46 +104,43 @@ installed.
 
 | System | Download | |
 |---|---|---|
-| Windows 10 or 11 (x64) | `Tapeory-<version>-windows-x64-setup.exe` | Installs for your user account, no administrator rights needed; updates itself |
-| | `Tapeory-<version>-windows-x64.zip` | Portable: unpack anywhere and run `tapeory.exe` |
 | Linux (x86_64) | `Tapeory-<version>-linux-x86_64.AppImage` | One file: make it executable (`chmod +x`) and run it; updates itself |
 | | `Tapeory-<version>-linux-x86_64.tar.gz` | Unpack and run `./tapeory` |
+
+**The Windows version is on hold.** Windows Defender blocks the unsigned program as a false
+positive, so releases don't include it for now. It comes back once the Windows builds are
+code-signed (see [Code signing policy](#code-signing-policy)). On Windows, use the Docker image
+in the meantime.
 
 On first start, Tapeory asks where to keep your data:
 
 - **On this computer** (recommended): a local database in your user folder
-  (`%LOCALAPPDATA%\Tapeory` on Windows, `~/.local/share/tapeory` on Linux). No accounts, nothing
-  else to set up.
+  (`~/.local/share/tapeory`). No accounts, nothing else to set up.
 - **On a MySQL or MariaDB server**: shares templates, printers and the print history with a
   Tapeory server, for example your Docker installation. If that database has user accounts, you
   sign in as on the web.
 
 The app has the same features as the web app (label editor, `.lbx` import, printing, print
 history, printers, backups, statistics, accounts) plus printing to **USB printers** plugged into
-the computer (on Linux for now, see below). It is available in the same five languages, in light and dark. The editor draws
+the computer. It is available in the same five languages, in light and dark. The editor draws
 with the same font files the printed label is rendered with, so what you see is what prints.
-Tested on Windows and on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
+Tested on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
 
-Updates: **Settings → About** shows when a new release is out. The Windows setup and the
-AppImage update themselves with **Update now**: the new version is downloaded, checked against
-the release's SHA-256, installed, and started. The zip and tar.gz copies link to the release page
-instead. Your data stays where it is when updating or uninstalling.
+Updates: **Settings → About** shows when a new release is out. The AppImage updates itself with
+**Update now**: the new version is downloaded, checked against the release's SHA-256, installed,
+and started. The tar.gz copy links to the release page instead. Your data stays where it is when
+updating.
 
 Good to know:
 
-- Windows builds aren't code-signed yet (they will be, see
-  [Code signing policy](#code-signing-policy)), so SmartScreen may warn on first start: choose
-  **More info → Run anyway**.
 - Linux needs glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Linux Mint 21 or later, and current
   Fedora, openSUSE Tumbleweed and Arch.
-- On Linux, the app needs a desktop with OpenGL and GTK 3, which every common desktop (GNOME,
+- The app needs a desktop with OpenGL or Vulkan and GTK 3, which every common desktop (GNOME,
   KDE, Xfce, Cinnamon, MATE) has. The AppImage also needs FUSE (`libfuse2` on older
   distributions); without it, run it with `--appimage-extract-and-run` or use the tar.gz.
-- USB printing on Linux needs your user in the `lp` group
-  (`sudo usermod -aG lp $USER`, then sign out and in again).
-- USB printing on Windows is switched off for now: Windows Defender mistook the code that sends
-  jobs to Windows printers for an exploit. It comes back once the Windows builds are code-signed.
-  Printers on the network work on Windows as usual.
+- USB printing needs your user in the `lp` group
+  (`sudo usermod -aG lp $USER`, then sign out and in again). Over USB the printer tells Tapeory
+  which tape is loaded and reports each label as it comes out, as it does over the network.
 - With a shared database, each USB printer belongs to the computer it's plugged into: other
   computers see it but can't print to it, and their print jobs never end up on it.
 - Logs are in the data folder under `logs/` (Settings → About shows the path).
@@ -198,7 +195,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.4.0`, `0.3.0`, … | One specific release (from Git tags such as `v0.4.0`) |
+| `0.5.0`, `0.4.0`, … | One specific release (from Git tags such as `v0.5.0`) |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
 `tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
@@ -275,7 +272,8 @@ language, theme, units, and the default printer.
 Add printers on the **Printers** page, then pick one when printing. Tapeory prints on Brother
 P-touch (PT) and QL label printers; [docs/printers.md](docs/printers.md) lists every supported
 model and how to connect it. Choose the model from the list so Tapeory knows its print head,
-media, resolutions and cutting options; USB-only models print through a CUPS server.
+media, resolutions and cutting options; USB-only models print from the computer they're plugged
+into (see below) or through a CUPS server.
 
 - **Directly over the network** (connection type IP address or hostname): Tapeory sends the job
   to the printer's raw port, usually 9100, and follows it over SNMP until the printer's label
@@ -340,7 +338,7 @@ Sign in with the printed password; Tapeory then asks for a new one. Sessions are
 
 ## Upgrading
 
-The desktop app updates itself (see [Desktop app](#desktop-app-windows-and-linux)). For the
+The desktop app updates itself (see [Desktop app](#desktop-app-linux)). For the
 server: **Settings → About** shows next to the version whether a newer release is out. To find out, the
 server asks GitHub's API for the latest Tapeory release (at most every six hours, and only while
 the settings page is opened); nothing about your installation is sent.
@@ -457,8 +455,9 @@ warranty, and the software stays under the MIT license either way. Please don't 
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
 [SignPath Foundation](https://signpath.org).
 
-The Windows programs and setup of each release are built from this repository by GitHub Actions
-and signed there; Windows shows "SignPath Foundation" as their publisher. Only Tapeory's own
+Once the Windows version returns, the Windows programs and setup of each release are built from
+this repository by GitHub Actions and signed there; Windows shows "SignPath Foundation" as their
+publisher. Only Tapeory's own
 programs are signed (`tapeory.exe`, `Tapeory.Api.exe`, `Tapeory.Api.dll` and the setup), not
 the third-party libraries shipped with them.
 
@@ -485,18 +484,19 @@ Tapeory is released under the [MIT License](LICENSE).
 - **Tested on real hardware: the PT-P750W.** QL and 360 dpi P-touch printing follows Brother's
   Raster Command References exactly, but hasn't been tried on those printers yet. Reports are
   welcome in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions).
-- **USB-only models print from the computer they're plugged into**: with the desktop app on Linux, or
-  through a CUPS server with a raw queue; a Docker container needs the device passed in
-  (`--device /dev/usb/lp0`).
+- **USB-only models print from the computer they're plugged into**: with the desktop app on
+  Linux, or through a CUPS server with a raw queue. A Docker container needs the device passed in
+  (`--device /dev/usb/lp0`); started as root (the default), it joins the device's group by
+  itself, and with `--user` it also needs `--group-add <the device's group id>`.
 - **Print status needs SNMP.** Tapeory reads it with the `public` community, which Brother
   printers enable by default. Without SNMP, jobs are marked done once they're sent.
-- **Tape detection needs SNMP too.** Behind a CUPS server it works when the queue prints to the
-  printer's network address (socket://, ipp://, lpd://), not for USB or dnssd:// queues; without
-  it, the tape width simply follows the label height.
+- **Tape detection over the network needs SNMP too.** Behind a CUPS server it works when the
+  queue prints to the printer's network address (socket://, ipp://, lpd://), not for USB or
+  dnssd:// queues; without it, the tape width simply follows the label height.
 - **USB printers** print from the computer they're plugged into, through `/dev/usb/lp*` on
-  Linux (the user needs to be in the `lp` group); on Windows, USB printing is switched off for
-  now. There's no tape detection or print confirmation over USB: a job counts
-  as done once the printer took it.
+  Linux (the user needs to be in the `lp` group). Tapeory asks the printer on that connection
+  which tape is loaded and follows each label until it's out. A printer that doesn't answer
+  there gets the job anyway, which then counts as done once the printer took it.
 - **`.lbx` import** converts text, merge fields, images, barcodes, rectangles, ellipses, lines,
   and frames (as simple borders). Free-form shapes and a few rare barcode types are reported as
   warnings instead of being converted.
@@ -578,8 +578,9 @@ On every push and pull request to `main`, GitHub Actions:
 1. runs both test suites and type-checks and builds the frontend
 2. builds the Docker image, starts it, and checks that it answers, fixes the storage folder
    owner, runs as the app user, and ships its fonts
-3. builds the desktop app for Windows (setup and zip) and Linux (AppImage and tar.gz), and checks
-   that the packaged engine starts in desktop mode
+3. builds the desktop app for Linux (AppImage and tar.gz) and Windows (setup and zip), and checks
+   that the packaged engine starts in desktop mode; only the Linux files are attached to a
+   release while the Windows version is on hold
 
 Pushes to `main` and version tags (`v*`) then publish a multi-arch image (`amd64`, `arm64`) to
 GitHub Container Registry. If the repository variable `DOCKERHUB_USERNAME` and the secret
@@ -588,7 +589,7 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.4.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.5.0 && git push --tags`.
 The tag's CI run attaches the desktop packages to the GitHub release (and creates the release if
 it doesn't exist yet).
 

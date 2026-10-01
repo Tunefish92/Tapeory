@@ -263,9 +263,9 @@ impl SettingsPage {
 
     fn backup_card(&mut self, ui: &mut egui::Ui, c: &mut Ctx, index: usize) {
         let (title, text) = if index == 0 {
-            ("settings.backupDatabaseTitle", "settings.backupDatabaseText")
+            ("settings.backupDatabaseTitle", "desktop.backupDatabaseText")
         } else {
-            ("settings.backupLabelsTitle", "settings.backupLabelsText")
+            ("settings.backupLabelsTitle", "desktop.backupLabelsText")
         };
         let busy = self.backup_action.is_some();
 

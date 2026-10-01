@@ -406,9 +406,10 @@ impl TemplatesPage {
     /// The list view: a sortable table, as the web's.
     fn list(&mut self, ui: &mut egui::Ui, c: &mut Ctx, templates: &[&TemplateSummary]) {
         let columns = [
-            Column::new(t("templates.columnName"), 3.2),
-            Column::new(t("templates.columnCategory"), 1.4).hide_below(620.0),
-            Column::new(t("templates.columnStatus"), 1.2),
+            Column::new(t("templates.columnName"), 3.0),
+            Column::new(t("templates.columnCategory"), 1.3).hide_below(620.0),
+            // Wide enough for the longest status ("Veröffentlicht").
+            Column::new(t("templates.columnStatus"), 1.5),
             Column::new(t("templates.columnSource"), 1.5).hide_below(900.0),
             Column::new(t("templates.columnSize"), 1.1).hide_below(720.0),
             Column::new(t("templates.columnUpdated"), 1.3).hide_below(800.0),

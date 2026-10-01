@@ -118,7 +118,7 @@ impl SetupPage {
                     field(ui, &t("setup.database"), |ui| text_input(ui, &mut self.database, 420.0));
                     field(ui, &t("setup.user"), |ui| text_input(ui, &mut self.user, 420.0));
                     field(ui, &t("setup.password"), |ui| widgets::password_input(ui, &mut self.password, 420.0));
-                    widgets::muted_small(ui, &t("setup.storedNote"));
+                    widgets::muted_small(ui, &t("desktop.storedNote"));
 
                     if busy {
                         widgets::loading(ui, &t("setup.testing"));

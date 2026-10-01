@@ -32,6 +32,19 @@ public sealed class AuthTests(TapeoryWebApplicationFactory factory) : IAsyncLife
         factory.Services.GetRequiredService<UserDirectory>().Reset();
     }
 
+    [Fact]
+    public void SessionKeys_AreKeptInTheStorageFolder_SoSignInsSurviveANewContainer()
+    {
+        var protector = factory.Services
+            .GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>()
+            .CreateProtector("test");
+        _ = protector.Protect([1, 2, 3]); // creates the key, as the first sign-in does
+
+        var keys = Path.Combine(factory.Services.GetRequiredService<StorageService>().RootPath, "config", "keys");
+
+        Assert.NotEmpty(Directory.GetFiles(keys, "key-*.xml"));
+    }
+
     /// <summary>A client like the web UI: it keeps the session cookie and sends the CSRF header.</summary>
     private HttpClient NewClient()
     {

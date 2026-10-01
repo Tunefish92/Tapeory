@@ -17,6 +17,7 @@ import {
   type UsbPrinterInfo,
 } from "../api/printers";
 import { useNotifications } from "../notifications/NotificationsContext";
+import { useAuth } from "../auth/AuthContext";
 import "./printers.css";
 
 const EMPTY_FORM: PrinterRequest = {
@@ -115,6 +116,9 @@ function connectionTarget(printer: PrinterResponse): string {
 export function PrintersPage() {
   const { t } = useTranslation();
   const { notify } = useNotifications();
+  // Managing printers is for administrators (the server refuses it otherwise); a user who opens
+  // this page by its address just sees the list.
+  const { canAdminister } = useAuth();
 
   const CONNECTION_TYPE_LABELS: Record<PrinterConnectionType, string> = {
     IpAddress: t("printers.connectionTypeIpAddress"),
@@ -334,7 +338,7 @@ export function PrintersPage() {
       <div className="page-header">
         <h2>{t("printers.title")}</h2>
         <div className="page-header__actions">
-          {!formOpen && (
+          {canAdminister && !formOpen && (
             <button type="button" className="btn btn-primary" onClick={openCreateForm}>
               {t("printers.addPrinter")}
             </button>
@@ -634,40 +638,42 @@ export function PrintersPage() {
                   </p>
                 )}
 
-                <div className="printer-card__actions">
-                  {printer.onThisComputer !== false && (
-                    <>
+                {canAdminister && (
+                  <div className="printer-card__actions">
+                    {printer.onThisComputer !== false && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleTestConnection(printer)}
+                          disabled={rowBusy}
+                        >
+                          {t("printers.testConnection")}
+                        </button>
+                        <button type="button" onClick={() => handleTestPrint(printer)} disabled={rowBusy}>
+                          {t("printers.testPrint")}
+                        </button>
+                      </>
+                    )}
+                    <div className="printer-card__secondary-actions">
+                      <button type="button" onClick={() => openEditForm(printer)} disabled={rowBusy}>
+                        {t("common.edit")}
+                      </button>
+                      {!printer.isDefault && (
+                        <button type="button" onClick={() => handleSetDefault(printer)} disabled={rowBusy}>
+                          {t("printers.setDefault")}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => handleTestConnection(printer)}
+                        className="btn btn-danger"
+                        onClick={() => handleDelete(printer)}
                         disabled={rowBusy}
                       >
-                        {t("printers.testConnection")}
+                        {t("common.delete")}
                       </button>
-                      <button type="button" onClick={() => handleTestPrint(printer)} disabled={rowBusy}>
-                        {t("printers.testPrint")}
-                      </button>
-                    </>
-                  )}
-                  <div className="printer-card__secondary-actions">
-                    <button type="button" onClick={() => openEditForm(printer)} disabled={rowBusy}>
-                      {t("common.edit")}
-                    </button>
-                    {!printer.isDefault && (
-                      <button type="button" onClick={() => handleSetDefault(printer)} disabled={rowBusy}>
-                        {t("printers.setDefault")}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={() => handleDelete(printer)}
-                      disabled={rowBusy}
-                    >
-                      {t("common.delete")}
-                    </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}

@@ -3670,7 +3670,7 @@ dependencies = [
 
 [[package]]
 name = "tapeory-desktop"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "ab_glyph",
  "chrono",

@@ -205,6 +205,12 @@ impl<'a> PillButton<'a> {
     }
 }
 
+/// How wide a normal-sized pill button with this label is, to check that it fits before adding it.
+pub fn pill_width(ui: &Ui, text: &str) -> f32 {
+    let font = egui::FontId::new(14.5, face(fonts::HEADING));
+    ui.painter().layout_no_wrap(text.to_string(), font, Color32::PLACEHOLDER).size().x + 17.0 * 2.0
+}
+
 impl egui::Widget for PillButton<'_> {
     fn ui(self, ui: &mut Ui) -> egui::Response {
         let p = palette(ui.ctx());
@@ -746,7 +752,8 @@ pub fn search_box(ui: &mut Ui, value: &mut String, hint: &str) -> egui::Response
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 icons::icon(ui, Icon::Search, 18.0, p.muted);
-                let clear_width = if value.is_empty() { 0.0 } else { 34.0 };
+                // The clear button and the gap before it.
+                let clear_width = if value.is_empty() { 0.0 } else { 34.0 + ui.spacing().item_spacing.x };
                 let response = ui.add(
                     egui::TextEdit::singleline(value)
                         .id(id)

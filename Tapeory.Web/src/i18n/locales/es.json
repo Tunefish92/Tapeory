@@ -412,7 +412,7 @@
     "labelWidth": "Ancho (mm)",
     "labelHeight": "Alto (mm)",
     "testPrintSize": "Tamaño de la impresión de prueba (opcional)",
-    "testPrintSizeHint": "Solo lo usa el botón Impresión de prueba. Los trabajos de impresión usan el tamaño de la plantilla.",
+    "testPrintSizeHint": "Solo lo usa el botón Impresión de prueba; los trabajos de impresión usan el tamaño de la plantilla. Déjalo vacío para usar la cinta que indica la impresora.",
     "portHint": "Puerto de impresión raw, normalmente 9100.",
     "portHintIpp": "Puerto IPP, normalmente 631.",
     "enabled": "Habilitada",
@@ -626,6 +626,9 @@
     "updateDownloading": "Descargando la actualización… {{percent}} %",
     "updateFailed": "La actualización falló: {{message}}",
     "updateManual": "Descarga la nueva versión desde la página de la versión y reemplaza esta copia.",
-    "updateRestarting": "Instalando la actualización: Tapeory se reiniciará en un momento."
+    "updateRestarting": "Instalando la actualización: Tapeory se reiniciará en un momento.",
+    "storedNote": "Estos datos se guardan en un archivo en este equipo, así que solo tienes que introducirlos una vez.",
+    "backupDatabaseText": "Una copia completa de la base de datos (plantillas, impresoras, historial de impresión y ajustes) guardada en la carpeta de datos de Tapeory en este equipo. No incluye imágenes ni archivos .lbx; esos están en la copia de seguridad de etiquetas.",
+    "backupLabelsText": "Todas las plantillas de etiquetas con sus imágenes y archivos .lbx originales, guardadas en un solo archivo en la carpeta de datos de Tapeory en este equipo."
   }
 }

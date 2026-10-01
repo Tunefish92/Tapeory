@@ -51,6 +51,8 @@ struct PrinterForm {
     height: String,
     enabled: bool,
     error: Option<String>,
+    /// Just opened: the fields start at the top, whatever the last form was scrolled to.
+    fresh: bool,
 }
 
 impl PrinterForm {
@@ -78,6 +80,7 @@ impl PrinterForm {
             height: printer.and_then(|p| p.label_media_height_mm).map(|v| v.to_string()).unwrap_or_default(),
             enabled: printer.is_none_or(|p| p.enabled),
             error: None,
+            fresh: true,
         }
     }
 
@@ -235,6 +238,8 @@ impl PrintersPage {
     fn card(&mut self, ui: &mut egui::Ui, c: &mut Ctx, printer: &Printer) {
         let palette = theme::palette(ui.ctx());
         theme::card(ui).fill_height().show(ui, |ui| {
+            // The grid's own gap between cards would otherwise also space out the buttons.
+            ui.spacing_mut().item_spacing.x = 10.0;
             ui.horizontal_top(|ui| {
                 widgets::icon_badge(ui, if printer.connection_type == "Usb" { Icon::Usb } else { Icon::Printer }, false);
                 ui.add_space(4.0);
@@ -283,7 +288,10 @@ impl PrintersPage {
 
             if !printer.on_this_computer {
                 notice(ui, &tf("printers.elsewhereNote", &[("name", printer.computer_name.as_deref().unwrap_or("?"))]), Tone::Neutral);
-            } else if let Some(error) = &printer.last_error_message {
+            } else if let Some(error) = &printer.last_error_message
+                && !self.results.contains_key(&printer.id)
+            {
+                // Not next to the result of a test just run, which says the same.
                 notice(ui, &tf("printers.lastError", &[("message", error)]), Tone::Danger);
             }
 
@@ -299,20 +307,33 @@ impl PrintersPage {
             ui.separator();
 
             if printer.on_this_computer && c.can_administer() {
-                let half = ((ui.available_width() - 10.0) / 2.0).floor();
-                ui.horizontal(|ui| {
-                    if ui.add(PillButton::new(&t("printers.testConnection"), Kind::Secondary).enabled(!busy).min_width(half)).clicked() {
+                // The two tests share the row: halves where both labels fit in one, otherwise the
+                // longer label gets what it needs; too long for one row, each gets its own.
+                let (connection, print) = (t("printers.testConnection"), t("printers.testPrint"));
+                let (gap, room) = (ui.spacing().item_spacing.x, ui.available_width());
+                let (needs_connection, needs_print) = (widgets::pill_width(ui, &connection), widgets::pill_width(ui, &print));
+                let (width_connection, width_print) = if needs_connection + gap + needs_print > room {
+                    (room, room)
+                } else {
+                    let half = ((room - gap) / 2.0).floor();
+                    let first = half.max(needs_connection).min(room - gap - needs_print);
+                    (first, room - gap - first)
+                };
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.y = 8.0;
+                    if ui.add(PillButton::new(&connection, Kind::Secondary).enabled(!busy).min_width(width_connection)).clicked() {
                         let (api, id) = (c.api.clone(), printer.id);
                         self.running.insert(id, Task::spawn(c.egui, move || api.test_connection(id).map(|r| (true, r))));
                     }
-                    if ui.add(PillButton::new(&t("printers.testPrint"), Kind::Secondary).enabled(!busy).min_width(half)).clicked() {
+                    if ui.add(PillButton::new(&print, Kind::Secondary).enabled(!busy).min_width(width_print)).clicked() {
                         let (api, id) = (c.api.clone(), printer.id);
                         self.running.insert(id, Task::spawn(c.egui, move || api.test_print(id).map(|r| (false, r))));
                     }
                 });
             }
             if c.can_administer() {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.y = 8.0;
                     if button(ui, &t("common.edit")).clicked() {
                         self.form = Some(PrinterForm::new(Some(printer), &self.models));
                     }
@@ -321,11 +342,21 @@ impl PrintersPage {
                         let message = tf("printers.defaultPrinterUpdated", &[("name", &printer.name)]);
                         self.action = Some(Task::spawn(c.egui, move || api.set_default_printer(id).map(|_| message)));
                     }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if danger_button(ui, &t("common.delete")).clicked() {
-                            self.deleting = Some(printer.clone());
-                        }
-                    });
+                    // Delete sits at the right edge, or on a row of its own where the labels are
+                    // too long for one (e.g. in German).
+                    let delete = t("common.delete");
+                    let mut clicked = false;
+                    if ui.available_size_before_wrap().x >= widgets::pill_width(ui, &delete) {
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            clicked = danger_button(ui, &delete).clicked();
+                        });
+                    } else {
+                        ui.end_row();
+                        clicked = danger_button(ui, &delete).clicked();
+                    }
+                    if clicked {
+                        self.deleting = Some(printer.clone());
+                    }
                 });
             }
         });
@@ -339,137 +370,142 @@ impl PrintersPage {
         let mut submit = false;
 
         widgets::dialog(c.egui, "printer-form", &title, 480.0, |ui| {
-            egui::ScrollArea::vertical()
-                .max_height((c.egui.screen_rect().height() - 300.0).max(220.0))
-                .min_scrolled_height((c.egui.screen_rect().height() - 300.0).max(220.0))
-                .show(ui, |ui| {
-                    widgets::section_title(ui, &t("printers.sectionPrinter"));
-                    field(ui, &t("printers.name"), |ui| widgets::text_input(ui, &mut form.name, f32::INFINITY));
+            // The fields scroll only when the window is too low for them; the error and the
+            // buttons stay in view below them.
+            let mut fields =
+                egui::ScrollArea::vertical().auto_shrink([false, true]).max_height((c.egui.screen_rect().height() - 230.0).max(220.0));
+            if std::mem::take(&mut form.fresh) {
+                fields = fields.vertical_scroll_offset(0.0);
+            }
+            fields.show(ui, |ui| {
+                // Room for the scroll bar, which otherwise lies over the fields' right edge.
+                ui.set_width(ui.available_width() - 12.0);
+                widgets::section_title(ui, &t("printers.sectionPrinter"));
+                field(ui, &t("printers.name"), |ui| widgets::text_input(ui, &mut form.name, f32::INFINITY));
 
-                    field(ui, &t("printers.model"), |ui| {
-                        let shown = match form.model_choice.as_str() {
-                            "" => t("printers.modelChoose"),
-                            OTHER_MODEL => t("printers.modelOther"),
-                            name => name.to_string(),
-                        };
-                        egui::ComboBox::from_id_salt("model").width(ui.available_width()).selected_text(shown).show_ui(ui, |ui| {
-                            crate::ui::widgets::compact_menu(ui);
-                            for (family, heading) in [("Pt", "printers.modelGroupPt"), ("Ql", "printers.modelGroupQl")] {
-                                ui.label(widgets::bold(t(heading)));
-                                for model in self.models.iter().filter(|m| m.family.starts_with(family)) {
-                                    ui.selectable_value(&mut form.model_choice, model.name.clone(), &model.name);
-                                }
-                            }
-                            ui.separator();
-                            ui.selectable_value(&mut form.model_choice, OTHER_MODEL.to_string(), t("printers.modelOther"));
-                        });
-                    });
-                    if form.model_choice == OTHER_MODEL {
-                        field(ui, &t("printers.modelCustom"), |ui| {
-                            ui.add(
-                                egui::TextEdit::singleline(&mut form.custom_model)
-                                    .margin(egui::Margin::symmetric(11, 9))
-                                    .hint_text(crate::ui::widgets::hint(ui.ctx(), t("printers.modelPlaceholder")))
-                                    .desired_width(f32::INFINITY),
-                            )
-                        });
-                    }
-                    widgets::muted_small(ui, &model_hint(form.model().as_deref(), &self.models));
-
-                    ui.add_space(6.0);
-                    widgets::section_title(ui, &t("printers.sectionConnection"));
-                    field(ui, &t("printers.connectionType"), |ui| {
-                        egui::ComboBox::from_id_salt("connection")
-                            .width(ui.available_width())
-                            .selected_text(t(&format!("printers.connectionType{}", form.connection_type)))
-                            .show_ui(ui, |ui| {
-                                crate::ui::widgets::compact_menu(ui);
-                                for kind in CONNECTION_TYPES {
-                                    if ui
-                                        .selectable_value(
-                                            &mut form.connection_type,
-                                            kind.to_string(),
-                                            t(&format!("printers.connectionType{kind}")),
-                                        )
-                                        .clicked()
-                                    {
-                                        form.port = if kind == "PrintServer" { "631".into() } else { "9100".into() };
-                                    }
-                                }
-                            });
-                    });
-
-                    match form.connection_type.as_str() {
-                        "IpAddress" | "Hostname" => {
-                            let label = t(&format!("printers.connectionType{}", form.connection_type));
-                            field(ui, &label, |ui| widgets::text_input(ui, &mut form.address, f32::INFINITY));
-                            field(ui, &t("printers.port"), |ui| widgets::text_input(ui, &mut form.port, 120.0));
-                            widgets::muted_small(ui, &t("printers.portHint"));
-                        }
-                        "PrintServer" => {
-                            field(ui, &t("printers.printServerAddress"), |ui| {
-                                widgets::text_input(ui, &mut form.print_server, f32::INFINITY)
-                            });
-                            field(ui, &t("printers.port"), |ui| widgets::text_input(ui, &mut form.port, 120.0));
-                            widgets::muted_small(ui, &t("printers.portHintIpp"));
-                            field(ui, &t("printers.queueName"), |ui| widgets::text_input(ui, &mut form.queue, f32::INFINITY));
-                            widgets::muted_small(ui, &t("printers.queueNameHint"));
-                            notice(ui, &t("printers.printServerNote"), Tone::Info);
-                        }
-                        _ => {
-                            field(ui, &t("printers.usbIdentifier"), |ui| {
-                                let shown = self
-                                    .usb
-                                    .iter()
-                                    .find(|usb| usb.identifier == form.usb_identifier)
-                                    .map(|usb| format!("{} ({})", usb.name, usb.identifier))
-                                    .unwrap_or_else(|| {
-                                        if form.usb_identifier.is_empty() { t("desktop.usbChoose") } else { form.usb_identifier.clone() }
-                                    });
-                                egui::ComboBox::from_id_salt("usb").width(ui.available_width()).selected_text(shown).show_ui(ui, |ui| {
-                                    crate::ui::widgets::compact_menu(ui);
-                                    for usb in &self.usb {
-                                        ui.selectable_value(
-                                            &mut form.usb_identifier,
-                                            usb.identifier.clone(),
-                                            format!("{} ({})", usb.name, usb.identifier),
-                                        );
-                                    }
-                                });
-                            });
-                            if self.usb.is_empty() {
-                                widgets::muted_small(ui, &t("desktop.usbNone"));
-                            }
-                            if ui.add(PillButton::new(&t("desktop.usbRefresh"), Kind::Secondary).small().icon(Icon::Refresh)).clicked() {
-                                let api = c.api.clone();
-                                self.usb_task = Some(Task::spawn(c.egui, move || api.usb_printers()));
+                field(ui, &t("printers.model"), |ui| {
+                    let shown = match form.model_choice.as_str() {
+                        "" => t("printers.modelChoose"),
+                        OTHER_MODEL => t("printers.modelOther"),
+                        name => name.to_string(),
+                    };
+                    egui::ComboBox::from_id_salt("model").width(ui.available_width()).selected_text(shown).show_ui(ui, |ui| {
+                        crate::ui::widgets::compact_menu(ui);
+                        for (family, heading) in [("Pt", "printers.modelGroupPt"), ("Ql", "printers.modelGroupQl")] {
+                            ui.label(widgets::bold(t(heading)));
+                            for model in self.models.iter().filter(|m| m.family.starts_with(family)) {
+                                ui.selectable_value(&mut form.model_choice, model.name.clone(), &model.name);
                             }
                         }
-                    }
-
-                    ui.add_space(6.0);
-                    widgets::section_title(ui, &t("printers.testPrintSize"));
-                    ui.horizontal(|ui| {
-                        field(ui, &t("printers.labelWidth"), |ui| widgets::text_input(ui, &mut form.width, 100.0));
-                        field(ui, &t("printers.labelHeight"), |ui| widgets::text_input(ui, &mut form.height, 100.0));
-                    });
-                    widgets::muted_small(ui, &t("printers.testPrintSizeHint"));
-                    ui.checkbox(&mut form.enabled, t("printers.enabled"));
-
-                    if let Some(error) = &form.error {
-                        notice(ui, error, Tone::Danger);
-                    }
-
-                    ui.horizontal(|ui| {
-                        let label = if form.id.is_some() { t("printers.saveChanges") } else { t("printers.addPrinter") };
-                        if primary_button_enabled(ui, !saving && !form.name.trim().is_empty(), &label).clicked() {
-                            submit = true;
-                        }
-                        if button(ui, &t("common.cancel")).clicked() {
-                            close = true;
-                        }
+                        ui.separator();
+                        ui.selectable_value(&mut form.model_choice, OTHER_MODEL.to_string(), t("printers.modelOther"));
                     });
                 });
+                if form.model_choice == OTHER_MODEL {
+                    field(ui, &t("printers.modelCustom"), |ui| {
+                        ui.add(
+                            egui::TextEdit::singleline(&mut form.custom_model)
+                                .margin(egui::Margin::symmetric(11, 9))
+                                .hint_text(crate::ui::widgets::hint(ui.ctx(), t("printers.modelPlaceholder")))
+                                .desired_width(f32::INFINITY),
+                        )
+                    });
+                }
+                widgets::muted_small(ui, &model_hint(form.model().as_deref(), &self.models));
+
+                ui.add_space(6.0);
+                widgets::section_title(ui, &t("printers.sectionConnection"));
+                field(ui, &t("printers.connectionType"), |ui| {
+                    egui::ComboBox::from_id_salt("connection")
+                        .width(ui.available_width())
+                        .selected_text(t(&format!("printers.connectionType{}", form.connection_type)))
+                        .show_ui(ui, |ui| {
+                            crate::ui::widgets::compact_menu(ui);
+                            for kind in CONNECTION_TYPES {
+                                if ui
+                                    .selectable_value(
+                                        &mut form.connection_type,
+                                        kind.to_string(),
+                                        t(&format!("printers.connectionType{kind}")),
+                                    )
+                                    .clicked()
+                                {
+                                    form.port = if kind == "PrintServer" { "631".into() } else { "9100".into() };
+                                }
+                            }
+                        });
+                });
+
+                match form.connection_type.as_str() {
+                    "IpAddress" | "Hostname" => {
+                        let label = t(&format!("printers.connectionType{}", form.connection_type));
+                        field(ui, &label, |ui| widgets::text_input(ui, &mut form.address, f32::INFINITY));
+                        field(ui, &t("printers.port"), |ui| widgets::text_input(ui, &mut form.port, 120.0));
+                        widgets::muted_small(ui, &t("printers.portHint"));
+                    }
+                    "PrintServer" => {
+                        field(ui, &t("printers.printServerAddress"), |ui| widgets::text_input(ui, &mut form.print_server, f32::INFINITY));
+                        field(ui, &t("printers.port"), |ui| widgets::text_input(ui, &mut form.port, 120.0));
+                        widgets::muted_small(ui, &t("printers.portHintIpp"));
+                        field(ui, &t("printers.queueName"), |ui| widgets::text_input(ui, &mut form.queue, f32::INFINITY));
+                        widgets::muted_small(ui, &t("printers.queueNameHint"));
+                        notice(ui, &t("printers.printServerNote"), Tone::Info);
+                    }
+                    _ => {
+                        field(ui, &t("printers.usbIdentifier"), |ui| {
+                            let shown = self
+                                .usb
+                                .iter()
+                                .find(|usb| usb.identifier == form.usb_identifier)
+                                .map(|usb| format!("{} ({})", usb.name, usb.identifier))
+                                .unwrap_or_else(|| {
+                                    if form.usb_identifier.is_empty() { t("desktop.usbChoose") } else { form.usb_identifier.clone() }
+                                });
+                            egui::ComboBox::from_id_salt("usb").width(ui.available_width()).selected_text(shown).show_ui(ui, |ui| {
+                                crate::ui::widgets::compact_menu(ui);
+                                for usb in &self.usb {
+                                    ui.selectable_value(
+                                        &mut form.usb_identifier,
+                                        usb.identifier.clone(),
+                                        format!("{} ({})", usb.name, usb.identifier),
+                                    );
+                                }
+                            });
+                        });
+                        if self.usb.is_empty() {
+                            widgets::muted_small(ui, &t("desktop.usbNone"));
+                        }
+                        if ui.add(PillButton::new(&t("desktop.usbRefresh"), Kind::Secondary).small().icon(Icon::Refresh)).clicked() {
+                            let api = c.api.clone();
+                            self.usb_task = Some(Task::spawn(c.egui, move || api.usb_printers()));
+                        }
+                    }
+                }
+
+                ui.add_space(6.0);
+                widgets::section_title(ui, &t("printers.testPrintSize"));
+                ui.horizontal(|ui| {
+                    field(ui, &t("printers.labelWidth"), |ui| widgets::text_input(ui, &mut form.width, 100.0));
+                    field(ui, &t("printers.labelHeight"), |ui| widgets::text_input(ui, &mut form.height, 100.0));
+                });
+                widgets::muted_small(ui, &t("printers.testPrintSizeHint"));
+                ui.checkbox(&mut form.enabled, t("printers.enabled"));
+            });
+
+            ui.add_space(8.0);
+            if let Some(error) = &form.error {
+                notice(ui, error, Tone::Danger);
+            }
+
+            ui.horizontal(|ui| {
+                let label = if form.id.is_some() { t("printers.saveChanges") } else { t("printers.addPrinter") };
+                if primary_button_enabled(ui, !saving && !form.name.trim().is_empty(), &label).clicked() {
+                    submit = true;
+                }
+                if button(ui, &t("common.cancel")).clicked() {
+                    close = true;
+                }
+            });
         });
 
         if submit {

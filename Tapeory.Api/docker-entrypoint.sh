@@ -23,10 +23,19 @@ if [ "$(id -u)" = "0" ]; then
         chown -R "$PUID:$PGID" "$STORAGE_PATH"
     fi
 
+    # USB printers passed in (--device /dev/usb/lp0) keep the host's owner, usually root with
+    # the "lp" group: the app joins the groups of those devices so it can print to them.
+    DEVICE_GROUPS="$(stat -c '%g' /dev/usb/lp* 2>/dev/null | sort -u | paste -sd, -)"
+    if [ -n "$DEVICE_GROUPS" ]; then
+        GROUP_OPTION="--groups=$DEVICE_GROUPS"
+    else
+        GROUP_OPTION="--clear-groups"
+    fi
+
     # The target user may not exist in /etc/passwd, so give it a writable HOME (fontconfig
     # keeps its cache there).
     export HOME=/tmp
-    exec setpriv --reuid="$PUID" --regid="$PGID" --clear-groups dotnet Tapeory.Api.dll "$@"
+    exec setpriv --reuid="$PUID" --regid="$PGID" "$GROUP_OPTION" dotnet Tapeory.Api.dll "$@"
 fi
 
 exec dotnet Tapeory.Api.dll "$@"
