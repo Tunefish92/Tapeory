@@ -33,6 +33,12 @@ jobs:
       - name: Test
         run: dotnet test Tapeory.slnx --no-build -c Release --logger "trx" --results-directory TestResults
 
+      # The same tests again on SQLite, the desktop app's local database.
+      - name: Test on SQLite
+        env:
+          TAPEORY_TEST_DATABASE: sqlite
+        run: dotnet test Tapeory.slnx --no-build -c Release --logger "trx;LogFilePrefix=sqlite" --results-directory TestResults
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -67,6 +73,232 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # The desktop app. Every run builds and tests it; on a release tag the packages are attached to
+  # the GitHub release, where the app's "Update now" finds them.
+  desktop-linux:
+    name: Desktop app (Linux)
+    # The oldest supported runner: its glibc decides which distributions the app runs on.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libxkbcommon-dev libfuse2
+
+      - name: Version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT";
+          else echo "version=$(grep -m1 '^version' Tapeory.Desktop/Cargo.toml | cut -d'"' -f2)-dev" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Lint and test
+        working-directory: Tapeory.Desktop
+        run: |
+          cargo fmt --check
+          cargo clippy --release --locked -- -D warnings
+          cargo test --release --locked
+
+      - name: Package
+        run: Tapeory.Desktop/packaging/linux/build.sh "${{ steps.version.outputs.version }}" dist
+
+      # The packaged engine starts in engine mode and answers with the desktop secret.
+      - name: Smoke test
+        run: |
+          mkdir smoke && tar -xzf dist/*.tar.gz -C smoke
+          engine=$(echo smoke/*/engine/Tapeory.Api)
+          export TAPEORY_ENGINE_TOKEN=$(openssl rand -hex 32) TAPEORY_STORAGE_PATH=$PWD/smoke/data
+          coproc ENGINE { "$engine" --engine; }
+          while read -r -t 60 line <&"${ENGINE[0]}"; do
+            [[ "$line" == TAPEORY_ENGINE_READY* ]] && break
+          done
+          echo "$line"
+          address=${line#TAPEORY_ENGINE_READY }
+          curl -fsS -H "X-Tapeory-Token: $TAPEORY_ENGINE_TOKEN" "$address/api/setup/status" | tee /dev/stderr | grep -q '"desktop":true'
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-linux
+          path: dist/*
+
+  desktop-windows:
+    name: Desktop app (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT";
+          else echo "version=$(grep -m1 '^version' Tapeory.Desktop/Cargo.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Test
+        working-directory: Tapeory.Desktop
+        run: cargo test --release --locked
+
+      # The app with the C runtime linked in (.cargo/config.toml) and the engine with its own .NET
+      # runtime: nothing to install besides Tapeory.
+      - name: Build
+        shell: pwsh
+        env:
+          TAPEORY_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cargo build --release --locked --manifest-path Tapeory.Desktop/Cargo.toml
+          dotnet publish Tapeory.Api -c Release -r win-x64 --self-contained -p:Version=$env:TAPEORY_VERSION -p:DebugType=none -o build/engine
+          Get-ChildItem build/engine -Recurse -Filter *.pdb | Remove-Item
+          if (Test-Path build/engine/wwwroot) { Remove-Item build/engine/wwwroot -Recurse }
+          New-Item -ItemType Directory -Force build/Tapeory | Out-Null
+          Copy-Item Tapeory.Desktop/target/release/tapeory.exe build/Tapeory/
+          Move-Item build/engine build/Tapeory/engine
+
+      # Releases are signed by SignPath Foundation (see "Code signing policy" in the README), once
+      # the repository variable SIGNPATH_ORGANIZATION_ID and the secret SIGNPATH_API_TOKEN are set.
+      # Each request waits for a maintainer's approval in SignPath. The artifact configurations
+      # are in Tapeory.Desktop/packaging/windows/signpath/.
+      - name: Signing enabled?
+        id: signing
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* && -n "${{ vars.SIGNPATH_ORGANIZATION_ID }}" ]]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Upload the programs for signing
+        id: unsigned-files
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-files
+          path: build/Tapeory/
+          retention-days: 1
+
+      - name: Sign the programs
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: tapeory
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: app-files
+          github-artifact-id: ${{ steps.unsigned-files.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/signed
+
+      - name: Use the signed programs
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          Remove-Item build/Tapeory -Recurse
+          Move-Item build/signed build/Tapeory
+          Get-AuthenticodeSignature build/Tapeory/tapeory.exe, build/Tapeory/engine/Tapeory.Api.exe, build/Tapeory/engine/Tapeory.Api.dll |
+            ForEach-Object { if ($_.Status -ne 'Valid') { throw "$($_.Path) isn't signed: $($_.Status)" } }
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $env:TAPEORY_ENGINE_TOKEN = -join ((1..64) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
+          $env:TAPEORY_STORAGE_PATH = "$PWD\smoke-data"
+          $start = New-Object System.Diagnostics.ProcessStartInfo "build\Tapeory\engine\Tapeory.Api.exe", "--engine"
+          $start.RedirectStandardInput = $true; $start.RedirectStandardOutput = $true; $start.UseShellExecute = $false
+          $engine = [System.Diagnostics.Process]::Start($start)
+          do { $line = $engine.StandardOutput.ReadLine() } while ($line -ne $null -and -not $line.StartsWith('TAPEORY_ENGINE_READY'))
+          Write-Host $line
+          $address = $line.Split(' ')[1]
+          $status = Invoke-RestMethod -Headers @{ 'X-Tapeory-Token' = $env:TAPEORY_ENGINE_TOKEN } "$address/api/setup/status"
+          if (-not $status.desktop) { throw "The engine didn't start in desktop mode." }
+          $engine.StandardInput.Close()
+          if (-not $engine.WaitForExit(15000)) { throw "The engine didn't stop when its input closed." }
+
+      - name: Zip and installer
+        shell: pwsh
+        env:
+          TAPEORY_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path build/Tapeory -DestinationPath "dist/Tapeory-$env:TAPEORY_VERSION-windows-x64.zip"
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:TAPEORY_VERSION" "/DSourceDir=$PWD\build\Tapeory" "/DOutputDir=$PWD\build\setup" Tapeory.Desktop\packaging\windows\tapeory.iss
+
+      - name: Upload the setup for signing
+        id: unsigned-setup
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-setup
+          path: build/setup/
+          retention-days: 1
+
+      - name: Sign the setup
+        if: steps.signing.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: tapeory
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: setup
+          github-artifact-id: ${{ steps.unsigned-setup.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/setup-signed
+
+      - name: Use the signed setup
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem build/setup-signed -Filter *.exe
+          if ((Get-AuthenticodeSignature $setup.FullName).Status -ne 'Valid') { throw "The setup isn't signed." }
+          Remove-Item build/setup -Recurse
+          Move-Item build/setup-signed build/setup
+
+      - name: Collect
+        shell: pwsh
+        run: Copy-Item build/setup/*.exe dist/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-windows
+          path: dist/*
+
+  # The Windows version is on hold (Windows Defender blocks the unsigned program), so a release
+  # gets the Linux files only. To bring it back: add desktop-windows to `needs` and download
+  # `desktop-*` with merge-multiple again.
+  desktop-release:
+    name: Attach desktop app to the release
+    runs-on: ubuntu-latest
+    needs: [backend, desktop-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: desktop-linux
+          path: dist
+
+      # Adds the files to the tag's release (creating it if it doesn't exist yet). GitHub records
+      # each file's SHA-256, which the app checks after downloading an update.
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md."
+          gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
 
   docker-build:
     name: Docker image build & smoke test

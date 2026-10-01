@@ -115,6 +115,116 @@ public sealed class BrotherPrinterDriverTests : IDisposable
         Assert.Contains("NO TAPE", outcome.ErrorMessage);
     }
 
+    /// <summary>A USB printer that answers a status request and reports its labels (or doesn't).</summary>
+    private sealed class ScriptedUsbPort(PrinterStatusSnapshot? status, Tapeory.Api.Printing.Usb.UsbPrintResult result)
+        : Tapeory.Api.Printing.Usb.IUsbPrinterPort
+    {
+        public List<(byte[] Data, int Labels)> Jobs { get; } = [];
+
+        public IReadOnlyList<Tapeory.Api.Printing.Usb.UsbPrinterInfo> List() => [new("/dev/usb/lp0", "Brother PT-P750W", "PT-P750W")];
+
+        public Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("jobs go through PrintAsync");
+
+        public Task<PrinterStatusSnapshot?> ReadStatusAsync(string identifier, CancellationToken cancellationToken) => Task.FromResult(status);
+
+        public Task<Tapeory.Api.Printing.Usb.UsbPrintResult> PrintAsync(string identifier, byte[] data, int labelCount, CancellationToken cancellationToken)
+        {
+            Jobs.Add((data, labelCount));
+            return Task.FromResult(result);
+        }
+    }
+
+    private async Task<PrintOutcome> PrintOverUsbAsync(ScriptedUsbPort port, int copies = 1)
+    {
+        var driver = new BrotherPrinterDriver(
+            new PrinterRawSocketSender(), new ScriptedStatusReader([null]), new IppClient(new HttpClient()),
+            NullLogger<BrotherPrinterDriver>.Instance, port);
+
+        return await driver.PrintAsync(
+            new Printer { Name = "USB", Model = "Brother PT-P750W", ConnectionType = PrinterConnectionType.Usb, UsbIdentifier = "/dev/usb/lp0" },
+            Enumerable.Repeat(_label, copies).ToList(),
+            BrotherCatalog.Find("PT-P750W").Media.Single(media => media.Id == "tze-9"),
+            PrinterCapabilities.Standard,
+            CutMode.AutoCut,
+            _ => Task.CompletedTask,
+            CancellationToken.None);
+    }
+
+    // What a PT-P750W answers on USB with 9 mm laminated tape loaded and nothing wrong.
+    private static readonly byte[] ReadyWithNineMm =
+        [0x80, 0x20, 0x42, 0x30, 0x68, 0x30, 0x04, 0, 0, 0, 0x09, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0x08, 0, 0, 0, 0, 0, 0];
+
+    [Fact]
+    public void UsbStatus_TellsTheLoadedTape_AndProblemsInWords()
+    {
+        var ready = BrotherStatusReply.Parse(ReadyWithNineMm)!.ToSnapshot();
+        Assert.Equal(9m, ready.LoadedTapeMm);
+        Assert.Null(ready.BlockingError);
+
+        byte[] wrongTape = [.. ReadyWithNineMm];
+        wrongTape[9] = 0x01;
+        wrongTape[18] = BrotherStatusReply.ErrorOccurred;
+        Assert.Equal("the tape doesn't match the job", BrotherStatusReply.Parse(wrongTape)!.ToSnapshot().BlockingError);
+
+        byte[] coverOpenWithoutTape = [.. ReadyWithNineMm];
+        coverOpenWithoutTape[8] = 0x01;
+        coverOpenWithoutTape[9] = 0x10;
+        coverOpenWithoutTape[10] = 0;
+        var stopped = BrotherStatusReply.Parse(coverOpenWithoutTape)!.ToSnapshot();
+        Assert.Equal("no tape, cover open", stopped.BlockingError);
+        Assert.Null(stopped.LoadedTapeMm);
+
+        Assert.Null(BrotherStatusReply.Parse([0x00, 0x01, 0x02]));
+        Assert.Null(BrotherStatusReply.Parse(new byte[32]));
+    }
+
+    [Fact]
+    public async Task UsbPrint_IsRefusedWithoutSending_WhenThePrinterHasAnotherTapeLoaded()
+    {
+        byte[] twelveMm = [.. ReadyWithNineMm];
+        twelveMm[10] = 12;
+        var port = new ScriptedUsbPort(BrotherStatusReply.Parse(twelveMm)!.ToSnapshot(), Tapeory.Api.Printing.Usb.UsbPrintResult.Printed());
+
+        var outcome = await PrintOverUsbAsync(port); // a 9 mm label
+
+        Assert.False(outcome.IsSuccess);
+        Assert.Contains("12 mm tape loaded", outcome.ErrorMessage);
+        Assert.Empty(port.Jobs);
+    }
+
+    [Fact]
+    public async Task UsbPrint_IsConfirmed_WhenThePrinterReportsItsLabels_AndUnconfirmedWhenItSaysNothing()
+    {
+        var ready = BrotherStatusReply.Parse(ReadyWithNineMm)!.ToSnapshot();
+        var reporting = new ScriptedUsbPort(ready, Tapeory.Api.Printing.Usb.UsbPrintResult.Printed());
+        var silent = new ScriptedUsbPort(null, Tapeory.Api.Printing.Usb.UsbPrintResult.Sent());
+        var failing = new ScriptedUsbPort(ready, Tapeory.Api.Printing.Usb.UsbPrintResult.Failure("The printer reports a problem: cover open."));
+
+        var confirmed = await PrintOverUsbAsync(reporting, copies: 2);
+        Assert.True(confirmed is { IsSuccess: true, Confirmed: true });
+        Assert.Equal(2, Assert.Single(reporting.Jobs).Labels);
+
+        Assert.True(await PrintOverUsbAsync(silent) is { IsSuccess: true, Confirmed: false });
+
+        var failed = await PrintOverUsbAsync(failing);
+        Assert.False(failed.IsSuccess);
+        Assert.Contains("cover open", failed.ErrorMessage);
+    }
+
+    [Fact]
+    public void Status_TreatsAStoppedPrinterShowingAnError_AsAProblem_EvenWithoutErrorBits()
+    {
+        // What a PT-P750W reports while a job for another tape width waits to be cancelled.
+        var waiting = new PrinterStatusSnapshot(1, [0x00], "ERROR           ", 327, "9mm(0.35\")", AlertCode: 802);
+        var unexplained = new PrinterStatusSnapshot(1, [0x00], "ERROR", 327);
+
+        Assert.StartsWith("ERROR (a job for a different tape is waiting", waiting.BlockingError);
+        Assert.Equal("ERROR", unexplained.BlockingError);
+        Assert.Null(new PrinterStatusSnapshot(3, [0x00], "READY", 327).BlockingError);
+        Assert.Null(new PrinterStatusSnapshot(4, [0x00], "PRINTING", 327).BlockingError);
+    }
+
     [Fact]
     public async Task Print_FailsWithoutSending_WhenThePrinterAlreadyReportsAProblem()
     {

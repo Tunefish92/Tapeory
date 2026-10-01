@@ -41,6 +41,10 @@ public sealed class UserDirectory(IServiceScopeFactory scopes, DatabaseConfigSto
         {
             return false;
         }
+        catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.Ordinal))
+        {
+            return false;
+        }
 
         return _hasUsers;
     }

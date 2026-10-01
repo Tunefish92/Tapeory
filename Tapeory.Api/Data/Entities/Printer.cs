@@ -39,4 +39,11 @@ public sealed class Printer
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>For a USB printer: the Tapeory installation on the computer it's connected to, the
+    /// only one that can print to it. Null for network printers, which every installation reaches.</summary>
+    public string? InstanceId { get; set; }
+
+    /// <summary>That computer's name, for messages on the other installations.</summary>
+    public string? ComputerName { get; set; }
 }

@@ -26,6 +26,8 @@ public sealed class StatsControllerTests(TapeoryWebApplicationFactory factory)
     [Fact]
     public async Task Stats_CountPrintedLabelsAndTapeLength_OfCompletedJobs()
     {
+        // Jobs other tests left queued would otherwise finish in between and count too.
+        await WaitForIdleQueueAsync();
         var before = await GetStatsAsync();
 
         var templateResponse = await _client.PostAsJsonAsync(
@@ -147,6 +149,23 @@ public sealed class StatsControllerTests(TapeoryWebApplicationFactory factory)
         var job = await response.Content.ReadFromJsonAsync<PrintJobResponse>(JsonOptions);
         await WaitForCompletionAsync(job!.Id);
         return job.Id;
+    }
+
+    private async Task WaitForIdleQueueAsync()
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+
+        while (DateTime.UtcNow < deadline)
+        {
+            var jobs = await _client.GetFromJsonAsync<List<PrintJobResponse>>("/api/print-jobs", JsonOptions);
+
+            if (!jobs!.Any(job => job.Status is "Queued" or "Processing" or "Sending" or "Printing"))
+            {
+                return;
+            }
+
+            await Task.Delay(200);
+        }
     }
 
     private async Task WaitForCompletionAsync(int jobId)

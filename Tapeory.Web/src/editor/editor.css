@@ -328,7 +328,9 @@
     align-items: stretch;
   }
 
+  /* Stacked, the 130px basis would become each field's height. */
   .editor-metadata .properties-field {
+    flex: 0 0 auto;
     width: 100%;
   }
 }

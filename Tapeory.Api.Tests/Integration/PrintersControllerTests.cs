@@ -350,6 +350,74 @@ public sealed class PrintersControllerTests(TapeoryWebApplicationFactory factory
     }
 
     [Fact]
+    public async Task TestPrint_UsesTheTapeThePrinterReports_WhenNoSizeIsSet()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var received = Task.Run(async () =>
+        {
+            using var client = await listener.AcceptTcpClientAsync();
+            using var data = new MemoryStream();
+            await client.GetStream().CopyToAsync(data);
+            return data.ToArray();
+        });
+
+        // Asked for the tape, then before sending, while printing, and when the label is out.
+        factory.PrinterStatus.Script(
+            new Api.Printing.PrinterStatusSnapshot(3, [0x00], "READY", 500, "9mm(0.35\")"),
+            new Api.Printing.PrinterStatusSnapshot(3, [0x00], "READY", 500, "9mm(0.35\")"),
+            new Api.Printing.PrinterStatusSnapshot(4, [0x00], "PRINTING", 500, "9mm(0.35\")"),
+            new Api.Printing.PrinterStatusSnapshot(3, [0x00], "READY", 501, "9mm(0.35\")"));
+
+        try
+        {
+            var created = await _client.PostAsJsonAsync(
+                "/api/printers",
+                new CreatePrinterRequest(UniqueName("Printer"), "Brother PT-P750W", "IpAddress", "127.0.0.1", port, null, null, null, null, true),
+                JsonOptions);
+            var printer = await created.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
+
+            var response = await _client.PostAsync($"/api/printers/{printer!.Id}/test-print", null);
+            var result = await response.Content.ReadFromJsonAsync<TestPrintResponse>(JsonOptions);
+
+            Assert.True(result!.IsSuccess, result.ErrorMessage);
+
+            // "Print information" (ESC i z) names the tape the job is for: its fourth byte is the width in mm.
+            var job = await received;
+            var information = job.AsSpan().IndexOf(new byte[] { 0x1B, 0x69, 0x7A });
+            Assert.True(information >= 0);
+            Assert.Equal(9, job[information + 5]);
+        }
+        finally
+        {
+            factory.PrinterStatus.Reset();
+        }
+    }
+
+    [Fact]
+    public async Task TestPrint_IsRefused_WhenTheTapeIsUnknown_AndNoSizeIsSet()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        factory.PrinterStatus.Reset(); // the printer doesn't answer SNMP
+
+        var created = await _client.PostAsJsonAsync(
+            "/api/printers",
+            new CreatePrinterRequest(UniqueName("Printer"), "Brother PT-P750W", "IpAddress", "127.0.0.1", port, null, null, null, null, true),
+            JsonOptions);
+        var printer = await created.Content.ReadFromJsonAsync<PrinterResponse>(JsonOptions);
+
+        var response = await _client.PostAsync($"/api/printers/{printer!.Id}/test-print", null);
+        var result = await response.Content.ReadFromJsonAsync<TestPrintResponse>(JsonOptions);
+
+        Assert.False(result!.IsSuccess);
+        Assert.Contains("test print size", result.ErrorMessage);
+        Assert.False(listener.Pending(), "a job for a guessed tape width must not be sent");
+    }
+
+    [Fact]
     public async Task TestPrint_ReturnsFailure_WhenNothingIsListening()
     {
         int unusedPort;

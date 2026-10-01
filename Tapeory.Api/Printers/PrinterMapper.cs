@@ -1,11 +1,14 @@
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Instances;
 using Tapeory.Api.Printing;
 
 namespace Tapeory.Api.Printers;
 
 public static class PrinterMapper
 {
-    public static PrinterResponse ToResponse(Printer printer) => new(
+    public static PrinterResponse ToResponse(Printer printer) => ToResponse(printer, null);
+
+    public static PrinterResponse ToResponse(Printer printer, TapeoryInstance? instance) => new(
         printer.Id,
         printer.Name,
         printer.Model,
@@ -28,5 +31,7 @@ public static class PrinterMapper
             .ToList(),
         PrinterCapabilities.CutModes(printer.Model).Select(mode => mode.ToString()).ToList(),
         printer.CreatedAt,
-        printer.UpdatedAt);
+        printer.UpdatedAt,
+        printer.ComputerName,
+        instance?.Owns(printer.InstanceId) ?? true);
 }

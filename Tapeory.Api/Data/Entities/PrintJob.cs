@@ -32,6 +32,10 @@ public sealed class PrintJob
     /// after the account is renamed or deleted.</summary>
     public string? PrintedByName { get; set; }
 
+    /// <summary>The Tapeory installation that prints it (see TapeoryInstance); null for jobs from
+    /// before installations had ids, which any of them may print.</summary>
+    public string? InstanceId { get; set; }
+
     public PrintJobStatus Status { get; set; } = PrintJobStatus.Queued;
 
     public PrintQuality Quality { get; set; } = PrintQuality.Standard;

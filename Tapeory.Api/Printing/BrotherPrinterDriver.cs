@@ -1,6 +1,8 @@
 using SkiaSharp;
 using Tapeory.Api.Data.Entities;
 
+using Tapeory.Api.Printing.Usb;
+
 namespace Tapeory.Api.Printing;
 
 public enum PrintStage
@@ -34,7 +36,8 @@ public sealed class BrotherPrinterDriver(
     PrinterRawSocketSender sender,
     IPrinterStatusReader statusReader,
     IppClient ipp,
-    ILogger<BrotherPrinterDriver> logger)
+    ILogger<BrotherPrinterDriver> logger,
+    IUsbPrinterPort? usb = null)
 {
     public TimeSpan PollInterval { get; init; } = TimeSpan.FromMilliseconds(500);
 
@@ -55,9 +58,8 @@ public sealed class BrotherPrinterDriver(
     {
         if (printer.ConnectionType == PrinterConnectionType.Usb)
         {
-            return PrintOutcome.Failure("Printing to USB printers isn't supported yet.");
+            return await PrintViaUsbAsync(printer, labels, media, resolution, cutMode, onStage, cancellationToken);
         }
-
 
         var target = PrinterNetworkResolver.Resolve(printer);
 
@@ -99,6 +101,44 @@ public sealed class BrotherPrinterDriver(
 
         await onStage(PrintStage.Printing);
         return await WaitUntilPrintedAsync(target.Host, before, labels.Count, media, cancellationToken);
+    }
+
+    /// <summary>
+    /// A printer on this computer's USB port. It gets the same raster data. Where it can be asked
+    /// on that connection (Linux), it tells the loaded tape and reports each label as it comes
+    /// out; otherwise the job counts as done once the printer took the data.
+    /// </summary>
+    private async Task<PrintOutcome> PrintViaUsbAsync(
+        Printer printer,
+        IReadOnlyList<SKBitmap> labels,
+        BrotherMedia media,
+        PrintResolution resolution,
+        CutMode cutMode,
+        Func<PrintStage, Task> onStage,
+        CancellationToken cancellationToken)
+    {
+        if (usb is null || string.IsNullOrWhiteSpace(printer.UsbIdentifier))
+        {
+            return PrintOutcome.Failure("No USB printer is chosen for this printer.");
+        }
+
+        var model = BrotherCatalog.Find(printer.Model);
+        var data = BrotherRasterEncoder.Encode(labels, model, media, resolution.Quality == PrintQuality.High, cutMode);
+
+        // Where the printer answers on its USB connection, it's asked first (errors, wrong tape).
+        var before = await usb.ReadStatusAsync(printer.UsbIdentifier, cancellationToken);
+
+        if (ProblemBeforePrinting(before, media) is { } refusal)
+        {
+            return PrintOutcome.Failure(refusal);
+        }
+
+        await onStage(PrintStage.Sending);
+        var result = await usb.PrintAsync(printer.UsbIdentifier, data, labels.Count, cancellationToken);
+
+        return !result.IsSuccess ? PrintOutcome.Failure(result.ErrorMessage ?? "Could not send to the printer.")
+            : result.Confirmed ? PrintOutcome.Printed()
+            : PrintOutcome.SentUnconfirmed();
     }
 
     /// <summary>Why the printer shouldn't get this job (an error it reports, or the wrong tape), or

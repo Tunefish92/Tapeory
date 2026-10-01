@@ -20,14 +20,17 @@ import {
   createLineObject,
   createRectObject,
   createTextObject,
+  defaultFontFamily,
   duplicateObject,
   extractFields,
+  fitIntoLabel,
   normalizeDocument,
   removeObject,
   reorderObject,
   updateObject,
   type ReorderDirection,
 } from "./document";
+import { listFonts } from "../api/fonts";
 import { useHistory } from "./history";
 import { LabelCanvas } from "./LabelCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -73,6 +76,20 @@ export function EditorPage() {
   const [sourceLbxUrl, setSourceLbxUrl] = useState<string | null>(null);
   const [conversionWarnings, setConversionWarnings] = useState<string[]>([]);
   const [warningsDismissed, setWarningsDismissed] = useState(false);
+  // The server's fonts, to start new text in one that exists there.
+  const [fontFamilies, setFontFamilies] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listFonts()
+      .then((list) => {
+        if (!cancelled) setFontFamilies(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Set right before handleSave navigates from /templates/new to /templates/:id/edit, so the
   // load effect below doesn't immediately refetch (and flash a loading screen over) the
@@ -157,7 +174,11 @@ export function EditorPage() {
       barcode: createBarcodeObject,
     }[type];
 
-    const object = factory();
+    let created = factory();
+    if (created.type === "text" || created.type === "dynamicField") {
+      created = { ...created, fontFamily: defaultFontFamily(fontFamilies) };
+    }
+    const object = fitIntoLabel(created, history.value.widthMm, history.value.heightMm);
     history.set(addObject(history.value, object));
     setSelectedId(object.id);
   }
@@ -167,7 +188,11 @@ export function EditorPage() {
 
     try {
       const uploaded = await uploadImage(file);
-      const object = createImageObject(uploaded.id, uploaded.url);
+      const object = fitIntoLabel(
+        createImageObject(uploaded.id, uploaded.url),
+        history.value.widthMm,
+        history.value.heightMm,
+      );
       history.set(addObject(history.value, object));
       setSelectedId(object.id);
     } catch (err) {

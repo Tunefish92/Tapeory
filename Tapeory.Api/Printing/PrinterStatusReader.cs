@@ -10,8 +10,10 @@ namespace Tapeory.Api.Printing;
 /// <summary>What a printer reports about itself over SNMP (standard Host Resources and Printer
 /// MIBs, which Brother's network printers implement).</summary>
 /// <param name="MediaName">What the printer calls its loaded media, e.g. "9mm(0.35\")".</param>
+/// <param name="AlertCode">The printer's current alert (prtAlertCode), e.g. 802 for a job that
+/// doesn't match the loaded tape; null when it has none or doesn't say.</param>
 public sealed partial record PrinterStatusSnapshot(
-    int DeviceStatus, byte[] ErrorState, string Display, long? LabelCount, string? MediaName = null)
+    int DeviceStatus, byte[] ErrorState, string Display, long? LabelCount, string? MediaName = null, int? AlertCode = null)
 {
     /// <summary>The loaded tape width in mm, read from the media name ("9mm(0.35\")", "3.5mm…"),
     /// or null when the printer doesn't say or has no tape.</summary>
@@ -46,12 +48,19 @@ public sealed partial record PrinterStatusSnapshot(
             if ((first & 0x01) != 0) problems.Add("service requested");
             if ((second & 0x20) != 0) problems.Add("tape cassette missing");
 
+            var display = Display.Trim();
+
             if (problems.Count == 0)
             {
-                return null;
+                // No error bit, but the printer has stopped ("other") and shows an error: on a
+                // P-touch that's a job for another tape width waiting to be cancelled.
+                return DeviceStatus == 1 && display.Length > 0 && !display.Equals("READY", StringComparison.OrdinalIgnoreCase)
+                    ? AlertCode is >= 802 and <= 806
+                        ? $"{display} (a job for a different tape is waiting: press the printer's power button once to cancel it)"
+                        : display
+                    : null;
             }
 
-            var display = Display.Trim();
             return display.Length > 0 && !display.Equals("READY", StringComparison.OrdinalIgnoreCase)
                 ? display
                 : string.Join(", ", problems);
@@ -68,30 +77,36 @@ public interface IPrinterStatusReader
 public sealed class SnmpPrinterStatusReader(ILogger<SnmpPrinterStatusReader> logger) : IPrinterStatusReader
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(2);
+    // Looking a name up can take seconds (in a container, the bare name is tried before the
+    // search domain), so it gets its own time and the answer is kept for a while.
+    private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan LookupLifetime = TimeSpan.FromMinutes(2);
     private static readonly OctetString Community = new("public");
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (IPAddress Address, DateTimeOffset Until)> _addresses =
+        new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly ObjectIdentifier DeviceStatusOid = new("1.3.6.1.2.1.25.3.5.1.1.1"); // hrPrinterStatus
     private static readonly ObjectIdentifier ErrorStateOid = new("1.3.6.1.2.1.25.3.5.1.2.1"); // hrPrinterDetectedErrorState
     private static readonly ObjectIdentifier DisplayOid = new("1.3.6.1.2.1.43.16.5.1.2.1.1"); // prtConsoleDisplayBufferText
     private static readonly ObjectIdentifier LabelCountOid = new("1.3.6.1.2.1.43.10.2.1.4.1.1"); // prtMarkerLifeCount
     private static readonly ObjectIdentifier MediaNameOid = new("1.3.6.1.2.1.43.8.2.1.12.1.1"); // prtInputMediaName
+    private static readonly ObjectIdentifier AlertCodeOid = new("1.3.6.1.2.1.43.18.1.1.7.1.1"); // prtAlertCode
 
     public async Task<PrinterStatusSnapshot?> ReadAsync(string host, CancellationToken cancellationToken)
     {
-        using var timeoutCts = new CancellationTokenSource(Timeout);
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
         try
         {
-            var address = IPAddress.TryParse(host, out var parsed)
-                ? parsed
-                : (await Dns.GetHostAddressesAsync(host, AddressFamily.InterNetwork, linkedCts.Token)).First();
+            var address = await ResolveAsync(host, cancellationToken);
+
+            using var timeoutCts = new CancellationTokenSource(Timeout);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
             var results = await Messenger.GetAsync(
                 VersionCode.V2,
                 new IPEndPoint(address, 161),
                 Community,
-                [new(DeviceStatusOid), new(ErrorStateOid), new(DisplayOid), new(LabelCountOid), new(MediaNameOid)],
+                [new(DeviceStatusOid), new(ErrorStateOid), new(DisplayOid), new(LabelCountOid), new(MediaNameOid), new(AlertCodeOid)],
                 linkedCts.Token);
 
             var byId = results.ToDictionary(variable => variable.Id, variable => variable.Data);
@@ -106,7 +121,8 @@ public sealed class SnmpPrinterStatusReader(ILogger<SnmpPrinterStatusReader> log
                     Integer32 integer => integer.ToInt32(),
                     _ => null
                 },
-                byId.GetValueOrDefault(MediaNameOid) is OctetString media ? media.ToString() : null);
+                byId.GetValueOrDefault(MediaNameOid) is OctetString media ? media.ToString() : null,
+                byId.GetValueOrDefault(AlertCodeOid) is Integer32 alert ? alert.ToInt32() : null);
         }
         catch (Exception ex) when (ex is OperationCanceledException or SocketException or SnmpException
                                        or InvalidOperationException && !cancellationToken.IsCancellationRequested)
@@ -114,5 +130,25 @@ public sealed class SnmpPrinterStatusReader(ILogger<SnmpPrinterStatusReader> log
             logger.LogDebug(ex, "No SNMP status from printer {Host}.", host);
             return null;
         }
+    }
+
+    private async Task<IPAddress> ResolveAsync(string host, CancellationToken cancellationToken)
+    {
+        if (IPAddress.TryParse(host, out var parsed))
+        {
+            return parsed;
+        }
+
+        if (_addresses.TryGetValue(host, out var known) && known.Until > DateTimeOffset.UtcNow)
+        {
+            return known.Address;
+        }
+
+        using var timeoutCts = new CancellationTokenSource(LookupTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+        var address = (await Dns.GetHostAddressesAsync(host, AddressFamily.InterNetwork, linkedCts.Token)).First();
+        _addresses[host] = (address, DateTimeOffset.UtcNow + LookupLifetime);
+
+        return address;
     }
 }

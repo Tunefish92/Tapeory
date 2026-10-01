@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "app-files": Tapeory's own programs, before they're packed into
+     the zip and the setup. Third-party libraries in engine\ keep their own signatures (or none). -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="tapeory.exe" product-name="Tapeory" product-version="${version}">
+      <authenticode-sign />
+    </pe-file>
+    <directory path="engine">
+      <pe-file path="Tapeory.Api.exe" product-name="Tapeory" product-version="${version}">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="Tapeory.Api.dll" product-name="Tapeory" product-version="${version}">
+        <authenticode-sign />
+      </pe-file>
+    </directory>
+  </zip-file>
+</artifact-configuration>

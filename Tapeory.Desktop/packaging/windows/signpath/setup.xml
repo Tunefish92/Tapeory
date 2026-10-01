@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration "setup": the Windows setup, built from the signed programs.
+     Its file name carries the version; product name and version aren't checked here because Inno
+     Setup pads them with spaces ("Tapeory     "), so an exact comparison would fail. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file path="Tapeory-${version}-windows-x64-setup.exe">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

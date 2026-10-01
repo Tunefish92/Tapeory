@@ -44,10 +44,16 @@ public static partial class BackupFileNames
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown backup kind.")
     };
 
-    public static string Create(BackupKind kind, DateTimeOffset createdAt, bool beforeRestore) =>
+    /// <summary>A database backup of a SQLite database is a copy of the database file, not a SQL dump.</summary>
+    public const string SqliteExtension = ".sqlite";
+
+    public static string Create(BackupKind kind, DateTimeOffset createdAt, bool beforeRestore, string? extension = null) =>
         $"{Prefix(kind)}-{createdAt.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture)}"
         + (beforeRestore ? BeforeRestoreSuffix : string.Empty)
-        + Extension(kind);
+        + (extension ?? Extension(kind));
+
+    public static bool IsSqliteBackup(string fileName) =>
+        fileName.EndsWith(SqliteExtension, StringComparison.Ordinal);
 
     public static bool IsValid(BackupKind kind, string? fileName) =>
         fileName is not null && Pattern(kind).IsMatch(fileName);
@@ -70,7 +76,7 @@ public static partial class BackupFileNames
 
     private static Regex Pattern(BackupKind kind) => kind == BackupKind.Database ? DatabasePattern() : LabelsPattern();
 
-    [GeneratedRegex(@"^tapeory-db-\d{8}-\d{6}-\d{3}(-before-restore)?\.sql$")]
+    [GeneratedRegex(@"^tapeory-db-\d{8}-\d{6}-\d{3}(-before-restore)?\.(sql|sqlite)$")]
     private static partial Regex DatabasePattern();
 
     [GeneratedRegex(@"^tapeory-labels-\d{8}-\d{6}-\d{3}(-before-restore)?\.zip$")]

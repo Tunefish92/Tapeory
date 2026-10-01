@@ -3,6 +3,7 @@ using System.Text.Json;
 using Tapeory.Api.Barcodes;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Instances;
 using Tapeory.Api.Printing;
 using Tapeory.Api.Rendering;
 using Tapeory.Api.Storage;
@@ -14,6 +15,7 @@ public sealed class PrintJobService(
     AppDbContext db,
     FileStorageService fileStorage,
     ILogger<PrintJobService> logger,
+    TapeoryInstance instance,
     IHttpContextAccessor? http = null)
 {
     /// <summary>The signed-in account. Outside a request (background work) it sees everything.</summary>
@@ -104,6 +106,11 @@ public sealed class PrintJobService(
             {
                 errors.Add($"Printer {request.PrinterId} was not found.");
             }
+            else if (!instance.Owns(printer.InstanceId))
+            {
+                errors.Add(
+                    $"{printer.Name} is connected to {printer.ComputerName ?? "another computer"}. Print from Tapeory on that computer.");
+            }
         }
 
         var quality = PrintQuality.Standard;
@@ -143,6 +150,8 @@ public sealed class PrintJobService(
             TemplateId = template.Id,
             TemplateVersionNumber = template.CurrentVersion.VersionNumber,
             PrinterId = printer?.Id,
+            // Printed by this installation only, when several share the database.
+            InstanceId = instance.Id,
             PrinterName = printer?.Name ?? request.PrinterName,
             PrintedByUserId = author?.UserId,
             PrintedByName = author?.Name,

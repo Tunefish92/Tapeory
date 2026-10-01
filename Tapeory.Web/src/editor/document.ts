@@ -183,6 +183,51 @@ export function createImageObject(
   };
 }
 
+/**
+ * Moves and shrinks a new object so it lies inside a label of this size: the default boxes are
+ * higher than a narrow tape. Round shapes and images keep their proportions.
+ */
+export function fitIntoLabel<T extends LabelObject>(object: T, labelWidth: number, labelHeight: number): T {
+  const edge = 1;
+  const roomX = Math.max(labelWidth - 2 * edge, 1);
+  const roomY = Math.max(labelHeight - 2 * edge, 1);
+
+  if (object.type === "line") {
+    const [x1, y1, x2] = object.points;
+    const length = Math.min(Math.abs(x2 - x1), roomX);
+    return {
+      ...object,
+      points: [x1, y1, x1 + length, y1],
+      x: Math.max(Math.min(object.x, labelWidth - edge - length), edge),
+      y: Math.min(object.y, labelHeight / 2),
+    };
+  }
+
+  const keepsProportions = object.type === "ellipse" || object.type === "image";
+  const scale = Math.min(roomX / object.width, roomY / object.height, 1);
+  const width = keepsProportions ? object.width * scale : Math.min(object.width, roomX);
+  const height = keepsProportions ? object.height * scale : Math.min(object.height, roomY);
+
+  return {
+    ...object,
+    width,
+    height,
+    x: Math.max(Math.min(object.x, labelWidth - edge - width), edge),
+    y: Math.max(Math.min(object.y, labelHeight - edge - height), edge),
+  };
+}
+
+/**
+ * The font new text starts in: Arial where the server has it, otherwise the bundled Inter (or
+ * the first font there is), so a new text isn't flagged "not installed" straight away.
+ */
+export function defaultFontFamily(installed: readonly string[] | null): string {
+  if (!installed || installed.length === 0 || installed.some((family) => family.toLowerCase() === "arial")) {
+    return "Arial";
+  }
+  return installed.find((family) => family === "Inter") ?? installed[0];
+}
+
 export function addObject(document: LabelDocument, object: LabelObject): LabelDocument {
   return { ...document, objects: [...document.objects, object] };
 }

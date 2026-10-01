@@ -222,22 +222,29 @@
 
 /* Pinned to the bottom, so the buttons line up across cards of different content. Every card
    has the same two rows: the tests, then edit/default/delete. */
+/* The two tests share the row; labels too long for that (e.g. in German) wrap as whole buttons. */
 .printer-card__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);
 }
 
+.printer-card__actions button {
+  white-space: nowrap;
+}
+
 .printer-card__actions > button {
+  flex: 1 1 0;
   justify-content: center;
 }
 
 .printer-card__secondary-actions {
-  grid-column: 1 / -1;
+  flex: 1 0 100%;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 

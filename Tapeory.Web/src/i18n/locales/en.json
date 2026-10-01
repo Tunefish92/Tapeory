@@ -290,7 +290,8 @@
       "loadErrorFallback": "Failed to load template.",
       "previewErrorFallback": "Failed to render preview.",
       "submitErrorFallback": "Failed to submit print job.",
-      "tapeMismatch": "The printer has {{loaded}} mm tape loaded, but this template needs {{needed}} mm tape. Load {{needed}} mm tape before printing."
+      "tapeMismatch": "The printer has {{loaded}} mm tape loaded, but this template needs {{needed}} mm tape. Load {{needed}} mm tape before printing.",
+      "optionElsewhereSuffix": " (on {{name}})"
     },
     "printJobsList": {
       "title": "Print History",
@@ -387,7 +388,7 @@
     "modelGroupQl": "QL",
     "modelHintEmpty": "Brother P-touch (PT) or QL model.",
     "modelHintNetwork": "{{model}} ({{dpi}} dpi) prints directly over the network: add it by IP address or hostname.",
-    "modelHintUsb": "{{model}} ({{dpi}} dpi) connects by USB: share it from a CUPS server and add that server here as a print server with the queue name.",
+    "modelHintUsb": "{{model}} ({{dpi}} dpi) connects by USB: choose it under USB on the computer it's plugged into, or share it from a CUPS server and add that server here as a print server.",
     "modelHintUnknown": "Tapeory doesn't know this model; it prints like a PT-P750W (180 dpi, tape up to 24 mm).",
     "connectionType": "Connection type",
     "connectionTypeIpAddress": "IP address",
@@ -399,12 +400,12 @@
     "queueName": "Queue name (optional)",
     "queueNameHint": "The printer's name on a CUPS or IPP print server, as in http://server:631/printers/<name>. Leave empty to send to the server's raw port.",
     "usbIdentifier": "USB identifier",
-    "usbIdentifierPlaceholder": "Optional device identifier",
+    "usbIdentifierPlaceholder": "The printer's device (Linux, e.g. /dev/usb/lp0) or its name in Windows",
     "port": "Port",
     "labelWidth": "Width (mm)",
     "labelHeight": "Height (mm)",
     "testPrintSize": "Test print size (optional)",
-    "testPrintSizeHint": "Only used by the Test Print button. Print jobs use the template's size.",
+    "testPrintSizeHint": "Only used by the Test Print button; print jobs use the template’s size. Leave it empty to use the tape the printer reports.",
     "portHint": "Raw printing port, usually 9100.",
     "portHintIpp": "IPP port, usually 631.",
     "enabled": "Enabled",
@@ -437,7 +438,9 @@
     "testPrintFailedFallback": "Test print failed.",
     "testPrintErrorFallback": "Test print failed.",
     "lastError": "Last error: {{message}}",
-    "unknownModel": "Unknown model"
+    "unknownModel": "Unknown model",
+    "onComputer": "on {{name}}",
+    "elsewhereNote": "Connected to {{name}}. Test and print from Tapeory on that computer."
   },
   "footer": {
     "copyright": "© {{year}} by"
@@ -543,7 +546,14 @@
     "save": "Save and continue",
     "saving": "Setting up the database…",
     "failedFallback": "Couldn’t connect to the database.",
-    "completed": "Database connected. Tapeory is ready."
+    "completed": "Database connected. Tapeory is ready.",
+    "desktopIntro": "Where should Tapeory keep your templates, printers and print history?",
+    "desktopChoiceLabel": "Database",
+    "localTitle": "On this computer (recommended)",
+    "localText": "A local database in your user folder. Nothing else to set up.",
+    "serverTitle": "On a MySQL or MariaDB server",
+    "serverText": "Share everything with a Tapeory server, for example your Docker installation.",
+    "creatingLocal": "Creating the local database…"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -576,5 +586,39 @@
     "roleUser": "User",
     "openBanner": "Anyone on your network can use Tapeory. Create an administrator account to require signing in.",
     "openBannerAction": "Create account"
+  },
+  "desktop": {
+    "starting": "Starting Tapeory…",
+    "engineFailedTitle": "Tapeory couldn't start",
+    "retry": "Try again",
+    "engineHint": "Tapeory's engine: renders labels and sends them to your printers.",
+    "exportTemplate": "Export…",
+    "imageFailed": "The image couldn't be added: {{message}}",
+    "imagesFilter": "Images",
+    "importFilter": "P-touch Editor labels and Tapeory templates",
+    "logs": "Log files",
+    "saved": "Saved to {{path}}.",
+    "templateSaved": "Template saved.",
+    "units": "Units",
+    "usbChoose": "Choose a printer…",
+    "usbNone": "No USB printer found. Connect the printer and switch it on, then refresh the list.",
+    "usbRefresh": "Refresh list",
+    "time": {
+      "now": "just now",
+      "minutesAgo_one": "{{count}} minute ago",
+      "minutesAgo_other": "{{count}} minutes ago",
+      "hoursAgo_one": "{{count}} hour ago",
+      "hoursAgo_other": "{{count}} hours ago",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago"
+    },
+    "updateNow": "Update now",
+    "updateDownloading": "Downloading the update… {{percent}} %",
+    "updateFailed": "The update failed: {{message}}",
+    "updateManual": "Download the new version from the release page and replace this copy with it.",
+    "updateRestarting": "Installing the update — Tapeory restarts in a moment.",
+    "storedNote": "These details are saved in a file on this computer, so you only need to enter them once.",
+    "backupDatabaseText": "A complete copy of the database — templates, printers, print history and settings — saved in Tapeory’s data folder on this computer. Images and .lbx files aren’t included; the label backup has those.",
+    "backupLabelsText": "All label templates with their images and original .lbx files, saved as one archive in Tapeory’s data folder on this computer."
   }
 }

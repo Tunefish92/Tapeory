@@ -3,12 +3,15 @@ import {
   addObject,
   createBarcodeObject,
   createDynamicFieldObject,
+  createEllipseObject,
   createImageObject,
   createLineObject,
   createRectObject,
   createTextObject,
+  defaultFontFamily,
   duplicateObject,
   extractFields,
+  fitIntoLabel,
   generateId,
   normalizeDocument,
   removeObject,
@@ -247,5 +250,52 @@ describe("normalizeDocument", () => {
     normalizeDocument(doc);
 
     expect(doc.objects[0].id).toBe("");
+  });
+});
+
+describe("fitIntoLabel", () => {
+  it("places every new object inside a 9 mm tape", () => {
+    const objects = [
+      createTextObject(),
+      createDynamicFieldObject(),
+      createRectObject(),
+      createEllipseObject(),
+      createBarcodeObject(),
+      createImageObject(1, "/x"),
+    ];
+
+    for (const created of objects) {
+      const object = fitIntoLabel(created, 40, 9);
+      expect(object.x).toBeGreaterThanOrEqual(1);
+      expect(object.x + object.width).toBeLessThanOrEqual(39);
+      expect(object.y).toBeGreaterThanOrEqual(1);
+      expect(object.y + object.height).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it("keeps a circle round and shortens a line to the label", () => {
+    const ellipse = fitIntoLabel(createEllipseObject(), 40, 9);
+    expect(ellipse.width).toBe(ellipse.height);
+
+    const line = fitIntoLabel(createLineObject(), 12, 9);
+    expect(line.x + (line.points[2] - line.points[0])).toBeLessThanOrEqual(11);
+    expect(line.y).toBeLessThanOrEqual(4.5);
+  });
+
+  it("leaves the defaults alone on a label with room for them", () => {
+    const text = fitIntoLabel(createTextObject(), 62, 29);
+    expect([text.x, text.y, text.width, text.height]).toEqual([5, 5, 30, 8]);
+  });
+});
+
+describe("defaultFontFamily", () => {
+  it("is Arial where the server has it, or while the list isn't known", () => {
+    expect(defaultFontFamily(["Arial", "Inter"])).toBe("Arial");
+    expect(defaultFontFamily(null)).toBe("Arial");
+  });
+
+  it("is the bundled Inter, or the first font, where Arial is missing", () => {
+    expect(defaultFontFamily(["DejaVu Sans", "Inter"])).toBe("Inter");
+    expect(defaultFontFamily(["DejaVu Sans"])).toBe("DejaVu Sans");
   });
 });

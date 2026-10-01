@@ -3,6 +3,8 @@ using Tapeory.Api.Printers;
 using Tapeory.Api.Printing;
 using Tapeory.Api.Rendering;
 using Tapeory.Api.Auth;
+using Tapeory.Api.Instances;
+using Tapeory.Api.Printing.Usb;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +18,9 @@ public sealed class PrintersController(
     BrotherPrinterDriver driver,
     IPrinterStatusReader statusReader,
     IppClient ipp,
-    LabelRenderer renderer) : ControllerBase
+    LabelRenderer renderer,
+    TapeoryInstance instance,
+    IUsbPrinterPort usb) : ControllerBase
 {
     private const int MaxNameLength = 200;
     private const int MaxQueueNameLength = 127;
@@ -25,8 +29,13 @@ public sealed class PrintersController(
     public async Task<IActionResult> GetPrinters(CancellationToken cancellationToken)
     {
         var results = await printers.ListAsync(cancellationToken);
-        return Ok(results.Select(PrinterMapper.ToResponse));
+        return Ok(results.Select(printer => PrinterMapper.ToResponse(printer, instance)));
     }
+
+    /// <summary>Printers connected to this computer by USB (on Windows: the printers installed in
+    /// Windows), for the printer form.</summary>
+    [HttpGet("usb")]
+    public IActionResult ListUsbPrinters() => Ok(usb.List());
 
     [HttpGet("models")]
     public IActionResult GetModels() => Ok(BrotherCatalog.Models.Select(model => new PrinterModelResponse(
@@ -42,7 +51,7 @@ public sealed class PrintersController(
     public async Task<IActionResult> GetPrinter(int id, CancellationToken cancellationToken)
     {
         var printer = await printers.GetByIdAsync(id, cancellationToken);
-        return printer is null ? NotFound() : Ok(PrinterMapper.ToResponse(printer));
+        return printer is null ? NotFound() : Ok(PrinterMapper.ToResponse(printer, instance));
     }
 
     [HttpPost]
@@ -52,7 +61,7 @@ public sealed class PrintersController(
     {
         var validationError = Validate(
             request.Name, request.ConnectionType, request.Address, request.PrintServerAddress, request.Port,
-            request.QueueName);
+            request.QueueName, request.UsbIdentifier);
 
         if (validationError is not null)
         {
@@ -61,7 +70,7 @@ public sealed class PrintersController(
 
         var printer = await printers.CreateAsync(request, cancellationToken);
 
-        return CreatedAtAction(nameof(GetPrinter), new { id = printer.Id }, PrinterMapper.ToResponse(printer));
+        return CreatedAtAction(nameof(GetPrinter), new { id = printer.Id }, PrinterMapper.ToResponse(printer, instance));
     }
 
     [HttpPut("{id:int}")]
@@ -71,7 +80,7 @@ public sealed class PrintersController(
     {
         var validationError = Validate(
             request.Name, request.ConnectionType, request.Address, request.PrintServerAddress, request.Port,
-            request.QueueName);
+            request.QueueName, request.UsbIdentifier);
 
         if (validationError is not null)
         {
@@ -80,7 +89,7 @@ public sealed class PrintersController(
 
         var printer = await printers.UpdateAsync(id, request, cancellationToken);
 
-        return printer is null ? NotFound() : Ok(PrinterMapper.ToResponse(printer));
+        return printer is null ? NotFound() : Ok(PrinterMapper.ToResponse(printer, instance));
     }
 
     [HttpDelete("{id:int}")]
@@ -110,6 +119,11 @@ public sealed class PrintersController(
             return NotFound();
         }
 
+        if (OnAnotherComputer(printer) is { } elsewhere)
+        {
+            return elsewhere;
+        }
+
         var result = await connectionTester.TestAsync(printer, cancellationToken);
         await printers.RecordConnectionResultAsync(printer, result, cancellationToken);
         var status = result.IsSuccess ? await ReadStatusAsync(printer, cancellationToken) : null;
@@ -129,6 +143,11 @@ public sealed class PrintersController(
             return NotFound();
         }
 
+        if (OnAnotherComputer(printer) is { } elsewhere)
+        {
+            return elsewhere;
+        }
+
         var status = await ReadStatusAsync(printer, cancellationToken);
 
         return Ok(status is null
@@ -141,6 +160,11 @@ public sealed class PrintersController(
     /// a queue, or a queue whose printer has no network address, can't be asked.</summary>
     private async Task<PrinterStatusSnapshot?> ReadStatusAsync(Printer printer, CancellationToken cancellationToken)
     {
+        if (printer is { ConnectionType: PrinterConnectionType.Usb, UsbIdentifier: { } device })
+        {
+            return await usb.ReadStatusAsync(device, cancellationToken);
+        }
+
         if (PrinterNetworkResolver.Resolve(printer) is not { } target)
         {
             return null;
@@ -183,8 +207,28 @@ public sealed class PrintersController(
             return NotFound();
         }
 
+        if (OnAnotherComputer(printer) is { } elsewhere)
+        {
+            return elsewhere;
+        }
+
+        // Without a size of its own, the test label is as high as the tape the printer reports, so
+        // it prints on whatever is loaded. A guess isn't sent: a job for the wrong tape width
+        // leaves the printer waiting with an error until someone cancels it there.
+        var loadedTapeMm = printer.LabelMediaHeightMm is null
+            ? (await ReadStatusAsync(printer, cancellationToken))?.LoadedTapeMm
+            : null;
+
+        if (printer.LabelMediaHeightMm is null && loadedTapeMm is null)
+        {
+            return Ok(new TestPrintResponse(
+                false,
+                "Tapeory can't tell which tape is in this printer. Edit the printer and set the test print size: " +
+                "its height is the tape's width, e.g. 12 mm."));
+        }
+
         var widthMm = printer.LabelMediaWidthMm ?? 50m;
-        var heightMm = printer.LabelMediaHeightMm ?? 25m;
+        var heightMm = printer.LabelMediaHeightMm ?? loadedTapeMm!.Value;
         var model = BrotherCatalog.Find(printer.Model);
         var testDocument = TestLabel.Build(widthMm, heightMm, model);
         var resolution = PrinterCapabilities.Resolve(printer.Model, PrintQuality.Standard);
@@ -203,7 +247,7 @@ public sealed class PrintersController(
 
     private static string? Validate(
         string? name, string? connectionType, string? address, string? printServerAddress, int? port,
-        string? queueName)
+        string? queueName, string? usbIdentifier)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -232,6 +276,11 @@ public sealed class PrintersController(
             return "Print server address is required for this connection type.";
         }
 
+        if (parsedType == PrinterConnectionType.Usb && string.IsNullOrWhiteSpace(usbIdentifier))
+        {
+            return "Choose the USB printer (its device on Linux, its name in Windows).";
+        }
+
         if (port is < 1 or > 65535)
         {
             return "Port must be between 1 and 65535.";
@@ -254,4 +303,12 @@ public sealed class PrintersController(
 
         return null;
     }
+
+    /// <summary>A USB printer connected to another computer can only be used from Tapeory there.</summary>
+    private ObjectResult? OnAnotherComputer(Printer printer) =>
+        instance.Owns(printer.InstanceId)
+            ? null
+            : Problem(
+                $"This printer is connected to {printer.ComputerName ?? "another computer"}. Use Tapeory on that computer to print to it.",
+                statusCode: StatusCodes.Status409Conflict);
 }

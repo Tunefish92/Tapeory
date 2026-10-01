@@ -2,6 +2,7 @@ using System.Text.Json;
 using Tapeory.Api.Barcodes;
 using Tapeory.Api.Data;
 using Tapeory.Api.Data.Entities;
+using Tapeory.Api.Instances;
 using Tapeory.Api.Printing;
 using Tapeory.Api.Rendering;
 using Tapeory.Api.Setup;
@@ -21,6 +22,7 @@ namespace Tapeory.Api.PrintJobs;
 public sealed class PrintJobProcessor(
     IServiceScopeFactory scopeFactory,
     DatabaseConfigStore databaseConfig,
+    TapeoryInstance instance,
     ILogger<PrintJobProcessor> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
@@ -69,8 +71,10 @@ public sealed class PrintJobProcessor(
         var imageResolver = scope.ServiceProvider.GetRequiredService<UploadedFileImageResolver>();
         var driver = scope.ServiceProvider.GetRequiredService<BrotherPrinterDriver>();
 
+        // Only this installation's jobs (and old ones from before installations had ids): when the
+        // desktop app and a server share a database, each prints what was submitted to it.
         var nextJobId = await db.PrintJobs
-            .Where(j => j.Status == PrintJobStatus.Queued)
+            .Where(j => j.Status == PrintJobStatus.Queued && (j.InstanceId == null || j.InstanceId == instance.Id))
             .OrderBy(j => j.CreatedAt)
             .Select(j => (int?)j.Id)
             .FirstOrDefaultAsync(cancellationToken);

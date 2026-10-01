@@ -61,6 +61,31 @@ public sealed class PrinterConnectionTesterTests
     }
 
     [Fact]
+    public async Task TestAsync_ReturnsFailure_ForAUsbPrinterThatIsListedButCannotBeWrittenTo()
+    {
+        var printer = new Printer { Name = "USB Printer", ConnectionType = PrinterConnectionType.Usb, UsbIdentifier = "/dev/usb/lp0" };
+        var tester = new PrinterConnectionTester(new IppClient(new HttpClient()), new ListedUsbPort("No permission to write to /dev/usb/lp0."));
+
+        var result = await tester.TestAsync(printer, CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("No permission", result.ErrorMessage);
+
+        var writable = await new PrinterConnectionTester(new IppClient(new HttpClient()), new ListedUsbPort(null)).TestAsync(printer, CancellationToken.None);
+        Assert.True(writable.IsSuccess);
+    }
+
+    private sealed class ListedUsbPort(string? writeProblem) : Tapeory.Api.Printing.Usb.IUsbPrinterPort
+    {
+        public IReadOnlyList<Tapeory.Api.Printing.Usb.UsbPrinterInfo> List() => [new("/dev/usb/lp0", "Brother PT-P750W", "PT-P750W")];
+
+        public Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken) =>
+            Task.FromResult(RawSendResult.Success());
+
+        public string? WriteProblem(string identifier) => writeProblem;
+    }
+
+    [Fact]
     public async Task TestAsync_ReturnsFailure_WhenNoAddressIsConfigured()
     {
         var printer = new Printer { Name = "Test", ConnectionType = PrinterConnectionType.IpAddress, Address = null };

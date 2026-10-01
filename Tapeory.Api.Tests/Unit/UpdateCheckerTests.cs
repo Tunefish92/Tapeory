@@ -49,6 +49,30 @@ public class UpdateCheckerTests
     }
 
     [Fact]
+    public async Task Check_ListsTheReleaseFilesWithTheirDigests()
+    {
+        var handler = new StubHandler(HttpStatusCode.OK, """
+            {"tag_name":"v99.0.0","html_url":"https://github.com/Tunefish92/Tapeory/releases/tag/v99.0.0","assets":[
+              {"name":"Tapeory-99.0.0-windows-x64-setup.exe","size":1234,
+               "browser_download_url":"https://github.com/Tunefish92/Tapeory/releases/download/v99.0.0/Tapeory-99.0.0-windows-x64-setup.exe",
+               "digest":"sha256:ab12"},
+              {"name":"Tapeory-99.0.0-linux-x86_64.AppImage","size":5678,
+               "browser_download_url":"https://github.com/Tunefish92/Tapeory/releases/download/v99.0.0/Tapeory-99.0.0-linux-x86_64.AppImage"}
+            ]}
+            """);
+        var checker = new UpdateChecker(new HttpClient(handler), TimeProvider.System);
+
+        var result = await checker.CheckAsync(refresh: false, CancellationToken.None);
+
+        Assert.NotNull(result.Assets);
+        Assert.Equal(2, result.Assets!.Count);
+        Assert.Equal(new ReleaseAsset("Tapeory-99.0.0-windows-x64-setup.exe",
+            "https://github.com/Tunefish92/Tapeory/releases/download/v99.0.0/Tapeory-99.0.0-windows-x64-setup.exe", 1234, "ab12"),
+            result.Assets[0]);
+        Assert.Null(result.Assets[1].Sha256);
+    }
+
+    [Fact]
     public async Task Check_ReportsAFailureWithoutCachingIt()
     {
         var handler = new StubHandler(HttpStatusCode.Forbidden, "{}");

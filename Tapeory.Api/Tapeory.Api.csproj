@@ -4,7 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
+    <!-- The version details of Tapeory.Api.dll/.exe, which SignPath checks before it signs a
+         release: the product version must be exactly the release's (no "+<commit>" suffix). -->
+    <Product>Tapeory</Product>
+    <Company>Tunefish</Company>
+    <Copyright>Copyright (c) 2026 Tunefish, MIT License</Copyright>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,14 +21,18 @@
   <ItemGroup>
     <PackageReference Include="BitMiracle.LibTiff.NET" Version="2.4.660" />
     <PackageReference Include="Lextm.SharpSnmpLib" Version="12.5.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.20" />
     <PackageReference Include="MySqlBackup.NET.MySqlConnector" Version="2.7.1" />
+    <!-- The MySQL driver, newer than the one Pomelo pulls in (see docs/feature-requests/mysql-provider-for-ef-core-10.md). -->
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
-    <PackageReference Include="SkiaSharp" Version="4.152.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.152.1" />
+    <PackageReference Include="SkiaSharp" Version="4.153.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.153.1" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
   </ItemGroup>

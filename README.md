@@ -6,11 +6,12 @@
 
 Tapeory is a self-hosted web app for label templates. Design a label in the browser editor, add
 named fields like "Name" or "Room", and fill them in when you print. You can also import
-existing P-touch Editor `.lbx` files. It runs as a single Docker container next to MySQL, and
-every template, upload, and print job stays on your own server.
+existing P-touch Editor `.lbx` files. It runs as a single Docker container next to MySQL, or as
+a [desktop app for Linux](#desktop-app-linux), and every template,
+upload, and print job stays with you.
 
 > [!WARNING]
-> **Early release (0.4).** Tapeory is still young: expect rough edges between minor versions.
+> **Early release (0.5).** Tapeory is still young: expect rough edges between minor versions.
 > Designing, storing, importing, and rendering labels work and are covered by tests.
 > **Printing** works with Brother P-touch (PT) and QL label printers in Brother's raster format:
 > 34 models, from the PT-P750W and PT-P900 series to the QL-500 through QL-1115NWB. See
@@ -94,6 +95,56 @@ every template, upload, and print job stays on your own server.
 - Light, dark, or system theme; millimetres or inches
 - Runs on `linux/amd64` and `linux/arm64`, with an Unraid Community Applications template
 
+## Desktop app (Linux)
+
+Tapeory also runs as a standalone app, without Docker or a server: download it from the
+[latest release](https://github.com/Tunefish92/Tapeory/releases/latest) and start it.
+Everything it needs is included (its engine brings its own .NET runtime); nothing else has to be
+installed.
+
+| System | Download | |
+|---|---|---|
+| Linux (x86_64) | `Tapeory-<version>-linux-x86_64.AppImage` | One file: make it executable (`chmod +x`) and run it; updates itself |
+| | `Tapeory-<version>-linux-x86_64.tar.gz` | Unpack and run `./tapeory` |
+
+**The Windows version is on hold.** Windows Defender blocks the unsigned program as a false
+positive, so releases don't include it for now. It comes back once the Windows builds are
+code-signed (see [Code signing policy](#code-signing-policy)). On Windows, use the Docker image
+in the meantime.
+
+On first start, Tapeory asks where to keep your data:
+
+- **On this computer** (recommended): a local database in your user folder
+  (`~/.local/share/tapeory`). No accounts, nothing else to set up.
+- **On a MySQL or MariaDB server**: shares templates, printers and the print history with a
+  Tapeory server, for example your Docker installation. If that database has user accounts, you
+  sign in as on the web.
+
+The app has the same features as the web app (label editor, `.lbx` import, printing, print
+history, printers, backups, statistics, accounts) plus printing to **USB printers** plugged into
+the computer. It is available in the same five languages, in light and dark. The editor draws
+with the same font files the printed label is rendered with, so what you see is what prints.
+Tested on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
+
+Updates: **Settings → About** shows when a new release is out. The AppImage updates itself with
+**Update now**: the new version is downloaded, checked against the release's SHA-256, installed,
+and started. The tar.gz copy links to the release page instead. Your data stays where it is when
+updating.
+
+Good to know:
+
+- Linux needs glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Linux Mint 21 or later, and current
+  Fedora, openSUSE Tumbleweed and Arch.
+- The app needs a desktop with OpenGL or Vulkan and GTK 3, which every common desktop (GNOME,
+  KDE, Xfce, Cinnamon, MATE) has. The AppImage also needs FUSE (`libfuse2` on older
+  distributions); without it, run it with `--appimage-extract-and-run` or use the tar.gz.
+- USB printing needs your user in the `lp` group
+  (`sudo usermod -aG lp $USER`, then sign out and in again). Over USB the printer tells Tapeory
+  which tape is loaded and reports each label as it comes out, as it does over the network.
+- With a shared database, each USB printer belongs to the computer it's plugged into: other
+  computers see it but can't print to it, and their print jobs never end up on it.
+- Logs are in the data folder under `logs/` (Settings → About shows the path).
+
 ## Quick start (Docker)
 
 Requirements: Docker and Docker Compose.
@@ -144,7 +195,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.4.0`, `0.3.0`, … | One specific release (from Git tags such as `v0.4.0`) |
+| `0.5.0`, `0.4.0`, … | One specific release (from Git tags such as `v0.5.0`) |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
 `tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
@@ -221,7 +272,8 @@ language, theme, units, and the default printer.
 Add printers on the **Printers** page, then pick one when printing. Tapeory prints on Brother
 P-touch (PT) and QL label printers; [docs/printers.md](docs/printers.md) lists every supported
 model and how to connect it. Choose the model from the list so Tapeory knows its print head,
-media, resolutions and cutting options; USB-only models print through a CUPS server.
+media, resolutions and cutting options; USB-only models print from the computer they're plugged
+into (see below) or through a CUPS server.
 
 - **Directly over the network** (connection type IP address or hostname): Tapeory sends the job
   to the printer's raw port, usually 9100, and follows it over SNMP until the printer's label
@@ -286,7 +338,8 @@ Sign in with the printed password; Tapeory then asks for a new one. Sessions are
 
 ## Upgrading
 
-**Settings → About** shows next to the version whether a newer release is out. To find out, the
+The desktop app updates itself (see [Desktop app](#desktop-app-linux)). For the
+server: **Settings → About** shows next to the version whether a newer release is out. To find out, the
 server asks GitHub's API for the latest Tapeory release (at most every six hours, and only while
 the settings page is opened); nothing about your installation is sent.
 
@@ -397,6 +450,32 @@ It's entirely voluntary and a thank-you only: it doesn't buy features, priority 
 warranty, and the software stays under the MIT license either way. Please don't send money as
 "Friends and Family" on PayPal.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+Once the Windows version returns, the Windows programs and setup of each release are built from
+this repository by GitHub Actions and signed there; Windows shows "SignPath Foundation" as their
+publisher. Only Tapeory's own
+programs are signed (`tapeory.exe`, `Tapeory.Api.exe`, `Tapeory.Api.dll` and the setup), not
+the third-party libraries shipped with them.
+
+- Committers and reviewers: [Tunefish92](https://github.com/Tunefish92)
+- Approvers: [Tunefish92](https://github.com/Tunefish92)
+
+### Privacy
+
+Tapeory doesn't collect data and sends nothing to its authors. It contacts only:
+
+- **GitHub**, to check for a new release (`api.github.com`, when you open the Settings page or
+  Settings → About in the desktop app) and, when you choose **Update now**, to download it;
+- the printers, print servers and database server you set up yourself.
+
+## License
+
+Tapeory is released under the [MIT License](LICENSE).
+
 ## Known limitations
 
 - **Only Brother PT and QL printers with a published raster protocol can print** (34 models, see
@@ -405,13 +484,19 @@ warranty, and the software stays under the MIT license either way. Please don't 
 - **Tested on real hardware: the PT-P750W.** QL and 360 dpi P-touch printing follows Brother's
   Raster Command References exactly, but hasn't been tried on those printers yet. Reports are
   welcome in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions).
-- **USB-only models need a CUPS server** with a raw queue; Tapeory itself prints over the network.
+- **USB-only models print from the computer they're plugged into**: with the desktop app on
+  Linux, or through a CUPS server with a raw queue. A Docker container needs the device passed in
+  (`--device /dev/usb/lp0`); started as root (the default), it joins the device's group by
+  itself, and with `--user` it also needs `--group-add <the device's group id>`.
 - **Print status needs SNMP.** Tapeory reads it with the `public` community, which Brother
   printers enable by default. Without SNMP, jobs are marked done once they're sent.
-- **Tape detection needs SNMP too.** Behind a CUPS server it works when the queue prints to the
-  printer's network address (socket://, ipp://, lpd://), not for USB or dnssd:// queues; without
-  it, the tape width simply follows the label height.
-- **USB printers** can be added, but Tapeory can't send jobs to them yet.
+- **Tape detection over the network needs SNMP too.** Behind a CUPS server it works when the
+  queue prints to the printer's network address (socket://, ipp://, lpd://), not for USB or
+  dnssd:// queues; without it, the tape width simply follows the label height.
+- **USB printers** print from the computer they're plugged into, through `/dev/usb/lp*` on
+  Linux (the user needs to be in the `lp` group). Tapeory asks the printer on that connection
+  which tape is loaded and follows each label until it's out. A printer that doesn't answer
+  there gets the job anyway, which then counts as done once the printer took it.
 - **`.lbx` import** converts text, merge fields, images, barcodes, rectangles, ellipses, lines,
   and frames (as simple borders). Free-form shapes and a few rare barcode types are reported as
   warnings instead of being converted.
@@ -443,18 +528,59 @@ MySQL container's details in the setup screen: server `localhost`, port `3306`, 
 as the database, username, and password. They're saved to
 `Tapeory.Api/local-storage/config/database.json` (gitignored).
 
+### Desktop app
+
+The desktop app (`Tapeory.Desktop/`) is written in Rust with [egui](https://github.com/emilk/egui)
+and starts `Tapeory.Api` as its engine: a local server on 127.0.0.1 that only answers the app
+(a secret per start) and stops when the app closes. Requirements: Rust (stable) and, on Linux,
+the GTK 3 development files (`libgtk-3-dev` on Debian/Ubuntu).
+
+```bash
+dotnet build Tapeory.Api                          # the engine, found in its build output
+cd Tapeory.Desktop && cargo run                   # the app
+```
+
+`TAPEORY_DATA_FOLDER` uses another data folder, `TAPEORY_ENGINE` another engine. The packages
+are built by `Tapeory.Desktop/packaging/linux/build.sh <version>` (tar.gz and AppImage) and, on
+Windows, by the CI steps with `Tapeory.Desktop/packaging/windows/tapeory.iss` (Inno Setup).
+`TAPEORY_UPDATE_FEED` points the update check at another "latest release" address, to try an
+update before publishing it. `TAPEORY_RENDERER` picks the renderers to try, in order (`wgpu`,
+`glow`, or e.g. `glow,wgpu`); by default Windows tries Direct3D through wgpu first and Linux
+OpenGL through glow.
+
+The Windows packages can also be built on Linux, with Docker:
+
+```bash
+cd Tapeory.Desktop
+docker run --rm -v "$PWD/..":/src -w /src/Tapeory.Desktop messense/cargo-xwin \
+  cargo xwin build --release --target x86_64-pc-windows-msvc      # tapeory.exe
+dotnet publish ../Tapeory.Api -c Release -r win-x64 --self-contained -p:DebugType=none -o <dir>/Tapeory/engine
+# with tapeory.exe copied to <dir>/Tapeory: the setup
+docker run --rm -v <dir>:/work -v "$PWD/packaging/windows":/iss amake/innosetup \
+  /DAppVersion=<version> '/DSourceDir=Z:\work\Tapeory' '/DOutputDir=Z:\work' Z:\\iss\\tapeory.iss
+```
+
 ### Running tests
 
 ```bash
 dotnet test Tapeory.slnx          # backend; integration tests need Docker running (Testcontainers)
+TAPEORY_TEST_DATABASE=sqlite dotnet test Tapeory.slnx   # the same on SQLite (the desktop database)
 cd Tapeory.Web && npm test        # frontend
+cd Tapeory.Desktop && cargo test  # desktop app
 ```
+
+`Tapeory.Desktop/tests/engine_realtest.py` runs a packaged engine the way the app does and goes
+through every feature against a fake printer on port 9100; the data folder it leaves behind is a
+sample database (accounts `demo` / `Tapeory-Demo-2026` and `alex` / `Alex-Password-2026`).
 
 On every push and pull request to `main`, GitHub Actions:
 
 1. runs both test suites and type-checks and builds the frontend
 2. builds the Docker image, starts it, and checks that it answers, fixes the storage folder
    owner, runs as the app user, and ships its fonts
+3. builds the desktop app for Linux (AppImage and tar.gz) and Windows (setup and zip), and checks
+   that the packaged engine starts in desktop mode; only the Linux files are attached to a
+   release while the Windows version is on hold
 
 Pushes to `main` and version tags (`v*`) then publish a multi-arch image (`amd64`, `arm64`) to
 GitHub Container Registry. If the repository variable `DOCKERHUB_USERNAME` and the secret
@@ -463,20 +589,26 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.4.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.5.0 && git push --tags`.
+The tag's CI run attaches the desktop packages to the GitHub release (and creates the release if
+it doesn't exist yet).
 
 ### Tech stack
 
 - **Backend:** ASP.NET Core (.NET 10), EF Core with Pomelo MySQL, SkiaSharp and Svg.Skia for rendering
 - **Frontend:** React 19, TypeScript, Vite, Konva / react-konva, react-i18next
-- **Tests:** xUnit and Testcontainers (backend); Vitest and React Testing Library (frontend)
+- **Desktop app:** Rust, eframe / egui, with the backend as its engine (SQLite or MySQL)
+- **Tests:** xUnit and Testcontainers (backend); Vitest and React Testing Library (frontend);
+  `cargo test` (desktop app)
 
 ### Project layout
 
 - `Tapeory.Api/`: ASP.NET Core backend (REST API, rendering, background print queue, EF Core migrations)
 - `Tapeory.Web/`: React + TypeScript frontend (Vite)
 - `Tapeory.Api.Tests/`: backend unit and integration tests
+- `Tapeory.Desktop/`: the desktop app (Rust, egui) and its packaging
 - `unraid/`: Unraid Community Applications template and icon
 - `ca_profile.xml`: repository profile for Unraid Community Applications
 - `docs/screenshots/`: the screenshots in this README
+- `docs/feature-requests/`: planned features, e.g. bulk printing from a spreadsheet
 - `.github/workflows/`: CI pipeline

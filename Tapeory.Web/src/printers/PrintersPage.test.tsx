@@ -296,4 +296,19 @@ describe("PrintersPage", () => {
     expect(screen.getByDisplayValue("192.168.1.50")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeInTheDocument();
   });
+  it("marks a USB printer on another computer and offers no tests for it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse([{ ...printerA, connectionType: "Usb", computerName: "OFFICE-PC", onThisComputer: false }]),
+      ),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("on OFFICE-PC")).toBeInTheDocument();
+    expect(screen.getByText(/Connected to OFFICE-PC/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Test Print" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Test Connection" })).not.toBeInTheDocument();
+  });
 });
