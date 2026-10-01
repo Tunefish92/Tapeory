@@ -105,7 +105,7 @@ jobs:
           cargo test --release --locked
 
       - name: Package
-        run: Tapeory.Desktop/packaging/linux/build.sh "${{ steps.version.outputs.version }}" dist
+        run: bash Tapeory.Desktop/packaging/linux/build.sh "${{ steps.version.outputs.version }}" dist
 
       # The packaged engine starts in engine mode and answers with the desktop secret.
       - name: Smoke test
