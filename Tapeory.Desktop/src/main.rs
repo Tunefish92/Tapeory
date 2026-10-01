@@ -11,6 +11,8 @@ mod fonts;
 mod i18n;
 mod icons;
 mod images;
+#[cfg(target_os = "linux")]
+mod menu_entry;
 mod models;
 mod task;
 mod theme;
