@@ -373,6 +373,8 @@ impl SettingsPage {
                 row(ui, &t("settings.storagePath"), &health.storage_path);
             }
             row(ui, &t("desktop.logs"), &crate::engine::data_folder().join("logs").display().to_string());
+            #[cfg(target_os = "linux")]
+            menu_entry_row(ui, c);
         });
         if check {
             self.check_updates(c, true);
@@ -684,5 +686,37 @@ fn role_picker(ui: &mut egui::Ui, role: &mut String, id: &str) {
         crate::ui::widgets::compact_menu(ui);
         ui.selectable_value(role, "User".to_string(), name("User"));
         ui.selectable_value(role, "Admin".to_string(), name("Admin"));
+    });
+}
+
+/// Adds Tapeory to the desktop's application menu, or takes it out again: an AppImage or an
+/// unpacked tar.gz has no installer that would.
+#[cfg(target_os = "linux")]
+fn menu_entry_row(ui: &mut egui::Ui, c: &mut Ctx) {
+    use crate::menu_entry;
+
+    let (Some(folder), Some(program)) = (menu_entry::user_folder(), menu_entry::program()) else { return };
+    let present = menu_entry::present(&folder, &program);
+
+    ui.separator();
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            widgets::muted(ui, &t("desktop.menuEntry"));
+            widgets::muted_small(ui, &t(if present { "desktop.menuEntryPresent" } else { "desktop.menuEntryHint" }));
+        });
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let (label, done) = if present {
+                ("desktop.menuEntryRemove", "desktop.menuEntryRemoved")
+            } else {
+                ("desktop.menuEntryAdd", "desktop.menuEntryAdded")
+            };
+            if button(ui, &t(label)).clicked() {
+                let result = if present { menu_entry::remove(&folder) } else { menu_entry::add(&folder, &program) };
+                match result {
+                    Ok(()) => c.toasts.success(t(done)),
+                    Err(error) => c.toasts.error(tf("desktop.menuEntryFailed", &[("message", &error.to_string())])),
+                }
+            }
+        });
     });
 }

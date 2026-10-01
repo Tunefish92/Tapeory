@@ -126,6 +126,11 @@ the computer. It is available in the same five languages, in light and dark. The
 with the same font files the printed label is rendered with, so what you see is what prints.
 Tested on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
 
+The AppImage and the tar.gz have no installer. To get Tapeory into your desktop's application
+menu, choose **Settings → About → Add to application menu**: it adds a menu entry and an icon
+for the file you started, in your own user folders (and takes them out again the same way).
+Keep the AppImage in a folder of your own, e.g. `~/Applications`, so it can update itself.
+
 Updates: **Settings → About** shows when a new release is out. The AppImage updates itself with
 **Update now**: the new version is downloaded, checked against the release's SHA-256, installed,
 and started. The tar.gz copy links to the release page instead. Your data stays where it is when

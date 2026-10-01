@@ -619,6 +619,14 @@
     "updateRestarting": "Installing the update — Tapeory restarts in a moment.",
     "storedNote": "These details are saved in a file on this computer, so you only need to enter them once.",
     "backupDatabaseText": "A complete copy of the database — templates, printers, print history and settings — saved in Tapeory’s data folder on this computer. Images and .lbx files aren’t included; the label backup has those.",
-    "backupLabelsText": "All label templates with their images and original .lbx files, saved as one archive in Tapeory’s data folder on this computer."
+    "backupLabelsText": "All label templates with their images and original .lbx files, saved as one archive in Tapeory’s data folder on this computer.",
+    "menuEntry": "Application menu",
+    "menuEntryHint": "Tapeory isn’t in your desktop’s application menu yet.",
+    "menuEntryPresent": "Tapeory is in your application menu.",
+    "menuEntryAdd": "Add to application menu",
+    "menuEntryRemove": "Remove from application menu",
+    "menuEntryAdded": "Tapeory is now in your application menu.",
+    "menuEntryRemoved": "Tapeory was removed from your application menu.",
+    "menuEntryFailed": "Couldn’t change the application menu: {{message}}"
   }
 }

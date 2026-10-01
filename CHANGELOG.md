@@ -27,6 +27,9 @@ Tapeory as a desktop app for Linux, and printing to USB printers.
   code-signed. Code signing through SignPath Foundation is prepared (signing steps in CI, the
   code signing policy and a privacy section in the README, product name and version in the
   Windows programs and setup).
+- Settings → About → **Add to application menu** puts the desktop app into the desktop's
+  application menu (a menu entry and an icon in the user's own folders), since an AppImage has
+  no installer; the same button removes it again.
 - On first start, the desktop app keeps its data in a local database on the computer (SQLite, no
   accounts) or in a MySQL/MariaDB database shared with a Tapeory server.
 - The AppImage updates itself from Settings → About: the new release is downloaded, checked

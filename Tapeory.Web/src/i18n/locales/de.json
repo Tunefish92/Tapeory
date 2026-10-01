@@ -619,6 +619,14 @@
     "updateRestarting": "Das Update wird installiert – Tapeory startet gleich neu.",
     "storedNote": "Die Angaben werden in einer Datei auf diesem Computer gespeichert und müssen nur einmal eingegeben werden.",
     "backupDatabaseText": "Eine vollständige Kopie der Datenbank – Vorlagen, Drucker, Druckverlauf und Einstellungen –, gespeichert im Datenordner von Tapeory auf diesem Computer. Bilder und .lbx-Dateien sind nicht enthalten; die stecken im Etiketten-Backup.",
-    "backupLabelsText": "Alle Etikettenvorlagen mit ihren Bildern und originalen .lbx-Dateien, als ein Archiv im Datenordner von Tapeory auf diesem Computer gespeichert."
+    "backupLabelsText": "Alle Etikettenvorlagen mit ihren Bildern und originalen .lbx-Dateien, als ein Archiv im Datenordner von Tapeory auf diesem Computer gespeichert.",
+    "menuEntry": "Anwendungsmenü",
+    "menuEntryHint": "Tapeory ist noch nicht im Anwendungsmenü deines Desktops.",
+    "menuEntryPresent": "Tapeory ist im Anwendungsmenü.",
+    "menuEntryAdd": "Zum Anwendungsmenü hinzufügen",
+    "menuEntryRemove": "Aus dem Anwendungsmenü entfernen",
+    "menuEntryAdded": "Tapeory ist jetzt im Anwendungsmenü.",
+    "menuEntryRemoved": "Tapeory wurde aus dem Anwendungsmenü entfernt.",
+    "menuEntryFailed": "Das Anwendungsmenü konnte nicht geändert werden: {{message}}"
   }
 }

@@ -629,6 +629,14 @@
     "updateRestarting": "Installation de la mise à jour — Tapeory redémarre dans un instant.",
     "storedNote": "Ces informations sont enregistrées dans un fichier sur cet ordinateur : vous n’avez à les saisir qu’une seule fois.",
     "backupDatabaseText": "Une copie complète de la base de données (modèles, imprimantes, historique d’impression et paramètres), enregistrée dans le dossier de données de Tapeory sur cet ordinateur. Les images et les fichiers .lbx n’y sont pas inclus : ils se trouvent dans la sauvegarde des étiquettes.",
-    "backupLabelsText": "Tous les modèles d’étiquettes avec leurs images et leurs fichiers .lbx d’origine, enregistrés dans une seule archive dans le dossier de données de Tapeory sur cet ordinateur."
+    "backupLabelsText": "Tous les modèles d’étiquettes avec leurs images et leurs fichiers .lbx d’origine, enregistrés dans une seule archive dans le dossier de données de Tapeory sur cet ordinateur.",
+    "menuEntry": "Menu des applications",
+    "menuEntryHint": "Tapeory n’est pas encore dans le menu des applications de votre bureau.",
+    "menuEntryPresent": "Tapeory est dans le menu des applications.",
+    "menuEntryAdd": "Ajouter au menu des applications",
+    "menuEntryRemove": "Retirer du menu des applications",
+    "menuEntryAdded": "Tapeory est maintenant dans le menu des applications.",
+    "menuEntryRemoved": "Tapeory a été retiré du menu des applications.",
+    "menuEntryFailed": "Impossible de modifier le menu des applications : {{message}}"
   }
 }
