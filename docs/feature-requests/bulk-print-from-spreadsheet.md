@@ -1,112 +1,230 @@
-# Feature request: bulk printing from a spreadsheet (CSV / Excel)
+# Feature request: bulk printing from a data file (Excel, CSV, text)
 
-**Status:** planned, not started · **Requested by:** a user, 2026-09-29 · **Target:** after the
-desktop app release (0.5.0), e.g. 0.6.0
+**Status:** planned, not started · **Requested:** 2026-09-29 by a user, flow specified 2026-10-02 ·
+**Target:** 0.6.0
 
 > "Can you, please, think about a feature to import some kind of .csv or .xls data import, to
 > achieve a bulk print job?"
 
 ## Goal
 
-Print one label per row of a spreadsheet: import a CSV or Excel file (or paste cells), match its
-columns to the template's fields, check the rows, and print them all as one print job. Works the
-same in the web app and the desktop app.
+Next to printing a single label, a template can be printed in bulk: the user imports a data file
+(`.xlsx`, `.csv`, `.txt`), each row fills the template's fields, and all rows are printed as one
+print job. The single-label print page stays as it is. The flow is the same in the web app and
+the desktop app.
 
 ## What already exists
 
 - A print job holds many items, each with its own field values and quantity
-  (`CreatePrintJobRequest.Items`). The print page currently always sends a single item, so bulk
-  printing needs no new data model.
-- Field validation (required fields), barcode encoding (`POST /api/barcodes/encode`), and the
-  text-fitting logic can be reused to check rows before printing.
-- The Brother driver already accepts a list of labels per transmission
+  (`CreatePrintJobRequest.Items`). The print page always sends one item today, so bulk printing
+  needs no new data model and no migration.
+- `PrintJobService` already checks every item (required fields, quantity), and
+  `PrintJobProcessor` checks barcodes and renders each item.
+- `POST /api/templates/{id}/preview` renders one label for given field values.
+- The Brother driver accepts a list of labels per transmission
   (`BrotherPrinterDriver.PrintAsync(..., IReadOnlyList<SKBitmap> labels, ...)`).
+- A job is stopped before printing when the tape in the printer doesn't match the template.
 
 ## User flow
 
-1. On a template's print page: **Import data…** (CSV, XLSX, XLS), or paste cells from the
-   clipboard. Copying cells from Excel or Google Sheets gives tab-separated text.
-2. **Match columns to fields.** Matching is automatic by field name or label, ignoring case and
-   accents ("Name" → `name`); a dropdown per field changes it. An optional **Quantity** column
-   sets copies per row. Fields without a column use their default value. A sheet picker for
-   workbooks with several sheets, and a "first row is a header" toggle.
-3. **Check the data.** A table of all rows marks problems:
-   - a required field is empty;
-   - a barcode can't be encoded (e.g. invalid EAN-13);
-   - text doesn't fit its box.
+A **Bulk print** button on the template's print page (and on the template card's menu) opens a
+wizard with four steps. A step indicator at the top shows where the user is; **Back** never loses
+what was entered.
 
-   Rows can be unticked, and clicking a row previews its rendered label. A summary shows the
-   totals, e.g. "148 labels, about 3.6 m of 12 mm tape".
-4. **Print.** One print job, one item per row. The print history shows each row's status and
-   offers **Reprint failed rows**.
+### 1. Choose the file
+
+- File picker and drag and drop (web), native file dialog (desktop). Accepted: `.xlsx`, `.csv`,
+  `.txt`.
+- While the file is uploaded and read, a progress bar with a status line: "Uploading… 62 %",
+  then "Reading the file…".
+- A workbook with several sheets: a sheet picker (the first sheet with data is preselected).
+
+### 2. Match the data to the label's fields
+
+Two things are detected automatically. The user is only asked when detection fails.
+
+**Separator (CSV and text files).** Tapeory tries comma, semicolon, tab and pipe and picks the
+one that splits the first lines into the same number of columns (two or more), with quoted values
+respected. A file with one value per line is a valid one-column file.
+
+- Detected: nothing to do; the separator is shown in a small line ("Separated by semicolons ·
+  Change") so it can still be corrected.
+- Not detected (no separator gives a consistent table, or two do equally well): the wizard asks
+  **"Which separator does the file use?"** with the choices comma, semicolon, tab, pipe, space
+  and "other" (one character). The first lines of the file are shown below as a live table, so
+  the right choice is visible at once.
+
+**Header row.** The first row counts as a header when at least one of its cells is a field's name
+or label (compared without case, accents and surrounding spaces: "Name " → `name`).
+
+- Header detected and every required field has a column: the columns are matched by name and the
+  wizard goes straight to step 3. The matching is shown and can be changed.
+- No header detected: the wizard asks **"Which column belongs to which field?"** Each field of
+  the label gets a dropdown with the columns ("Column A", "Column B", …, each with its first
+  values as a hint). A switch "The first row is a header, don't print it" is off.
+- Header detected, but a required field has no column: the same question, only for the fields
+  that are still open; the matched ones are prefilled.
+
+Rules for the matching:
+
+- A required field needs a column, or the user can't continue. An optional field without a
+  column uses its default value.
+- Columns that match no field are ignored (shown greyed out).
+- An optional **Quantity** column (header `quantity`, `qty`, `copies`, `anzahl`, `menge`, or
+  chosen by hand) sets the copies per row; without it each row prints once.
+- The matching is remembered per template, so the same file needs no clicks next time.
+
+### 3. Check and look through the labels
+
+Tapeory now gathers the data and renders every label. A progress bar and a status line show the
+stage and the count:
+
+1. "Reading the rows… 148 found"
+2. "Checking the data… 96 of 148"
+3. "Rendering the labels… 96 of 148"
+
+The bar is determinate (rows done / rows in total) and can be cancelled. Labels can already be
+looked at while the rest is still rendering.
+
+Then the step shows:
+
+- **A label viewer:** the rendered label, large, with "Label 12 of 148", previous/next buttons
+  (also the arrow keys) and a field to jump to a number. Beside it, the row's values.
+- **A table of all rows** with a tick per row, the values, and a problem column. Clicking a row
+  shows its label. A filter "Only rows with problems".
+- **Problems** a row can have:
+  - a required field is empty;
+  - a barcode can't be encoded with this value (for example an invalid EAN-13);
+  - the text doesn't fit its box (a warning, the row can still be printed).
+
+  Rows with an error are unticked and can't be ticked; rows with a warning stay ticked.
+- **A summary:** "146 labels will be printed, 2 rows have problems · about 3.6 m of 9 mm tape".
+
+### 4. Print
+
+- Printer, quality and cut mode as on the single-label page, then **Print 146 labels**.
+- The wizard switches to the job's progress: a progress bar "Printing label 37 of 146", the
+  printer's state, and a **Stop** button that cancels the labels not yet sent.
+- When it's done: "146 labels printed", or what failed with **Reprint failed rows**. The job is in
+  the print history like any other, with one line per row.
 
 ## Technical plan
 
-### Parsing (engine/server, shared by web and desktop)
+### Reading the file (server/engine, shared by web and desktop)
 
-- New endpoint `POST /api/print-data/parse` (multipart file, or text for pasted data). It returns
-  the sheets, columns, rows and a suggested column → field mapping for a given template.
-- The uploaded file is only parsed in memory, not stored. The values end up in the job items as
-  today.
-- Library: **ExcelDataReader** (MIT) for `.xlsx`, `.xls` and CSV.
-- CSV: detect the separator (`,`, `;`, tab) and the encoding (UTF-8 with or without BOM, falling
-  back to Windows-1252). German Excel saves CSV with semicolons in Windows-1252.
-- Excel dates and numbers are printed as Excel displays them (e.g. `29.09.2026`), not as raw
+- New endpoint `POST /api/print-data/parse` (multipart: the file, plus optional `separator`,
+  `sheet`, `templateId`). It returns:
+  - `sheets` (names) and the chosen sheet;
+  - `separator` and `separatorDetected` (false = the client must ask);
+  - `hasHeader` (detected against the template's fields) and `columns` (header texts or
+    "Column A…");
+  - `rows` (all rows as string arrays);
+  - `suggestedMapping` (field name → column index, and the quantity column).
+
+  Calling it again with an explicit `separator` or `sheet` re-reads the file with that choice.
+- The file is only read in memory and never stored. The values end up in the job items, as today.
+- Library: **ExcelDataReader** (MIT) for `.xlsx`; CSV and text files are read with our own small
+  reader (quotes, doubled quotes, line breaks inside quotes), so separator detection is in our
+  hands.
+- Encoding: UTF-8 with or without BOM, UTF-16 with BOM, otherwise Windows-1252 (German Excel
+  saves CSV with semicolons in Windows-1252).
+- Excel dates and numbers are taken as Excel displays them (`29.09.2026`, `1,50`), not as raw
   values.
-- Limits: e.g. 5 MB per file and 1,000 rows per job, with a clear message beyond that.
+- Empty rows are skipped; values are trimmed.
+- Limits: 5 MB per file and 1,000 rows per job, with a clear message beyond that.
+- New code: `Tapeory.Api/PrintData/` (`DelimitedTextReader`, `SeparatorDetector`,
+  `HeaderDetector`, `SpreadsheetReader`, `PrintDataController`).
 
-### Validation
+### Checking and rendering the rows
 
-- The client checks rows before printing: required fields, barcode encoding, text fit.
-- The server validates the job request again (existing `PrintJobService` checks).
+- New endpoint `POST /api/templates/{id}/check-rows`: takes up to 50 rows of field values and
+  returns, per row, its errors and warnings. It runs the same code the print job runs
+  (`FieldValueValidator`, `BarcodeValidation`, the renderer), so a row that passes here prints.
+- The client sends the rows in chunks of 50. That gives the progress bar real numbers without
+  any server-side state, and cancelling is simply not sending the next chunk.
+- The label viewer loads a row's image through the existing preview endpoint when the row is
+  shown, and preloads the next and previous ones; images are kept in memory for the session.
+- Text-fit warning: the renderer reports when a text had to be cut off or shrunk below its
+  minimum size. To check when starting: what the renderer does today with text that's too long.
 
 ### Printing in batches
 
-- Today each item is a separate transmission to the printer and, with SNMP, waits for the
-  printer's confirmation each time. That's fine for a few items and slow for hundreds.
-- `PrintJobProcessor` should send consecutive items in batches (e.g. 50 labels) as one
+- Today every item is its own transmission and, with status reporting, waits for the printer's
+  confirmation each time. That's fine for a few items and slow for hundreds.
+- `PrintJobProcessor` sends consecutive items in batches (for example 25 labels) as one
   transmission. Cut modes then work across rows: auto cut, or chain printing without waste
   between labels.
-- Status is tracked per batch and written to every row in it; a failed batch marks its rows
-  failed, so **Reprint failed rows** can create a new job from exactly those.
+- Status is written per batch to every row in it. A failed batch marks its rows as failed, and
+  the following batches aren't sent (the printer needs attention anyway).
+- **Stop:** new endpoint `POST /api/print-jobs/{id}/cancel`; the processor checks between
+  batches and marks the remaining rows as cancelled (a new value in `PrintJobStatus`, which is
+  stored as a number, so no migration is needed).
+- **Reprint failed rows:** creates a new job from the failed and cancelled rows of a job.
+- `PrintJobResponse` gets counts (`total`, `completed`, `failed`) so the progress bar doesn't
+  need all items; the job page loads items in pages for large jobs.
 
 ### Web app (Tapeory.Web)
 
-- Import dialog on the print page (file picker, drag and drop, paste).
-- Mapping step and a data table (reuse `DataGrid`) with per-row problems and a label preview.
-- Job detail: paginate or virtualize items for large jobs; add **Reprint failed rows**.
+- New page `printing/BulkPrintPage.tsx` (route `/templates/:id/bulk-print`) with the four steps
+  as components, plus `api/printData.ts`.
+- Upload with progress (`XMLHttpRequest` upload events, since `fetch` has none).
+- A shared `ProgressBar` component with a status line; reuse `DataGrid` for the row table.
+- Job detail page: progress bar for running jobs, paged items, **Stop**, **Reprint failed rows**.
 
 ### Desktop app (Tapeory.Desktop)
 
-- The same flow with the native file dialog (off the UI thread, like the other dialogs) and the
-  grid widget (`ui/grid.rs`); parsing goes through the engine endpoint.
+- New `ui/bulk_print.rs` with the same four steps; the file is picked with the native dialog
+  (off the UI thread, like the other dialogs) and sent to the engine's parse endpoint.
+- Chunked checking runs on a worker thread and reports progress to the UI (as the updater's
+  download does); `egui::ProgressBar` with the status line; the row table uses `ui/grid.rs`.
 
 ### Tests
 
-- Parsing: CSV variants (separators, encodings, quoted fields with line breaks), `.xlsx` and
-  `.xls`, empty cells, Excel number and date cells, several sheets.
-- Column matching (names, labels, accents).
-- Batch printing against a fake printer (raw port 9100), including a failed batch.
-- Extend `Tapeory.Desktop/tests/engine_realtest.py` with a CSV import and a bulk job.
+- Reader: separators (comma, semicolon, tab, pipe), ambiguous and undetectable files, quoted
+  values with separators and line breaks, encodings, one-column text files, empty rows.
+- Header detection: header present, absent, partly matching; names against labels; accents.
+- `.xlsx`: several sheets, number and date cells, empty cells.
+- `check-rows`: required fields, invalid barcodes, text that doesn't fit.
+- Batches against the fake printer (raw port 9100): several batches, a failed batch, a stopped
+  job, reprinting the failed rows.
+- Web: the wizard's steps, including the two questions (separator, columns).
+- `Tapeory.Desktop/tests/engine_realtest.py`: a CSV import and a bulk job.
+- On the real printer: a small bulk job (9 mm tape) over network and USB.
 
 ### Docs
 
-- README section "Bulk printing from a spreadsheet", CHANGELOG entry, and texts in all five
-  languages (de, en, es, fr, it).
+- README section "Bulk printing", CHANGELOG entry, and texts in all five languages (de, en, es,
+  fr, it).
+
+## Work order
+
+1. Reader, separator and header detection, parse endpoint, with tests.
+2. `check-rows` endpoint.
+3. Web wizard, steps 1 to 3 (printing through the existing item-by-item processor).
+4. Batches, job progress, Stop and Reprint failed rows.
+5. Desktop wizard.
+6. Real-printer test, docs, translations.
+
+Steps 1 to 3 already give a working bulk print; step 4 makes it fast.
 
 ## Decisions (recommended defaults, to confirm when starting)
 
 | Question | Recommendation |
 |---|---|
-| Formats | CSV, XLSX, XLS and clipboard paste; ODS (LibreOffice) possibly later |
+| Formats | `.xlsx`, `.csv`, `.txt`; old `.xls` comes for free with ExcelDataReader; `.ods` and pasting from the clipboard possibly later |
+| When is the first row a header? | When at least one cell is a field's name or label |
+| Unmatched required field | The user must pick a column; no printing with empty required fields |
 | Quantity column | Optional; without it, each row prints once |
-| Remember the column mapping per template | Yes, so re-importing the same spreadsheet needs no clicks |
+| Remember the column matching per template | Yes |
 | Row limit per job | 1,000 |
 | Excel dates and numbers | As Excel displays them |
-| Web app and desktop app | Together, since the parsing is shared |
+| Rows with errors | Left out, listed, and the rest can be printed |
+| A batch fails | The job stops; the rest can be reprinted with one click |
+| Web app and desktop app | Together, since reading and checking are shared |
 
 ## Open questions
 
-- Should a bulk job be saved as a reusable "data set" (reprint the same list later), or is
+- Should a bulk job be saved as a reusable data set (print the same list again later), or is
   "Print again" from the history enough?
-- Should rows be printed sorted (e.g. by a column), or always in file order?
+- Should rows be printed sorted (by a column), or always in file order?
+- Is a **Stop** button for a running job wanted in the first version?
