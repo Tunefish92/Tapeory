@@ -355,21 +355,6 @@ public sealed class TemplateService(
         return copy;
     }
 
-    public async Task<Template> ImportAsync(NativeTemplateExport export, CancellationToken cancellationToken)
-    {
-        var request = new CreateTemplateRequest(
-            export.Name,
-            export.Description,
-            export.Category,
-            export.Tags,
-            export.WidthMm,
-            export.HeightMm,
-            export.EditorJson,
-            export.Fields);
-
-        return await CreateAsync(request, cancellationToken);
-    }
-
     private static List<TemplateField> ToFieldEntities(TemplateFieldDto[]? fields) =>
         fields is null
             ? []

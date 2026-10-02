@@ -116,16 +116,18 @@ impl TemplatesPage {
                 c.go(Route::Editor(None));
             }
             let importing = self.import.is_some();
-            let label = if importing { t("templates.importing") } else { t("templates.importLbx") };
+            let label = if importing { t("templates.importing") } else { t("templates.import") };
             if widgets::button_enabled(ui, !importing, &label).clicked() {
                 let api = c.api.clone();
                 let filter = t("desktop.importFilter");
                 self.import = Some(Task::spawn(c.egui, move || {
-                    let path = crate::ui::pick_file((filter, &["lbx", "json"])).ok_or_else(ApiError::cancelled)?;
-                    if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("json")) {
-                        api.import_template(std::fs::read(&path).map_err(ApiError::io)?)
-                    } else {
+                    // A P-touch Editor label is converted; anything else is a Tapeory template file
+                    // (".tapeory", or ".tapeory.json" from before 0.6).
+                    let path = crate::ui::pick_file((filter, &["tapeory", "lbx", "json"])).ok_or_else(ApiError::cancelled)?;
+                    if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("lbx")) {
                         api.import_lbx(&path)
+                    } else {
+                        api.import_template(std::fs::read(&path).map_err(ApiError::io)?)
                     }
                 }));
             }
@@ -387,9 +389,11 @@ impl TemplatesPage {
 
     /// Export, duplicate and delete, as icons (right to left).
     fn icon_actions(&mut self, ui: &mut egui::Ui, c: &mut Ctx, template: &TemplateSummary) {
-        if widgets::icon_button(ui, Icon::Download, &t("desktop.exportTemplate")).clicked() {
+        if widgets::icon_button(ui, Icon::Download, &t("templates.download")).clicked() {
             let id = template.id;
-            c.save_file(format!("{}.tapeory.json", template.name), move |api| api.export_template(id));
+            // The whole template in one file, images included (see TemplateFile in the engine).
+            let name: String = template.name.chars().map(|c| if matches!(c, '/' | '\\') { '-' } else { c }).collect();
+            c.save_file(format!("{name}.tapeory"), move |api| api.export_template(id));
         }
         if widgets::icon_button(ui, Icon::Copy, &t("templates.duplicate")).clicked() {
             let api = c.api.clone();

@@ -5,6 +5,8 @@ import {
   deleteTemplate,
   duplicateTemplate,
   importLbxTemplate,
+  importTemplateFile,
+  templateFileUrl,
   listTemplates,
   renameTemplateGroup,
   templateThumbnailUrl,
@@ -16,7 +18,7 @@ import { useAuth } from "../auth/AuthContext";
 import { collectGroups, groupHue, groupKey, normalizeText, type GroupSummary } from "./groups";
 import { formatRelativeTime } from "../relativeTime";
 import { DataGrid, DataGridRow, useUrlSort } from "../components/DataGrid";
-import { CopyIcon, ImportedFileIcon, PencilIcon, PrinterIcon, TagIcon, TrashIcon } from "../components/icons";
+import { CopyIcon, DownloadIcon, ImportedFileIcon, PencilIcon, PrinterIcon, TagIcon, TrashIcon } from "../components/icons";
 import {
   isSortKey,
   sortTemplates,
@@ -264,6 +266,23 @@ function DuplicateTemplateButton({ template, duplicating, onDuplicate }: Duplica
   );
 }
 
+/** Downloads the template as a ".tapeory" file, to keep or to upload to another Tapeory. */
+function DownloadTemplateLink({ template }: { template: TemplateSummaryResponse }) {
+  const { t } = useTranslation();
+
+  return (
+    <a
+      className="icon-link"
+      href={templateFileUrl(template.id)}
+      download
+      aria-label={`${t("templates.download")}: ${template.name}`}
+      title={t("templates.download")}
+    >
+      <DownloadIcon />
+    </a>
+  );
+}
+
 interface TemplateCardProps {
   template: TemplateSummaryResponse;
   index: number;
@@ -314,6 +333,7 @@ function TemplateCard({ template, index, onChangeGroup, deleting, onDelete, dupl
           <div className="template-card__actions">
             {canEdit(template) && <DeleteTemplateButton template={template} deleting={deleting} onDelete={onDelete} />}
             <DuplicateTemplateButton template={template} duplicating={duplicating} onDuplicate={onDuplicate} />
+            <DownloadTemplateLink template={template} />
             {canEdit(template) && (
               <Link className="btn btn-sm" to={`/templates/${template.id}/edit`}>
                 {t("common.edit")}
@@ -550,6 +570,7 @@ function TemplatesTable({
                   duplicating={duplicatingId === template.id}
                   onDuplicate={onDuplicate}
                 />
+                <DownloadTemplateLink template={template} />
                 {canEdit(template) && (
                   <DeleteTemplateButton template={template} deleting={deletingId === template.id} onDelete={onDelete} />
                 )}
@@ -730,7 +751,8 @@ export function TemplatesListPage() {
     setImportError(null);
 
     try {
-      const created = await importLbxTemplate(file);
+      // A P-touch Editor label is converted; anything else is taken as a Tapeory template file.
+      const created = /\.lbx$/i.test(file.name) ? await importLbxTemplate(file) : await importTemplateFile(file);
       navigate(`/templates/${created.id}/edit`);
     } catch (err) {
       setImportError(err instanceof Error ? err.message : t("templates.importErrorFallback"));
@@ -782,14 +804,15 @@ export function TemplatesListPage() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
+            title={t("templates.importHint")}
           >
-            {importing ? t("templates.importing") : t("templates.importLbx")}
+            {importing ? t("templates.importing") : t("templates.import")}
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".lbx"
-            data-testid="lbx-file-input"
+            accept=".tapeory,.lbx,.json"
+            data-testid="template-file-input"
             hidden
             onChange={(e) => {
               const file = e.target.files?.[0];

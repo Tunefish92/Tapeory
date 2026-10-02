@@ -60,7 +60,10 @@ upload, and print job stays with you.
 - Draft, published, and archived states, with an immutable version history
 - Duplicate a template from the card or list view
 - Groups (case- and accent-insensitive) with bulk rename, plus thumbnails
-- Export and import in Tapeory's native JSON format
+- **`.tapeory` files:** download a template as one readable text file (JSON) and import it into
+  any Tapeory, web or desktop. The file holds the whole label (texts, barcodes, shapes, fields
+  with their names and defaults, group and tags) and its images, so the label comes out the same
+  on the other side
 - **`.lbx` import:** converts text objects, database-merge fields, images, barcodes, and shapes from P-touch Editor
   files. Anything it can't convert is listed as a warning, and the original file stays
   available for download.

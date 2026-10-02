@@ -12,7 +12,7 @@ namespace Tapeory.Api.Controllers;
 
 [ApiController]
 [Route("api/uploads")]
-public sealed class UploadsController(AppDbContext db, FileStorageService fileStorage) : ControllerBase
+public sealed class UploadsController(AppDbContext db, FileStorageService fileStorage, ImageStore images) : ControllerBase
 {
     [HttpPost("images")]
     [RequestSizeLimit(ImageUploadValidator.MaxSizeBytes)]
@@ -23,6 +23,7 @@ public sealed class UploadsController(AppDbContext db, FileStorageService fileSt
             return Problem("No file was uploaded.", statusCode: StatusCodes.Status400BadRequest);
         }
 
+        // Checked before reading, so an oversized upload isn't taken into memory first.
         var validation = ImageUploadValidator.Validate(file.ContentType, file.Length);
 
         if (!validation.IsValid)
@@ -30,60 +31,19 @@ public sealed class UploadsController(AppDbContext db, FileStorageService fileSt
             return Problem(validation.Error, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        Stream contentStream = file.OpenReadStream();
-        var contentType = file.ContentType;
-        var fileName = file.FileName;
-
-        if (ImageUploadValidator.NeedsConversionToPng(file.ContentType))
+        using var buffer = new MemoryStream();
+        await using (var content = file.OpenReadStream())
         {
-            using var buffer = new MemoryStream();
-            await contentStream.CopyToAsync(buffer, cancellationToken);
-            await contentStream.DisposeAsync();
-
-            var png = RasterImageConverter.ToPng(buffer.ToArray());
-
-            if (png is null)
-            {
-                return Problem("The image could not be read.", statusCode: StatusCodes.Status400BadRequest);
-            }
-
-            contentStream = new MemoryStream(png);
-            contentType = "image/png";
-            fileName = Path.ChangeExtension(file.FileName, ".png");
+            await content.CopyToAsync(buffer, cancellationToken);
         }
 
-        if (string.Equals(file.ContentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase))
+        var stored = await images.StoreAsync(
+            buffer.ToArray(), file.ContentType, file.FileName, AuthClaims.UserId(User), cancellationToken);
+
+        if (stored.File is not { } uploadedFile)
         {
-            using var buffer = new MemoryStream();
-            await contentStream.CopyToAsync(buffer, cancellationToken);
-            await contentStream.DisposeAsync();
-
-            var sanitized = SvgSanitizer.Sanitize(buffer.ToArray());
-
-            if (!sanitized.IsValid)
-            {
-                return Problem(sanitized.Error, statusCode: StatusCodes.Status400BadRequest);
-            }
-
-            contentStream = new MemoryStream(sanitized.SanitizedContent!);
+            return Problem(stored.Error, statusCode: StatusCodes.Status400BadRequest);
         }
-
-        await using var stream = contentStream;
-        var stored = await fileStorage.SaveAsync(stream, fileName, FileStorageCategory.Image, cancellationToken);
-
-        var uploadedFile = new UploadedFile
-        {
-            FileName = stored.FileName,
-            OriginalFileName = fileName,
-            ContentType = contentType,
-            SizeBytes = stored.SizeBytes,
-            Category = FileStorageCategory.Image,
-            RelativePath = stored.RelativePath,
-            OwnerUserId = AuthClaims.UserId(User)
-        };
-
-        db.UploadedFiles.Add(uploadedFile);
-        await db.SaveChangesAsync(cancellationToken);
 
         return CreatedAtAction(
             nameof(GetImage),

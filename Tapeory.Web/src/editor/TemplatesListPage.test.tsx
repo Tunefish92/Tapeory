@@ -152,11 +152,45 @@ describe("TemplatesListPage", () => {
     renderPage();
     await screen.findByText(/no templates yet/i);
 
-    const input = screen.getByTestId("lbx-file-input") as HTMLInputElement;
+    const input = screen.getByTestId("template-file-input") as HTMLInputElement;
     const file = new File(["bytes"], "label.lbx", { type: "application/octet-stream" });
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Only .lbx files are supported.");
+  });
+
+  it("uploads a .tapeory file as it is, to the template import", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse({ detail: "This isn't a Tapeory template file." }, false, 400));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+    await screen.findByText(/no templates yet/i);
+
+    const text = '{"format":"tapeory-template","formatVersion":2}';
+    const file = new File([text], "Cable.tapeory", { type: "" });
+    // jsdom's File has no text() in every version; the page only needs this one method.
+    Object.defineProperty(file, "text", { value: () => Promise.resolve(text) });
+    fireEvent.change(screen.getByTestId("template-file-input"), { target: { files: [file] } });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("This isn't a Tapeory template file.");
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/templates/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: text,
+    });
+  });
+
+  it("offers each template as a file to download", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([shippingLabel])));
+
+    renderPage();
+
+    const link = await screen.findByRole("link", { name: "Download as a file: Shipping Label" });
+    expect(link).toHaveAttribute("href", "/api/templates/5/export");
+    expect(link).toHaveAttribute("download");
   });
 
   it("shows each template as a card with a lazily loaded preview of its current version", async () => {

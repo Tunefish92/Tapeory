@@ -80,7 +80,9 @@
   },
   "templates": {
     "title": "Plantillas",
-    "importLbx": "Importar .lbx",
+    "import": "Importar",
+    "importHint": "Una plantilla de Tapeory (.tapeory) o una etiqueta de P-touch Editor (.lbx)",
+    "download": "Descargar como archivo",
     "importing": "Importando…",
     "newTemplate": "Nueva plantilla",
     "columnName": "Nombre",
@@ -599,7 +601,6 @@
     "engineFailedTitle": "Tapeory no pudo iniciarse",
     "retry": "Reintentar",
     "engineHint": "El motor de Tapeory: genera las etiquetas y las envía a tus impresoras.",
-    "exportTemplate": "Exportar…",
     "imageFailed": "No se pudo añadir la imagen: {{message}}",
     "imagesFilter": "Imágenes",
     "importFilter": "Etiquetas de P-touch Editor y plantillas de Tapeory",

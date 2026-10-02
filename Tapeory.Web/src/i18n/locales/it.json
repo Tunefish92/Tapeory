@@ -80,7 +80,9 @@
   },
   "templates": {
     "title": "Modelli",
-    "importLbx": "Importa .lbx",
+    "import": "Importa",
+    "importHint": "Un modello Tapeory (.tapeory) o un’etichetta di P-touch Editor (.lbx)",
+    "download": "Scarica come file",
     "importing": "Importazione…",
     "newTemplate": "Nuovo modello",
     "columnName": "Nome",
@@ -599,7 +601,6 @@
     "engineFailedTitle": "Impossibile avviare Tapeory",
     "retry": "Riprova",
     "engineHint": "Il motore di Tapeory: prepara le etichette e le invia alle stampanti.",
-    "exportTemplate": "Esporta…",
     "imageFailed": "Impossibile aggiungere l’immagine: {{message}}",
     "imagesFilter": "Immagini",
     "importFilter": "Etichette P-touch Editor e modelli Tapeory",

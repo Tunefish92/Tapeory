@@ -14,6 +14,7 @@ using Tapeory.Api.Stats;
 using Tapeory.Api.Storage;
 using Tapeory.Api.Templates;
 using Tapeory.Api.Updates;
+using Tapeory.Api.Uploads;
 using Microsoft.EntityFrameworkCore;
 
 using Tapeory.Api.Desktop;
@@ -63,6 +64,8 @@ public static class TapeoryApp
         builder.Services.AddSingleton<TapeoryInstance>();
         builder.Services.AddSingleton<FileStorageService>();
         builder.Services.AddScoped<TemplateService>();
+        builder.Services.AddScoped<ImageStore>();
+        builder.Services.AddScoped<TemplateFileService>();
         builder.Services.AddScoped<LbxImportService>();
         builder.Services.AddSingleton<LabelRenderer>();
         builder.Services.AddScoped<UploadedFileImageResolver>();

@@ -48,7 +48,8 @@ public sealed record TemplateDetailResponse(
     // Owned by the signed-in account.
     bool IsMine = false);
 
-/// <summary>The portable, native Tapeory template envelope used for export/import.</summary>
+/// <summary>A template file in the first format (".tapeory.json"): the design as a JSON string and
+/// no images. Still read on import; see <see cref="TemplateFile"/> for what is written now.</summary>
 public sealed record NativeTemplateExport(
     int FormatVersion,
     string Name,

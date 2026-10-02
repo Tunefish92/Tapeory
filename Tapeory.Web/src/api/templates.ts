@@ -234,6 +234,22 @@ export async function uploadImage(file: File): Promise<UploadedImageResponse> {
   return parseJsonOrThrow(response);
 }
 
+/** Where a template downloads from as a ".tapeory" file: the whole template, images included. */
+export function templateFileUrl(id: number): string {
+  return `${API_BASE_URL}/templates/${id}/export`;
+}
+
+/** Creates a template from a ".tapeory" file (or an older ".tapeory.json"). */
+export async function importTemplateFile(file: File): Promise<TemplateDetailResponse> {
+  const response = await fetch(`${API_BASE_URL}/templates/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: await file.text(),
+  });
+
+  return parseJsonOrThrow(response);
+}
+
 export async function importLbxTemplate(file: File): Promise<TemplateDetailResponse> {
   const formData = new FormData();
   formData.append("file", file);

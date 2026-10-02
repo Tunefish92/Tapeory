@@ -80,7 +80,9 @@
   },
   "templates": {
     "title": "Templates",
-    "importLbx": "Import .lbx",
+    "import": "Import",
+    "importHint": "A Tapeory template (.tapeory) or a P-touch Editor label (.lbx)",
+    "download": "Download as a file",
     "importing": "Importing…",
     "newTemplate": "New Template",
     "columnName": "Name",
@@ -592,7 +594,6 @@
     "engineFailedTitle": "Tapeory couldn't start",
     "retry": "Try again",
     "engineHint": "Tapeory's engine: renders labels and sends them to your printers.",
-    "exportTemplate": "Export…",
     "imageFailed": "The image couldn't be added: {{message}}",
     "imagesFilter": "Images",
     "importFilter": "P-touch Editor labels and Tapeory templates",

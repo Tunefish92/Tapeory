@@ -8,6 +8,22 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+- Template files: every template has a **Download** button (cards, list rows and the desktop
+  app) that saves it as a `.tapeory` file, and **Import template** takes such a file back in, in
+  the web app and the desktop app. The file is readable text (JSON) and holds everything needed
+  to rebuild the label elsewhere: the label size, all objects (texts, barcodes, shapes, fields),
+  the fields' names, labels and defaults, name, description, group and tags, and the images
+  themselves. An imported template gets its own copies of the images, which are checked like
+  uploaded ones (type, size, scripts stripped from SVGs); if one is refused, nothing is created.
+  The imported template is a private draft of the account that imported it.
+
+### Changed
+- The templates page has one **Import template** button for `.tapeory` and `.lbx` files, in
+  place of "Import .lbx".
+- The earlier export (`.tapeory.json`, which left the images out) is replaced by `.tapeory`;
+  files in the old format can still be imported.
+
 ## [0.5.0] - 2026-10-01
 
 Tapeory as a desktop app for Linux, and printing to USB printers.

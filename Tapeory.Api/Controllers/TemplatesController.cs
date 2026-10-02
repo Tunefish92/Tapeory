@@ -10,6 +10,7 @@ namespace Tapeory.Api.Controllers;
 [Route("api/templates")]
 public sealed class TemplatesController(
     TemplateService templates,
+    TemplateFileService templateFiles,
     LbxImportService lbxImportService,
     FileStorageService fileStorage,
     LabelRenderer labelRenderer,
@@ -20,11 +21,6 @@ public sealed class TemplatesController(
     // Must match the Template.Name column's HasMaxLength(200) in AppDbContext, so an overlong
     // name is rejected with a clean 400 instead of failing the SQL insert/update.
     private const int MaxNameLength = 200;
-
-    // Matches ASP.NET Core's default (camelCase) API formatter so the exported file uses the
-    // same casing as every other JSON response instead of System.Text.Json's PascalCase default.
-    private static readonly System.Text.Json.JsonSerializerOptions ExportJsonOptions =
-        new(System.Text.Json.JsonSerializerDefaults.Web);
 
     [HttpGet]
     public async Task<IActionResult> GetTemplates(
@@ -242,6 +238,8 @@ public sealed class TemplatesController(
         };
     }
 
+    /// <summary>The template as a ".tapeory" file: everything needed to rebuild it elsewhere,
+    /// images included (see <see cref="TemplateFile"/>).</summary>
     [HttpGet("{id:int}/export")]
     public async Task<IActionResult> ExportTemplate(int id, CancellationToken cancellationToken)
     {
@@ -252,37 +250,47 @@ public sealed class TemplatesController(
             return NotFound();
         }
 
-        var export = TemplateMapper.ToExport(template);
-        var fileName = $"{SanitizeForFileName(template.Name)}.tapeory.json";
+        var text = await templateFiles.ExportAsync(template, cancellationToken);
 
         return File(
-            System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(export, ExportJsonOptions)),
+            System.Text.Encoding.UTF8.GetBytes(text),
             "application/json",
-            fileName);
+            $"{SanitizeForFileName(template.Name)}{TemplateFile.Extension}");
     }
 
+    /// <summary>Creates a template from a ".tapeory" file (or an older ".tapeory.json"), sent as
+    /// the request's body.</summary>
     [HttpPost("import")]
-    public async Task<IActionResult> ImportTemplate(
-        [FromBody] NativeTemplateExport export,
-        CancellationToken cancellationToken)
+    [RequestSizeLimit(TemplateFile.MaxSizeBytes)]
+    public async Task<IActionResult> ImportTemplate(CancellationToken cancellationToken)
     {
-        var nameError = ValidateName(export.Name) ?? TemplateGroups.Validate(export.Category);
-
-        if (nameError is not null)
+        string text;
+        using (var reader = new StreamReader(Request.Body, System.Text.Encoding.UTF8))
         {
-            return Problem(nameError, statusCode: StatusCodes.Status400BadRequest);
+            text = await reader.ReadToEndAsync(cancellationToken);
         }
 
-        var validationError = ValidateVersionFields(export.WidthMm, export.HeightMm, export.EditorJson);
+        var contents = TemplateFile.Read(text, out var readError);
+
+        if (contents is null)
+        {
+            return Problem(readError, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var validationError = ValidateName(contents.Name)
+            ?? TemplateGroups.Validate(contents.Category)
+            ?? ValidateVersionFields(contents.WidthMm, contents.HeightMm, contents.Document?.ToJsonString() ?? contents.LegacyEditorJson ?? "");
 
         if (validationError is not null)
         {
             return Problem(validationError, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var template = await templates.ImportAsync(export, cancellationToken);
+        var (template, error) = await templateFiles.ImportAsync(contents, Auth.AuthClaims.UserId(User), cancellationToken);
 
-        return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template, templates.Access));
+        return template is null
+            ? Problem(error, statusCode: StatusCodes.Status400BadRequest)
+            : CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, TemplateMapper.ToDetail(template, templates.Access));
     }
 
     [HttpPost("import-lbx")]

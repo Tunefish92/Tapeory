@@ -13,7 +13,7 @@ and accounts. The data folder it leaves behind is a sample database:
 Usage: engine_realtest.py ENGINE DATA_FOLDER LBX_FILE PNG_FILE
        (ENGINE: Tapeory.Api from a desktop build, e.g. engine/Tapeory.Api in the tar.gz)
 """
-import http.cookiejar, json, os, secrets, socket, subprocess, sys, threading, time, urllib.error, urllib.request, uuid
+import base64, http.cookiejar, json, os, secrets, socket, subprocess, sys, threading, time, urllib.error, urllib.request, uuid
 
 ENGINE, DATA, LBX, PNG = sys.argv[1:5]
 DATA = os.path.abspath(DATA)
@@ -185,11 +185,21 @@ status, payload = call("POST", f"/api/templates/{tid}/preview", {"fieldValues": 
 check("render a preview", status == 200 and payload[:4] == b"\x89PNG")
 check("thumbnail", call("GET", f"/api/templates/{tid}/thumbnail?v=2")[1][:4] == b"\x89PNG")
 status, exported = call("GET", f"/api/templates/{tid}/export")
-check("export as JSON", status == 200 and b"editorJson" in exported)
+file = json.loads(exported) if status == 200 else {}
+check("export as a .tapeory file", file.get("format") == "tapeory-template" and isinstance(file.get("document"), dict), exported[:200])
+check("the file holds the template's image, not a link to it",
+      len(file.get("images", [])) == 1 and base64.b64decode(file["images"][0]["data"]) == open(PNG, "rb").read()
+      and b"uploadedFileId" not in exported)
 status, copy = js("POST", f"/api/templates/{tid}/duplicate", {"name": "Storage box (copy)"})
 check("duplicate", status in (200, 201), copy)
-status, imported = js("POST", "/api/templates/import", json.loads(exported))
-check("import JSON", status in (200, 201), imported)
+status, imported = js("POST", "/api/templates/import", raw=exported, content_type="application/json")
+check("import the file", status in (200, 201), imported)
+if status in (200, 201):
+    values = {"fieldValues": {"name": "Cables"}}
+    check("the imported template renders exactly the same label",
+          call("POST", f"/api/templates/{imported['id']}/preview", values)[1] == call("POST", f"/api/templates/{tid}/preview", values)[1])
+    images = [o for o in json.loads(imported["currentVersion"]["editorJson"])["objects"] if o["type"] == "image"]
+    check("with its own copy of the image", len(images) == 1 and images[0]["uploadedFileId"] != image["id"], images)
 status, lbx = upload("/api/templates/import-lbx", "sample.lbx", open(LBX, "rb").read(), "application/octet-stream")
 check("import a P-touch Editor .lbx", status in (200, 201), lbx)
 if status in (200, 201):
