@@ -297,17 +297,24 @@ public static class BrotherCatalog
     {
         const decimal tolerance = 1.5m;
 
-        foreach (var media in model.Media.Where(media => media.IsDieCut))
-        {
-            if (Math.Abs(media.WidthMm - heightMm) <= tolerance && Math.Abs(media.LengthMm - widthMm) <= tolerance)
+        // The die-cut label closest in size, either way round. (The first one within the tolerance
+        // isn't enough: a round 24 mm label is also within 1.5 mm of the 23 × 23 mm square one.)
+        var dieCut = model.Media
+            .Where(media => media.IsDieCut)
+            .SelectMany(media => new[]
             {
-                return (media, false);
-            }
+                (Media: media, Rotated: false, Across: Math.Abs(media.WidthMm - heightMm), Along: Math.Abs(media.LengthMm - widthMm)),
+                (Media: media, Rotated: true, Across: Math.Abs(media.WidthMm - widthMm), Along: Math.Abs(media.LengthMm - heightMm))
+            })
+            .Where(match => match.Across <= tolerance && match.Along <= tolerance)
+            .OrderBy(match => match.Across + match.Along)
+            .ThenBy(match => match.Rotated)
+            .Select(match => ((BrotherMedia Media, bool Rotated)?)(match.Media, match.Rotated))
+            .FirstOrDefault();
 
-            if (Math.Abs(media.WidthMm - widthMm) <= tolerance && Math.Abs(media.LengthMm - heightMm) <= tolerance)
-            {
-                return (media, true);
-            }
+        if (dieCut is not null)
+        {
+            return dieCut.Value;
         }
 
         // Heat-shrink tube only for a template made for one (an HSe preset); otherwise tape.

@@ -7,7 +7,8 @@
     "templates": "Modèles",
     "printJobs": "Impressions",
     "printers": "Imprimantes",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "about": "À propos"
   },
   "common": {
     "loading": "Chargement…",
@@ -274,7 +275,22 @@
     "visibility": "Visibilité",
     "readOnlyOwned": "Ce modèle appartient à {{name}}. Vous pouvez l’imprimer ou en faire votre propre copie ; seuls {{name}} ou un administrateur peuvent le modifier.",
     "readOnlyShared": "Seul un administrateur peut modifier ce modèle partagé. Vous pouvez l’imprimer ou en faire votre propre copie.",
-    "duplicateToEdit": "Dupliquer pour modifier"
+    "duplicateToEdit": "Dupliquer pour modifier",
+    "printArea": "Ligne en pointillés : ce qui peut être imprimé sur ce ruban. Environ {{vertical}} mm en haut et en bas restent vides.",
+    "printAreaEnds": "Environ {{horizontal}} mm à chaque extrémité également.",
+    "objects": {
+      "heading": "Éléments",
+      "empty": "Il n'y a encore rien sur l'étiquette.",
+      "text": "Texte : {{text}}",
+      "field": "Champ : {{name}}",
+      "barcode": "Code-barres ({{type}}) : {{value}}",
+      "image": "Image",
+      "rect": "Rectangle",
+      "ellipse": "Ellipse",
+      "line": "Ligne",
+      "hidden": "masqué",
+      "delete": "Supprimer « {{name}} »"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -350,7 +366,18 @@
       "loading": "Chargement de l’impression…",
       "loadErrorFallback": "Impossible de charger l’impression.",
       "itemPreviewAlt": "Aperçu de l’élément {{id}}",
-      "printedBy": "Imprimé par"
+      "printedBy": "Imprimé par",
+      "progress": "{{done}} lignes sur {{total}} terminées",
+      "stop": "Arrêter l'impression",
+      "stopping": "Arrêt…",
+      "stopHint": "Les étiquettes déjà envoyées à l'imprimante sortent quand même.",
+      "stopErrorFallback": "La tâche n'a pas pu être arrêtée.",
+      "reprintHint": "Crée une nouvelle tâche avec les lignes qui n'ont pas été imprimées, pour la même imprimante.",
+      "reprintErrorFallback": "Les lignes n'ont pas pu être réimprimées.",
+      "reprintUnprinted_one": "Imprimer la {{count}} ligne manquante",
+      "reprintUnprinted_other": "Imprimer les {{count}} lignes manquantes",
+      "reprintUnprinted_many": "Imprimer les {{count}} lignes manquantes",
+      "pageInfo": "Lignes {{from}} à {{to}} sur {{total}}"
     },
     "status": {
       "queued": "En attente",
@@ -358,7 +385,8 @@
       "completed": "Terminée",
       "failed": "Échec",
       "sending": "Envoi à l’imprimante",
-      "printing": "Impression"
+      "printing": "Impression",
+      "cancelled": "Non imprimé"
     },
     "quality": {
       "label": "Qualité d’impression",
@@ -378,6 +406,146 @@
       "ChainPrintingHint": "Coupe entre les étiquettes mais garde la dernière dans l’imprimante jusqu’à la prochaine impression ou la touche d’avance. Économise le ruban vierge avancé au début de chaque tâche.",
       "CutMarks": "Repères de coupe",
       "CutMarksHint": "Pas de coupe : toutes les étiquettes s’impriment en une bande, avec une ligne pointillée à chaque coupe, à couper à la main."
+    },
+    "bulk": {
+      "title": "Impression en série : {{name}}",
+      "stepsLabel": "Étapes",
+      "steps": {
+        "file": "Données",
+        "match": "Colonnes",
+        "check": "Vérifier",
+        "print": "Imprimer"
+      },
+      "file": {
+        "heading": "Choisir les données",
+        "intro": "Une étiquette est imprimée pour chaque ligne. Si les colonnes portent le nom des champs de l'étiquette ({{fields}}), elles sont associées automatiquement.",
+        "drop": "Déposez ici un fichier Excel, CSV, texte ou JSON",
+        "choose": "Choisir un fichier…",
+        "formats": ".xlsx, .csv, .txt ou .json · jusqu'à 100 Mo et 5 000 lignes",
+        "uploading": "Envoi… {{percent}} %",
+        "reading": "Lecture du fichier…",
+        "errorFallback": "Le fichier n'a pas pu être lu.",
+        "tooLarge": "Le fichier dépasse {{size}} Mo.",
+        "dropNow": "Déposez le fichier pour le charger"
+      },
+      "separator": {
+        "comma": "Virgule ( , )",
+        "semicolon": "Point-virgule ( ; )",
+        "tab": "Tabulation",
+        "pipe": "Barre verticale ( | )",
+        "space": "Espace",
+        "none": "Aucun (une valeur par ligne)",
+        "other": "Autre :"
+      },
+      "match": {
+        "heading": "Associer les colonnes aux champs de l'étiquette",
+        "file_one": "{{name}} · {{count}} ligne",
+        "file_other": "{{name}} · {{count}} lignes",
+        "file_many": "{{name}} · {{count}} lignes",
+        "separatorQuestion": "Quel séparateur le fichier utilise-t-il ?",
+        "separatorHelp": "Tapeory n'a pas pu le déduire du fichier. Choisissez celui qui répartit les lignes ci-dessous dans les bonnes colonnes.",
+        "separatorLabel": "Séparateur",
+        "sheet": "Feuille",
+        "sampleHeading": "Les premières lignes du fichier",
+        "headerFound": "Colonnes et champs",
+        "columnQuestion": "Aucune ligne d'en-tête n'a été trouvée. Quelle colonne correspond à quel champ ?",
+        "headerSwitch": "La première ligne est un en-tête (ne pas l'imprimer)",
+        "column": "Colonne {{letter}}",
+        "columnWithHeader": "{{header}} (colonne {{letter}})",
+        "chooseColumn": "Choisir une colonne…",
+        "useDefault": "Aucune colonne (imprimer « {{value}} »)",
+        "leaveEmpty": "Aucune colonne (laisser vide)",
+        "quantity": "Exemplaires par ligne",
+        "quantityNone": "Aucune colonne (un de chaque)",
+        "missing": "Il manque : une colonne pour {{fields}}.",
+        "continue": "Vérifier les étiquettes"
+      },
+      "check": {
+        "readingRows_one": "{{count}} ligne lue",
+        "readingRows_other": "{{count}} lignes lues",
+        "readingRows_many": "{{count}} lignes lues",
+        "checking": "Vérification et rendu des étiquettes… {{done}} sur {{total}}",
+        "errorFallback": "Les étiquettes n'ont pas pu être vérifiées.",
+        "quantityInvalid": "Le nombre d'exemplaires doit être un nombre entier de 1 à 999.",
+        "labelOf": "Étiquette {{current}} sur {{total}}",
+        "label": "Étiquette",
+        "ofTotal": "sur {{total}}",
+        "previous": "Précédente",
+        "next": "Suivante",
+        "onlyProblems": "Seulement les lignes avec des problèmes ({{count}})",
+        "columnPrint": "Imprimer",
+        "columnRow": "Ligne",
+        "columnCopies": "Exemplaires",
+        "columnProblem": "Vérification",
+        "printRow": "Imprimer la ligne {{row}}",
+        "ok": "OK",
+        "summary_one": "{{count}} étiquette sera imprimée",
+        "summary_other": "{{count}} étiquettes seront imprimées",
+        "summary_many": "{{count}} étiquettes seront imprimées",
+        "tape": "environ {{length}} de ruban de {{width}} mm",
+        "summaryErrors_one": "{{count}} ligne a une erreur et est ignorée.",
+        "summaryErrors_other": "{{count}} lignes ont des erreurs et sont ignorées.",
+        "summaryErrors_many": "{{count}} lignes ont des erreurs et sont ignorées.",
+        "nothingToPrint": "Aucune ligne ne peut être imprimée.",
+        "continue": "Continuer vers l'impression",
+        "pageInfo": "Lignes {{from}} à {{to}} sur {{total}}",
+        "copies": "Exemplaires de chaque étiquette",
+        "copiesHint": "Le nombre d'exemplaires propre à une ligne est multiplié par celui-ci."
+      },
+      "print": {
+        "heading_one": "Imprimer {{count}} étiquette",
+        "heading_other": "Imprimer {{count}} étiquettes",
+        "heading_many": "Imprimer {{count}} étiquettes",
+        "note": "Les étiquettes sont imprimées en une seule tâche, dans l'ordre du fichier.",
+        "submit_one": "Imprimer {{count}} étiquette",
+        "submit_other": "Imprimer {{count}} étiquettes",
+        "submit_many": "Imprimer {{count}} étiquettes"
+      },
+      "profiles": {
+        "heading": "Profils enregistrés",
+        "intro": "Un profil charge ses données et tous les réglages en un clic.",
+        "load": "Charger « {{name}} »",
+        "delete": "Supprimer le profil « {{name}} »",
+        "confirmDelete": "Supprimer le profil « {{name}} » ?",
+        "loadErrorFallback": "Les profils n'ont pas pu être chargés.",
+        "chooseFile": "Choisissez le fichier du profil « {{name}} » ({{file}}). Tout le reste est repris du profil.",
+        "fileMissing": "Le fichier {{path}} est introuvable. Choisissez le fichier du profil « {{name}} ».",
+        "cancel": "Ne pas utiliser le profil",
+        "saveHeading": "Enregistrer comme profil",
+        "saveHint": "Retient le fichier, l'association des colonnes et les réglages d'impression pour les charger en un clic la prochaine fois.",
+        "name": "Nom du profil",
+        "save": "Enregistrer le profil",
+        "saving": "Enregistrement…",
+        "saved": "Profil « {{name}} » enregistré.",
+        "savedNoFile": "Profil « {{name}} » enregistré. Il demandera le fichier au chargement.",
+        "saveErrorFallback": "Le profil n'a pas pu être enregistré.",
+        "confirmReplace": "Un profil nommé « {{name}} » existe déjà. Le remplacer ?",
+        "replace": "Remplacer",
+        "empty": "Aucun profil ici pour l'instant. Enregistrez-en un à l'étape Vérifier ou Imprimer.",
+        "headingFor": "Profils enregistrés : {{tab}}"
+      },
+      "url": {
+        "heading": "Récupérer les données depuis une adresse web",
+        "hint": "Pour une interface REST ou un fichier sur un serveur web. Le serveur de Tapeory appelle l'adresse (GET) et lit du JSON, du CSV, du texte ou de l'Excel dans la réponse ; l'adresse doit donc être accessible depuis le serveur.",
+        "address": "Adresse web",
+        "load": "Charger les données",
+        "headerToggle": "Envoyer un en-tête de requête (par exemple une clé d'API)",
+        "headerName": "Nom de l'en-tête, p. ex. Authorization",
+        "headerValue": "Valeur de l'en-tête"
+      },
+      "tabs": {
+        "label": "Importer depuis",
+        "file": "Fichier",
+        "api": "API"
+      }
+    },
+    "mode": {
+      "label": "Mode d'impression",
+      "single": "Une seule étiquette",
+      "singleHint": "Saisir les valeurs d'une étiquette",
+      "bulk": "Impression en série",
+      "bulkHint": "Une étiquette par ligne d'un fichier ou d'une API",
+      "bulkNeedsFields": "L'impression en série nécessite un modèle avec des champs."
     }
   },
   "printers": {
@@ -639,5 +807,11 @@
     "menuEntryAdded": "Tapeory est maintenant dans le menu des applications.",
     "menuEntryRemoved": "Tapeory a été retiré du menu des applications.",
     "menuEntryFailed": "Impossible de modifier le menu des applications : {{message}}"
+  },
+  "about": {
+    "source": "Code source sur GitHub",
+    "issues": "Problèmes connus et demandes",
+    "newIssue": "Signaler un problème",
+    "links": "Projet"
   }
 }

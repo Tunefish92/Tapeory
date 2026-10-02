@@ -170,16 +170,23 @@ pub struct PillButton<'a> {
     icon: Option<Icon>,
     selected: bool,
     min_width: f32,
+    large: bool,
 }
 
 impl<'a> PillButton<'a> {
     pub fn new(text: &'a str, kind: Kind) -> PillButton<'a> {
-        PillButton { text, kind, small: false, enabled: true, icon: None, selected: false, min_width: 0.0 }
+        PillButton { text, kind, small: false, enabled: true, icon: None, selected: false, min_width: 0.0, large: false }
     }
 
     /// At least this wide, the text centred.
     pub fn min_width(mut self, width: f32) -> Self {
         self.min_width = width;
+        self
+    }
+
+    /// Bigger text and more padding: the one button a page is about (Print).
+    pub fn large(mut self) -> Self {
+        self.large = true;
         self
     }
 
@@ -214,7 +221,13 @@ pub fn pill_width(ui: &Ui, text: &str) -> f32 {
 impl egui::Widget for PillButton<'_> {
     fn ui(self, ui: &mut Ui) -> egui::Response {
         let p = palette(ui.ctx());
-        let (size, padding) = if self.small { (13.0, egui::vec2(12.0, 5.5)) } else { (14.5, egui::vec2(17.0, 9.0)) };
+        let (size, padding) = if self.large {
+            (16.5, egui::vec2(24.0, 13.0))
+        } else if self.small {
+            (13.0, egui::vec2(12.0, 5.5))
+        } else {
+            (14.5, egui::vec2(17.0, 9.0))
+        };
         let weight = if self.kind == Kind::Secondary && !self.selected { fonts::HEADING_MEDIUM } else { fonts::HEADING };
         let font = egui::FontId::new(size, face(weight));
         let galley = ui.painter().layout_no_wrap(self.text.to_string(), font, Color32::PLACEHOLDER);
@@ -316,6 +329,101 @@ pub fn gradient_card<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> R {
 fn lerp_color(from: Color32, to: Color32, t: f32) -> Color32 {
     let mix = |a: u8, b: u8| (a as f32 + (b as f32 - a as f32) * t).round() as u8;
     Color32::from_rgba_premultiplied(mix(from.r(), to.r()), mix(from.g(), to.g()), mix(from.b(), to.b()), mix(from.a(), to.a()))
+}
+
+/// The button that sends labels to the printer: large, full width, with the printer icon.
+pub fn print_button(ui: &mut Ui, enabled: bool, text: &str) -> egui::Response {
+    let width = ui.available_width();
+    ui.add(PillButton::new(text, Kind::Primary).large().icon(Icon::Printer).min_width(width).enabled(enabled))
+}
+
+/// Single label or bulk print: a large switch at the top of both print pages. Returns the option
+/// clicked (0 = single, 1 = bulk), if it isn't the current one.
+pub fn print_mode_switch(ui: &mut Ui, selected: usize, bulk_available: bool) -> Option<usize> {
+    let p = palette(ui.ctx());
+    let mut clicked = None;
+
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 12.0;
+        let width = ((ui.available_width() - 12.0) / 2.0).min(310.0);
+
+        for (index, key) in ["single", "bulk"].into_iter().enumerate() {
+            let available = index == 0 || bulk_available;
+            let active = index == selected;
+            let sense = if available && !active { egui::Sense::click() } else { egui::Sense::hover() };
+            let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 64.0), sense);
+            let hovered = available && !active && response.hovered();
+            let alpha = if available { 1.0 } else { 0.55 };
+
+            ui.painter().rect(
+                rect,
+                CornerRadius::same(16),
+                (if active { p.primary_soft } else { p.elevated }).gamma_multiply(alpha),
+                Stroke::new(2.0_f32, if active || hovered { p.primary } else { p.border }),
+                egui::StrokeKind::Inside,
+            );
+            ui.painter().text(
+                rect.left_top() + egui::vec2(16.0, 12.0),
+                egui::Align2::LEFT_TOP,
+                t(&format!("printing.mode.{key}")),
+                egui::FontId::new(16.5, face(fonts::HEADING)),
+                (if active { p.primary } else { p.text }).gamma_multiply(alpha),
+            );
+            ui.painter().with_clip_rect(rect.shrink(8.0)).text(
+                rect.left_top() + egui::vec2(16.0, 36.0),
+                egui::Align2::LEFT_TOP,
+                t(&format!("printing.mode.{key}Hint")),
+                egui::FontId::proportional(13.0),
+                p.muted.gamma_multiply(alpha),
+            );
+
+            if !available {
+                response.on_hover_text(t("printing.mode.bulkNeedsFields"));
+            } else if response.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                clicked = Some(index);
+            }
+        }
+    });
+    ui.add_space(16.0);
+    clicked
+}
+
+/// Tabs with an underline under the current one. Returns the tab clicked, if any.
+pub fn tabs(ui: &mut Ui, labels: &[String], selected: usize) -> Option<usize> {
+    let p = palette(ui.ctx());
+    let mut clicked = None;
+
+    let row = ui
+        .horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 4.0;
+            for (index, label) in labels.iter().enumerate() {
+                let active = index == selected;
+                let galley =
+                    ui.painter().layout_no_wrap(label.clone(), egui::FontId::new(14.5, face(fonts::HEADING)), Color32::PLACEHOLDER);
+                let (rect, response) = ui.allocate_exact_size(galley.size() + egui::vec2(34.0, 20.0), egui::Sense::click());
+                if response.hovered() && !active {
+                    ui.painter().rect_filled(rect, CornerRadius { nw: 8, ne: 8, sw: 0, se: 0 }, p.subtle);
+                }
+                let color = if active {
+                    p.primary
+                } else if response.hovered() {
+                    p.text
+                } else {
+                    p.muted
+                };
+                ui.painter().galley(rect.center() - galley.size() / 2.0, galley, color);
+                if active {
+                    ui.painter().hline(rect.x_range(), rect.bottom() + 1.0, Stroke::new(2.0_f32, p.primary));
+                }
+                if response.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                    clicked = Some(index);
+                }
+            }
+        })
+        .response;
+    ui.painter().hline(ui.max_rect().x_range(), row.rect.bottom() + 2.0, Stroke::new(1.0_f32, p.border));
+    ui.add_space(14.0);
+    clicked
 }
 
 /// The main action on a page: the gradient pill.

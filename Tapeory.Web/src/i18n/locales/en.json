@@ -7,7 +7,8 @@
     "templates": "Templates",
     "printJobs": "Print Jobs",
     "printers": "Printers",
-    "settings": "Settings"
+    "settings": "Settings",
+    "about": "About"
   },
   "common": {
     "loading": "Loading…",
@@ -272,7 +273,22 @@
     "visibility": "Visibility",
     "readOnlyOwned": "This is {{name}}'s template. You can print it or make your own copy; only {{name}} or an administrator can change it.",
     "readOnlyShared": "This shared template can only be changed by an administrator. You can print it or make your own copy.",
-    "duplicateToEdit": "Duplicate to edit"
+    "duplicateToEdit": "Duplicate to edit",
+    "printArea": "Dashed line: what can be printed on this tape. About {{vertical}} mm at the top and at the bottom stay blank.",
+    "printAreaEnds": "About {{horizontal}} mm at each end too.",
+    "objects": {
+      "heading": "Elements",
+      "empty": "Nothing on the label yet.",
+      "text": "Text: {{text}}",
+      "field": "Field: {{name}}",
+      "barcode": "Barcode ({{type}}): {{value}}",
+      "image": "Image",
+      "rect": "Rectangle",
+      "ellipse": "Ellipse",
+      "line": "Line",
+      "hidden": "hidden",
+      "delete": "Delete “{{name}}”"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -343,7 +359,17 @@
       "loading": "Loading print job…",
       "loadErrorFallback": "Failed to load print job.",
       "itemPreviewAlt": "Print job item {{id}} preview",
-      "printedBy": "Printed by"
+      "printedBy": "Printed by",
+      "progress": "{{done}} of {{total}} rows done",
+      "stop": "Stop printing",
+      "stopping": "Stopping…",
+      "stopHint": "Labels already at the printer still come out.",
+      "stopErrorFallback": "The job couldn't be stopped.",
+      "reprintHint": "Creates a new print job with the rows that weren't printed, for the same printer.",
+      "reprintErrorFallback": "The rows couldn't be printed again.",
+      "reprintUnprinted_one": "Print the {{count}} missing row",
+      "reprintUnprinted_other": "Print the {{count}} missing rows",
+      "pageInfo": "Rows {{from}}–{{to}} of {{total}}"
     },
     "status": {
       "queued": "Queued",
@@ -351,7 +377,8 @@
       "completed": "Completed",
       "failed": "Failed",
       "sending": "Sending to printer",
-      "printing": "Printing"
+      "printing": "Printing",
+      "cancelled": "Not printed"
     },
     "quality": {
       "label": "Print quality",
@@ -371,6 +398,140 @@
       "ChainPrintingHint": "Cuts between labels but keeps the last one in the printer until the next print or the feed button. Saves the blank tape the printer feeds at the start of each job.",
       "CutMarks": "Cut marks",
       "CutMarksHint": "No cutting: all labels print as one strip with a dashed line at each cut, to cut by hand."
+    },
+    "bulk": {
+      "title": "Bulk print: {{name}}",
+      "stepsLabel": "Steps",
+      "steps": {
+        "file": "Data",
+        "match": "Columns",
+        "check": "Check",
+        "print": "Print"
+      },
+      "file": {
+        "heading": "Choose the data",
+        "intro": "One label is printed for each row. If the columns are named like the label's fields ({{fields}}), they are matched automatically.",
+        "drop": "Drop an Excel, CSV, text or JSON file here",
+        "choose": "Choose file…",
+        "formats": ".xlsx, .csv, .txt or .json · up to 100 MB and 5,000 rows",
+        "uploading": "Uploading… {{percent}} %",
+        "reading": "Reading the file…",
+        "errorFallback": "The file couldn't be read.",
+        "tooLarge": "The file is larger than {{size}} MB.",
+        "dropNow": "Drop the file to load it"
+      },
+      "separator": {
+        "comma": "Comma ( , )",
+        "semicolon": "Semicolon ( ; )",
+        "tab": "Tab",
+        "pipe": "Pipe ( | )",
+        "space": "Space",
+        "none": "None (one value per line)",
+        "other": "Other:"
+      },
+      "match": {
+        "heading": "Match the columns to the label's fields",
+        "file_one": "{{name}} · {{count}} row",
+        "file_other": "{{name}} · {{count}} rows",
+        "separatorQuestion": "Which separator does the file use?",
+        "separatorHelp": "Tapeory couldn't tell from the file. Choose the one that splits the rows below into the right columns.",
+        "separatorLabel": "Separator",
+        "sheet": "Sheet",
+        "sampleHeading": "The first rows of the file",
+        "headerFound": "Columns and fields",
+        "columnQuestion": "No header row was found. Which column belongs to which field?",
+        "headerSwitch": "The first row is a header (don't print it)",
+        "column": "Column {{letter}}",
+        "columnWithHeader": "{{header}} (column {{letter}})",
+        "chooseColumn": "Choose a column…",
+        "useDefault": "No column (print \"{{value}}\")",
+        "leaveEmpty": "No column (leave empty)",
+        "quantity": "Copies per row",
+        "quantityNone": "No column (one of each)",
+        "missing": "Still needed: a column for {{fields}}.",
+        "continue": "Check the labels"
+      },
+      "check": {
+        "readingRows_one": "{{count}} row read",
+        "readingRows_other": "{{count}} rows read",
+        "checking": "Checking and rendering the labels… {{done}} of {{total}}",
+        "errorFallback": "The labels couldn't be checked.",
+        "quantityInvalid": "The number of copies must be a whole number from 1 to 999.",
+        "labelOf": "Label {{current}} of {{total}}",
+        "label": "Label",
+        "ofTotal": "of {{total}}",
+        "previous": "Previous",
+        "next": "Next",
+        "onlyProblems": "Only rows with problems ({{count}})",
+        "columnPrint": "Print",
+        "columnRow": "Row",
+        "columnCopies": "Copies",
+        "columnProblem": "Check",
+        "printRow": "Print row {{row}}",
+        "ok": "OK",
+        "summary_one": "{{count}} label will be printed",
+        "summary_other": "{{count}} labels will be printed",
+        "tape": "about {{length}} of {{width}} mm tape",
+        "summaryErrors_one": "{{count}} row has an error and is left out.",
+        "summaryErrors_other": "{{count}} rows have errors and are left out.",
+        "nothingToPrint": "No row can be printed.",
+        "continue": "Continue to printing",
+        "pageInfo": "Rows {{from}}–{{to}} of {{total}}",
+        "copies": "Copies of each label",
+        "copiesHint": "A row's own number of copies is multiplied by this."
+      },
+      "print": {
+        "heading_one": "Print {{count}} label",
+        "heading_other": "Print {{count}} labels",
+        "note": "The labels are printed as one print job, in the order of the file.",
+        "submit_one": "Print {{count}} label",
+        "submit_other": "Print {{count}} labels"
+      },
+      "profiles": {
+        "heading": "Saved profiles",
+        "intro": "A profile loads its data and all settings with one click.",
+        "load": "Load “{{name}}”",
+        "delete": "Delete the profile “{{name}}”",
+        "confirmDelete": "Delete the profile “{{name}}”?",
+        "loadErrorFallback": "The profiles couldn't be loaded.",
+        "chooseFile": "Choose the file for the profile “{{name}}” ({{file}}). Everything else is set up from the profile.",
+        "fileMissing": "The file {{path}} wasn't found. Choose the file for the profile “{{name}}”.",
+        "cancel": "Don't use the profile",
+        "saveHeading": "Save as profile",
+        "saveHint": "Keeps the file, the column matching and the print settings, to load them with one click next time.",
+        "name": "Profile name",
+        "save": "Save profile",
+        "saving": "Saving…",
+        "saved": "Profile “{{name}}” saved.",
+        "savedNoFile": "Profile “{{name}}” saved. It will ask for the file when you load it.",
+        "saveErrorFallback": "The profile couldn't be saved.",
+        "confirmReplace": "A profile named “{{name}}” already exists. Replace it?",
+        "replace": "Replace",
+        "empty": "No profiles here yet. Save one on the Check or Print step.",
+        "headingFor": "Saved profiles: {{tab}}"
+      },
+      "url": {
+        "heading": "Get the data from a web address",
+        "hint": "For a REST interface or a file on a web server. Tapeory's server calls the address (GET) and reads JSON, CSV, text or Excel from the answer, so the address must be reachable from the server.",
+        "address": "Web address",
+        "load": "Load data",
+        "headerToggle": "Send a request header (for example an API key)",
+        "headerName": "Header name, e.g. Authorization",
+        "headerValue": "Header value"
+      },
+      "tabs": {
+        "label": "Import from",
+        "file": "File",
+        "api": "API"
+      }
+    },
+    "mode": {
+      "label": "How to print",
+      "single": "Single label",
+      "singleHint": "Type the values for one label",
+      "bulk": "Bulk print",
+      "bulkHint": "One label per row of a file or an API",
+      "bulkNeedsFields": "Bulk printing needs a template with fields."
     }
   },
   "printers": {
@@ -629,5 +790,11 @@
     "menuEntryAdded": "Tapeory is now in your application menu.",
     "menuEntryRemoved": "Tapeory was removed from your application menu.",
     "menuEntryFailed": "Couldn’t change the application menu: {{message}}"
+  },
+  "about": {
+    "source": "Source code on GitHub",
+    "issues": "Known problems and requests",
+    "newIssue": "Report a problem",
+    "links": "Project"
   }
 }

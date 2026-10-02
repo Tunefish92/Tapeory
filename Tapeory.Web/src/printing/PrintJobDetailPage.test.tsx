@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PrintJobDetailPage } from "./PrintJobDetailPage";
@@ -141,5 +141,66 @@ describe("PrintJobDetailPage", () => {
     renderPage();
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  const item = (id: number, status: string, errorMessage: string | null = null) => ({
+    id,
+    fieldValues: { name: `Row ${id}` },
+    quantity: 1,
+    status,
+    errorMessage,
+    previewUrl: null,
+  });
+
+  it("shows how far a job with many rows is, and stops it on request", async () => {
+    const printing = job({ status: "Printing", items: [item(1, "Completed"), item(2, "Printing"), item(3, "Queued"), item(4, "Queued")] });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) =>
+      jsonResponse(String(input).endsWith("/cancel") ? printing : printing),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+
+    expect(await screen.findByText("1 of 4 rows done")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop printing" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/print-jobs/12/cancel", expect.objectContaining({ method: "POST" })),
+    );
+    expect(await screen.findByRole("button", { name: "Stopping…" })).toBeDisabled();
+  });
+
+  it("offers to print the rows of a stopped job that didn't come out", async () => {
+    const stopped = job({
+      status: "Failed",
+      errorMessage: "A label failed, and the rest of the job wasn't printed.",
+      items: [item(1, "Completed"), item(2, "Failed", "No tape"), item(3, "Cancelled", "Not printed: the job stopped.")],
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) =>
+      jsonResponse(String(input).endsWith("/reprint-unprinted") ? job({ id: 13, status: "Queued" }) : stopped),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+
+    expect(await screen.findByText("Not printed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Stop printing" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Print the 2 missing rows" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/print-jobs/12/reprint-unprinted", expect.objectContaining({ method: "POST" })),
+    );
+  });
+
+  it("offers nothing to reprint when every row was printed", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(job({ status: "Completed", items: [item(1, "Completed")] }))));
+
+    renderPage();
+
+    await screen.findByText("Shipping Label");
+    expect(screen.queryByRole("button", { name: /missing row/ })).not.toBeInTheDocument();
   });
 });

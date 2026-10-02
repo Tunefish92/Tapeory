@@ -374,15 +374,19 @@ impl TemplatesPage {
                     egui::Layout::right_to_left(egui::Align::Center),
                     |ui| {
                         ui.spacing_mut().item_spacing.x = 4.0;
-                        if ui.add(PillButton::new(&t("templates.print"), Kind::Primary).small()).clicked() {
-                            c.go(Route::Print(template.id));
-                        }
                         if template.can_edit && ui.add(PillButton::new(&t("common.edit"), Kind::Secondary).small()).clicked() {
                             c.go(Route::Editor(Some(template.id)));
                         }
                         self.icon_actions(ui, c, template);
                     },
                 );
+
+                // Printing is what a template is for: its button spans the card.
+                ui.add_space(8.0);
+                let (label, width) = (t("templates.print"), ui.available_width());
+                if ui.add(PillButton::new(&label, Kind::Primary).icon(Icon::Printer).min_width(width)).clicked() {
+                    c.go(Route::Print(template.id));
+                }
             });
         });
     }
@@ -417,7 +421,7 @@ impl TemplatesPage {
             Column::new(t("templates.columnSource"), 1.5).hide_below(900.0),
             Column::new(t("templates.columnSize"), 1.1).hide_below(720.0),
             Column::new(t("templates.columnUpdated"), 1.3).hide_below(800.0),
-            Column::fixed(196.0),
+            Column::fixed(270.0),
         ];
 
         let mut rows: Vec<&TemplateSummary> = templates.to_vec();
@@ -483,11 +487,11 @@ impl TemplatesPage {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.spacing_mut().item_spacing.x = 2.0;
                         self.icon_actions(ui, c, template);
-                        if widgets::icon_button(ui, Icon::Printer, &t("templates.print")).clicked() {
-                            c.go(Route::Print(template.id));
-                        }
                         if template.can_edit && widgets::icon_button(ui, Icon::Pencil, &t("common.edit")).clicked() {
                             c.go(Route::Editor(Some(template.id)));
+                        }
+                        if ui.add(PillButton::new(&t("templates.print"), Kind::Primary).small().icon(Icon::Printer)).clicked() {
+                            c.go(Route::Print(template.id));
                         }
                     });
                 }

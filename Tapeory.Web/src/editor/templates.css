@@ -486,6 +486,34 @@
   gap: 0.4rem;
 }
 
+/* Printing is what a template is for: its button spans the card. */
+.template-card__print {
+  width: 100%;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: var(--fs-md, 0.95rem);
+  box-shadow: var(--shadow-md);
+}
+
+.template-card__print svg {
+  width: 18px;
+  height: 18px;
+}
+
+.data-grid__print {
+  gap: 0.35rem;
+  margin-inline-end: 0.35rem;
+}
+
+.data-grid__actions {
+  align-items: center;
+}
+
+.data-grid__print svg {
+  width: 15px;
+  height: 15px;
+}
+
 @media (max-width: 640px) {
   .template-grid {
     grid-template-columns: 1fr;
@@ -644,4 +672,14 @@
 .data-grid__title .template-access {
   align-self: flex-start;
   margin-top: 0.2rem;
+}
+
+/* The name takes the room the other columns leave and shortens with an ellipsis, so the row's
+   actions (with the Print button) always stay in view. */
+.data-grid td.data-grid__col--name {
+  max-width: 0;
+}
+
+.data-grid__col--name .data-grid__name {
+  min-width: 0;
 }

@@ -1,6 +1,8 @@
 //! The screens, and what they share.
 
+pub mod about;
 pub mod auth;
+pub mod bulk_print;
 pub mod dashboard;
 pub mod grid;
 pub mod jobs;
@@ -30,10 +32,13 @@ pub enum Route {
     /// A template in the editor; None for a new one.
     Editor(Option<i64>),
     Print(i64),
+    /// Printing a template once per row of a data file.
+    BulkPrint(i64),
     Jobs,
     Job(i64),
     Printers,
     Settings,
+    About,
 }
 
 /// What every screen gets each frame.

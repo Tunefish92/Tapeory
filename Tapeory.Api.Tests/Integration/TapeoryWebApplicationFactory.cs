@@ -96,11 +96,20 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
 
         public IReadOnlyList<UsbPrinterInfo> List() => [new(Device, "Brother PT-P750W", "PT-P750W")];
 
-        public Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken)
+        /// <summary>Runs before each send with the number of transmissions so far; a test can
+        /// hold a transmission back with it, or make it fail by returning an error.</summary>
+        public Func<int, Task<string?>>? BeforeSend { get; set; }
+
+        public async Task<RawSendResult> SendAsync(string identifier, byte[] data, CancellationToken cancellationToken)
         {
             if (identifier != Device)
             {
-                return Task.FromResult(RawSendResult.Failure($"{identifier} isn't connected."));
+                return RawSendResult.Failure($"{identifier} isn't connected.");
+            }
+
+            if (BeforeSend is { } beforeSend && await beforeSend(Sent.Count) is { } error)
+            {
+                return RawSendResult.Failure(error);
             }
 
             lock (Sent)
@@ -108,7 +117,7 @@ public sealed class TapeoryWebApplicationFactory : WebApplicationFactory<Program
                 Sent.Add(data);
             }
 
-            return Task.FromResult(RawSendResult.Success());
+            return RawSendResult.Success();
         }
     }
 

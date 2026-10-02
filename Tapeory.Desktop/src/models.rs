@@ -375,6 +375,105 @@ impl PrintJob {
     pub fn in_progress(&self) -> bool {
         matches!(self.status.as_str(), "Queued" | "Processing" | "Sending" | "Printing")
     }
+
+    /// Rows that are through: printed, failed or left out.
+    pub fn finished_rows(&self) -> usize {
+        self.items.iter().filter(|item| matches!(item.status.as_str(), "Completed" | "Failed" | "Cancelled")).count()
+    }
+
+    /// Rows that didn't come out of the printer and can be printed again.
+    pub fn unprinted_rows(&self) -> usize {
+        self.items.iter().filter(|item| matches!(item.status.as_str(), "Failed" | "Cancelled")).count()
+    }
+}
+
+/// The margins of a label (in mm) that the printer can't print on.
+#[derive(Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PrintArea {
+    pub top_mm: f64,
+    pub right_mm: f64,
+    pub bottom_mm: f64,
+    pub left_mm: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct BulkPrintProfileColumn {
+    pub field: String,
+    /// The column's position in the file, from 0.
+    pub column: usize,
+    /// The column's header text, when the file has a header row.
+    pub header: Option<String>,
+}
+
+/// Everything a bulk print needs to run again.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct BulkPrintProfileSettings {
+    pub file_name: Option<String>,
+    /// Where the file is on the computer that saved the profile (the web app can't know it).
+    pub file_path: Option<String>,
+    pub separator: Option<String>,
+    pub sheet: Option<usize>,
+    pub has_header: bool,
+    pub columns: Option<Vec<BulkPrintProfileColumn>>,
+    pub quantity_column: Option<usize>,
+    pub quantity_header: Option<String>,
+    pub printer_id: Option<i64>,
+    pub printer_name: Option<String>,
+    pub quality: Option<String>,
+    pub cut_mode: Option<String>,
+    /// How many times each label is printed (on top of a copies column).
+    pub copies: Option<u32>,
+    /// The web address the data comes from, instead of a file, with its optional request header.
+    pub url: Option<String>,
+    pub url_header_name: Option<String>,
+    pub url_header_value: Option<String>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct BulkPrintProfile {
+    pub id: i64,
+    pub name: String,
+    pub settings: BulkPrintProfileSettings,
+}
+
+/// A data file (Excel, CSV, text) as the engine read it for bulk printing.
+#[derive(Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PrintData {
+    /// "text", "spreadsheet", or "json" (records whose property names are always the header).
+    pub kind: String,
+    pub sheets: Vec<String>,
+    pub sheet: usize,
+    /// "," ";" "|" …, "tab", "space", or "none" for one value per line.
+    pub separator: Option<String>,
+    /// False when the file doesn't say clearly which separator it uses: ask the user.
+    pub separator_detected: bool,
+    /// The first row names the columns and isn't a label itself.
+    pub has_header: bool,
+    /// Every row, the header included; all rows have the same number of cells.
+    pub rows: Vec<Vec<String>>,
+    /// Field name → column index, for the fields matched by the header.
+    pub fields: BTreeMap<String, usize>,
+    pub quantity_column: Option<usize>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CheckedRow {
+    /// Why this row can't be printed.
+    pub errors: Vec<String>,
+    /// What may look wrong on the label; the row can still be printed.
+    pub warnings: Vec<String>,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CheckedRows {
+    pub rows: Vec<CheckedRow>,
 }
 
 #[derive(Deserialize, Clone, Debug, Default)]

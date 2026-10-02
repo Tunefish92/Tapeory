@@ -7,7 +7,8 @@
     "templates": "Modelli",
     "printJobs": "Lavori di stampa",
     "printers": "Stampanti",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "about": "Informazioni"
   },
   "common": {
     "loading": "Caricamento…",
@@ -274,7 +275,22 @@
     "visibility": "Visibilità",
     "readOnlyOwned": "Questo è un modello di {{name}}. Puoi stamparlo o crearne una tua copia; solo {{name}} o un amministratore possono modificarlo.",
     "readOnlyShared": "Questo modello condiviso può essere modificato solo da un amministratore. Puoi stamparlo o crearne una tua copia.",
-    "duplicateToEdit": "Duplica per modificare"
+    "duplicateToEdit": "Duplica per modificare",
+    "printArea": "Linea tratteggiata: ciò che si può stampare su questo nastro. Circa {{vertical}} mm in alto e in basso restano vuoti.",
+    "printAreaEnds": "Anche circa {{horizontal}} mm a ogni estremità.",
+    "objects": {
+      "heading": "Elementi",
+      "empty": "Sull'etichetta non c'è ancora nulla.",
+      "text": "Testo: {{text}}",
+      "field": "Campo: {{name}}",
+      "barcode": "Codice a barre ({{type}}): {{value}}",
+      "image": "Immagine",
+      "rect": "Rettangolo",
+      "ellipse": "Ellisse",
+      "line": "Linea",
+      "hidden": "nascosto",
+      "delete": "Elimina «{{name}}»"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -350,7 +366,18 @@
       "loading": "Caricamento del lavoro di stampa…",
       "loadErrorFallback": "Impossibile caricare il lavoro di stampa.",
       "itemPreviewAlt": "Anteprima dell'elemento {{id}} del lavoro di stampa",
-      "printedBy": "Stampato da"
+      "printedBy": "Stampato da",
+      "progress": "{{done}} di {{total}} righe completate",
+      "stop": "Ferma la stampa",
+      "stopping": "Arresto…",
+      "stopHint": "Le etichette già inviate alla stampante vengono comunque stampate.",
+      "stopErrorFallback": "Impossibile fermare il lavoro.",
+      "reprintHint": "Crea un nuovo lavoro con le righe non stampate, per la stessa stampante.",
+      "reprintErrorFallback": "Impossibile ristampare le righe.",
+      "reprintUnprinted_one": "Stampa la {{count}} riga mancante",
+      "reprintUnprinted_other": "Stampa le {{count}} righe mancanti",
+      "reprintUnprinted_many": "Stampa le {{count}} righe mancanti",
+      "pageInfo": "Righe {{from}}–{{to}} di {{total}}"
     },
     "status": {
       "queued": "In coda",
@@ -358,7 +385,8 @@
       "completed": "Completato",
       "failed": "Non riuscito",
       "sending": "Invio alla stampante",
-      "printing": "In stampa"
+      "printing": "In stampa",
+      "cancelled": "Non stampato"
     },
     "quality": {
       "label": "Qualità di stampa",
@@ -378,6 +406,146 @@
       "ChainPrintingHint": "Taglia tra le etichette ma tiene l’ultima nella stampante fino alla stampa successiva o al tasto di avanzamento. Risparmia il nastro vuoto che la stampante fa avanzare all’inizio di ogni lavoro.",
       "CutMarks": "Segni di taglio",
       "CutMarksHint": "Nessun taglio: tutte le etichette vengono stampate come un’unica striscia, con una linea tratteggiata a ogni taglio, da tagliare a mano."
+    },
+    "bulk": {
+      "title": "Stampa in serie: {{name}}",
+      "stepsLabel": "Passaggi",
+      "steps": {
+        "file": "Dati",
+        "match": "Colonne",
+        "check": "Controllo",
+        "print": "Stampa"
+      },
+      "file": {
+        "heading": "Scegli i dati",
+        "intro": "Viene stampata un'etichetta per ogni riga. Se le colonne si chiamano come i campi dell'etichetta ({{fields}}), vengono abbinate automaticamente.",
+        "drop": "Trascina qui un file Excel, CSV, di testo o JSON",
+        "choose": "Scegli file…",
+        "formats": ".xlsx, .csv, .txt o .json · fino a 100 MB e 5.000 righe",
+        "uploading": "Caricamento… {{percent}} %",
+        "reading": "Lettura del file…",
+        "errorFallback": "Impossibile leggere il file.",
+        "tooLarge": "Il file supera i {{size}} MB.",
+        "dropNow": "Rilascia il file per caricarlo"
+      },
+      "separator": {
+        "comma": "Virgola ( , )",
+        "semicolon": "Punto e virgola ( ; )",
+        "tab": "Tabulazione",
+        "pipe": "Barra verticale ( | )",
+        "space": "Spazio",
+        "none": "Nessuno (un valore per riga)",
+        "other": "Altro:"
+      },
+      "match": {
+        "heading": "Abbina le colonne ai campi dell'etichetta",
+        "file_one": "{{name}} · {{count}} riga",
+        "file_other": "{{name}} · {{count}} righe",
+        "file_many": "{{name}} · {{count}} righe",
+        "separatorQuestion": "Quale separatore usa il file?",
+        "separatorHelp": "Tapeory non è riuscito a capirlo dal file. Scegli quello che divide le righe qui sotto nelle colonne giuste.",
+        "separatorLabel": "Separatore",
+        "sheet": "Foglio",
+        "sampleHeading": "Le prime righe del file",
+        "headerFound": "Colonne e campi",
+        "columnQuestion": "Non è stata trovata una riga di intestazione. Quale colonna corrisponde a quale campo?",
+        "headerSwitch": "La prima riga è un'intestazione (non stamparla)",
+        "column": "Colonna {{letter}}",
+        "columnWithHeader": "{{header}} (colonna {{letter}})",
+        "chooseColumn": "Scegli una colonna…",
+        "useDefault": "Nessuna colonna (stampa «{{value}}»)",
+        "leaveEmpty": "Nessuna colonna (lascia vuoto)",
+        "quantity": "Copie per riga",
+        "quantityNone": "Nessuna colonna (una per ciascuna)",
+        "missing": "Manca ancora: una colonna per {{fields}}.",
+        "continue": "Controlla le etichette"
+      },
+      "check": {
+        "readingRows_one": "{{count}} riga letta",
+        "readingRows_other": "{{count}} righe lette",
+        "readingRows_many": "{{count}} righe lette",
+        "checking": "Controllo e generazione delle etichette… {{done}} di {{total}}",
+        "errorFallback": "Impossibile controllare le etichette.",
+        "quantityInvalid": "Il numero di copie deve essere un numero intero da 1 a 999.",
+        "labelOf": "Etichetta {{current}} di {{total}}",
+        "label": "Etichetta",
+        "ofTotal": "di {{total}}",
+        "previous": "Precedente",
+        "next": "Successiva",
+        "onlyProblems": "Solo righe con problemi ({{count}})",
+        "columnPrint": "Stampa",
+        "columnRow": "Riga",
+        "columnCopies": "Copie",
+        "columnProblem": "Controllo",
+        "printRow": "Stampa la riga {{row}}",
+        "ok": "OK",
+        "summary_one": "Verrà stampata {{count}} etichetta",
+        "summary_other": "Verranno stampate {{count}} etichette",
+        "summary_many": "Verranno stampate {{count}} etichette",
+        "tape": "circa {{length}} di nastro da {{width}} mm",
+        "summaryErrors_one": "{{count}} riga ha un errore e viene saltata.",
+        "summaryErrors_other": "{{count}} righe hanno errori e vengono saltate.",
+        "summaryErrors_many": "{{count}} righe hanno errori e vengono saltate.",
+        "nothingToPrint": "Nessuna riga può essere stampata.",
+        "continue": "Continua alla stampa",
+        "pageInfo": "Righe {{from}}–{{to}} di {{total}}",
+        "copies": "Copie di ogni etichetta",
+        "copiesHint": "Il numero di copie di una riga viene moltiplicato per questo."
+      },
+      "print": {
+        "heading_one": "Stampa {{count}} etichetta",
+        "heading_other": "Stampa {{count}} etichette",
+        "heading_many": "Stampa {{count}} etichette",
+        "note": "Le etichette vengono stampate come un unico lavoro, nell'ordine del file.",
+        "submit_one": "Stampa {{count}} etichetta",
+        "submit_other": "Stampa {{count}} etichette",
+        "submit_many": "Stampa {{count}} etichette"
+      },
+      "profiles": {
+        "heading": "Profili salvati",
+        "intro": "Un profilo carica i suoi dati e tutte le impostazioni con un clic.",
+        "load": "Carica «{{name}}»",
+        "delete": "Elimina il profilo «{{name}}»",
+        "confirmDelete": "Eliminare il profilo «{{name}}»?",
+        "loadErrorFallback": "Impossibile caricare i profili.",
+        "chooseFile": "Scegli il file per il profilo «{{name}}» ({{file}}). Tutto il resto viene impostato dal profilo.",
+        "fileMissing": "Il file {{path}} non è stato trovato. Scegli il file per il profilo «{{name}}».",
+        "cancel": "Non usare il profilo",
+        "saveHeading": "Salva come profilo",
+        "saveHint": "Ricorda il file, l'abbinamento delle colonne e le impostazioni di stampa per caricarli con un clic la prossima volta.",
+        "name": "Nome del profilo",
+        "save": "Salva profilo",
+        "saving": "Salvataggio…",
+        "saved": "Profilo «{{name}}» salvato.",
+        "savedNoFile": "Profilo «{{name}}» salvato. Al caricamento chiederà il file.",
+        "saveErrorFallback": "Impossibile salvare il profilo.",
+        "confirmReplace": "Esiste già un profilo chiamato «{{name}}». Sostituirlo?",
+        "replace": "Sostituisci",
+        "empty": "Qui non ci sono ancora profili. Salvane uno nel passaggio Controllo o Stampa.",
+        "headingFor": "Profili salvati: {{tab}}"
+      },
+      "url": {
+        "heading": "Prendi i dati da un indirizzo web",
+        "hint": "Per un'interfaccia REST o un file su un server web. Il server di Tapeory chiama l'indirizzo (GET) e legge JSON, CSV, testo o Excel dalla risposta; l'indirizzo deve quindi essere raggiungibile dal server.",
+        "address": "Indirizzo web",
+        "load": "Carica dati",
+        "headerToggle": "Invia un'intestazione di richiesta (ad esempio una chiave API)",
+        "headerName": "Nome dell'intestazione, es. Authorization",
+        "headerValue": "Valore dell'intestazione"
+      },
+      "tabs": {
+        "label": "Importa da",
+        "file": "File",
+        "api": "API"
+      }
+    },
+    "mode": {
+      "label": "Modalità di stampa",
+      "single": "Etichetta singola",
+      "singleHint": "Inserisci i valori di un'etichetta",
+      "bulk": "Stampa in serie",
+      "bulkHint": "Un'etichetta per riga di un file o di un'API",
+      "bulkNeedsFields": "La stampa in serie richiede un modello con campi."
     }
   },
   "printers": {
@@ -639,5 +807,11 @@
     "menuEntryAdded": "Tapeory è ora nel menu delle applicazioni.",
     "menuEntryRemoved": "Tapeory è stato rimosso dal menu delle applicazioni.",
     "menuEntryFailed": "Impossibile modificare il menu delle applicazioni: {{message}}"
+  },
+  "about": {
+    "source": "Codice sorgente su GitHub",
+    "issues": "Problemi noti e richieste",
+    "newIssue": "Segnala un problema",
+    "links": "Progetto"
   }
 }

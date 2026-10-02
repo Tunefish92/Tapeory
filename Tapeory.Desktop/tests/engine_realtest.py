@@ -4,7 +4,8 @@
 Starts the engine the way the desktop app does (--engine, a secret, its own data folder), sets up
 the local SQLite database and exercises every endpoint: settings, fonts, barcodes, uploads,
 templates (versions, preview, export/import, .lbx import, groups), printers (a fake network
-printer on 127.0.0.1:9100 receives the raster data), print jobs, statistics, backups and restores,
+printer on 127.0.0.1:9100 receives the raster data), print jobs, bulk printing from a data file,
+statistics, backups and restores,
 and accounts. The data folder it leaves behind is a sample database:
 
     sign in as  demo / Tapeory-Demo-2026  (administrator)
@@ -13,7 +14,7 @@ and accounts. The data folder it leaves behind is a sample database:
 Usage: engine_realtest.py ENGINE DATA_FOLDER LBX_FILE PNG_FILE
        (ENGINE: Tapeory.Api from a desktop build, e.g. engine/Tapeory.Api in the tar.gz)
 """
-import base64, http.cookiejar, json, os, secrets, socket, subprocess, sys, threading, time, urllib.error, urllib.request, uuid
+import base64, http.cookiejar, http.server, json, os, secrets, socket, subprocess, sys, threading, time, urllib.error, urllib.request, uuid
 
 ENGINE, DATA, LBX, PNG = sys.argv[1:5]
 DATA = os.path.abspath(DATA)
@@ -248,6 +249,13 @@ check("a USB printer that isn't plugged in fails the test",
 js("DELETE", f"/api/printers/{usb_printer['id']}")
 check("delete a printer", js("DELETE", f"/api/printers/{offline['id']}")[0] == 204)
 
+status, area = js("GET", "/api/printers/print-area?widthMm=60&heightMm=9&media=tze-9")
+check("the unprintable margins of a 9 mm tape (Brother: 7 dots, about 1 mm, top and bottom)",
+      status == 200 and area["topMm"] == 0.99 and area["bottomMm"] == 0.99 and area["leftMm"] == 0 and area["mediaId"] == "tze-9", area)
+status, area = js("GET", "/api/printers/print-area?widthMm=100&heightMm=36&media=tze-36")
+check("a 36 mm tape has its own margins (Brother: 29 dots at 360 dpi, about 2 mm)",
+      status == 200 and area["mediaId"] == "tze-36" and 1.9 < area["topMm"] < 2.1 and 1.9 < area["bottomMm"] < 2.1, area)
+
 # ---- printing ---------------------------------------------------------------------------------
 before = len(received)
 status, job = js("POST", "/api/print-jobs", {"templateId": tid, "printerId": pid, "printerName": None, "quality": "Standard",
@@ -268,6 +276,94 @@ check("a job with the default value", status in (200, 201, 202), job2)
 wait_job(job2["id"])
 check("list print jobs", len(js("GET", "/api/print-jobs")[1]) >= 2)
 check("delete a print job", js("DELETE", f"/api/print-jobs/{job2['id']}")[0] == 204)
+
+# ---- bulk printing from a data file -------------------------------------------------------------
+def parse_data(name, data, **fields):
+    boundary = uuid.uuid4().hex
+    parts = [f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\n"
+             f"Content-Type: application/octet-stream\r\n\r\n".encode() + data + b"\r\n"]
+    for key, value in {"templateId": tid, **fields}.items():
+        parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{key}\"\r\n\r\n{value}\r\n".encode())
+    status, payload = call("POST", "/api/print-data/parse", raw=b"".join(parts) + f"--{boundary}--\r\n".encode(),
+                           content_type=f"multipart/form-data; boundary={boundary}")
+    return status, json.loads(payload) if payload else None
+
+
+names = [f"Kiste {i + 1}" for i in range(30)]
+# As German Excel saves a CSV: semicolons, Windows-1252.
+csv = ("Name;Anzahl\r\n" + "".join(f"{name};{'2' if i == 0 else ''}\r\n" for i, name in enumerate(names))).encode("cp1252")
+status, data = parse_data("kisten.csv", csv)
+check("read a CSV file: separator and header found", status == 200 and data["separator"] == ";" and data["separatorDetected"]
+      and data["hasHeader"] and data["fields"] == {"name": 0} and data["quantityColumn"] == 1 and len(data["rows"]) == 31, data)
+status, data = parse_data("größen.txt", "Größe S\tA\nGröße M\tB\n".encode())
+check("read a text file without a header", status == 200 and data["separator"] == "tab" and not data["hasHeader"]
+      and data["rows"][0] == ["Größe S", "A"], data)
+status, data = parse_data("unklar.txt", b"Schmidt, Anna;1\nMeier, Ben;2\n")
+check("an unclear separator is reported, not guessed", status == 200 and not data["separatorDetected"], data)
+status, data = parse_data("unklar.txt", b"Schmidt, Anna;1\nMeier, Ben;2\n", separator=";")
+check("and the chosen separator is used", status == 200 and data["rows"] == [["Schmidt, Anna", "1"], ["Meier, Ben", "2"]], data)
+check("a file that isn't text is refused with a reason", parse_data("logo.png", open(PNG, "rb").read())[0] == 400)
+records = json.dumps({"items": [{"name": name, "place": {"shelf": "A"}} for name in names[:3]]}).encode()
+status, data = parse_data("kisten.json", records)
+check("read a JSON file: the records' properties are the columns", status == 200 and data["kind"] == "json" and data["hasHeader"]
+      and data["rows"][0] == ["name", "place.shelf"] and data["rows"][1] == ["Kiste 1", "A"] and data["fields"] == {"name": 0}, data)
+
+
+class Records(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        seen.append(self.headers.get("X-Api-Key"))
+        self.send_response(200 if self.path == "/items" else 404)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(records if self.path == "/items" else b"{}")
+
+    def log_message(self, *args):
+        pass
+
+
+seen = []
+rest = http.server.HTTPServer(("127.0.0.1", 0), Records)
+threading.Thread(target=rest.serve_forever, daemon=True).start()
+address = f"http://127.0.0.1:{rest.server_port}"
+status, data = js("POST", "/api/print-data/fetch", {"templateId": tid, "url": address + "/items", "headerName": "X-Api-Key", "headerValue": "s3cret"})
+check("get the data from a web address", status == 200 and data["kind"] == "json" and len(data["rows"]) == 4 and seen[-1] == "s3cret", data)
+status, problem = js("POST", "/api/print-data/fetch", {"templateId": tid, "url": address + "/missing"})
+check("a web address that answers an error is reported", status == 400 and "404" in json.dumps(problem), problem)
+
+status, checked = js("POST", f"/api/templates/{tid}/check-rows", {"rows": [{"name": name} for name in names]})
+check("check the rows before printing", status == 200 and len(checked["rows"]) == 30
+      and all(not row["errors"] for row in checked["rows"]), checked)
+
+before = len(received)
+status, bulk = js("POST", "/api/print-jobs", {"templateId": tid, "printerId": pid, "printerName": None,
+                                             "items": [{"fieldValues": {"name": name}, "quantity": 2 if i == 0 else 1}
+                                                       for i, name in enumerate(names)]})
+check("create a bulk print job", status in (200, 201, 202), bulk)
+bulk = wait_job(bulk["id"])
+check("the bulk job finishes with every row printed", bulk["status"] == "Completed"
+      and all(item["status"] == "Completed" for item in bulk["items"]) and len(bulk["items"]) == 30, bulk["status"])
+time.sleep(4)
+check("its 31 labels went to the printer in two batches", len(received) - before == 2, len(received) - before)
+check("a finished job has nothing to reprint", js("POST", f"/api/print-jobs/{bulk['id']}/reprint-unprinted")[0] == 400)
+check("stopping a finished job leaves it as it is", js("POST", f"/api/print-jobs/{bulk['id']}/cancel")[1]["status"] == "Completed")
+
+# ---- saved bulk print profiles ----------------------------------------------------------------
+profile = {"fileName": "kisten.csv", "filePath": "/home/demo/kisten.csv", "separator": ";", "sheet": None, "hasHeader": True,
+           "columns": [{"field": "name", "column": 0, "header": "Name"}], "quantityColumn": 1, "quantityHeader": "Anzahl",
+           "printerId": pid, "printerName": None, "quality": "Standard", "cutMode": "AutoCut"}
+status, saved = js("PUT", f"/api/templates/{tid}/bulk-print-profiles", {"name": "Kisten", "settings": profile})
+check("save a bulk print profile", status == 200 and saved["name"] == "Kisten", saved)
+replacement = {"name": "kisten", "settings": dict(profile, quantityColumn=None)}
+check("a name that is taken is refused", js("PUT", f"/api/templates/{tid}/bulk-print-profiles", replacement)[0] == 409)
+status, again = js("PUT", f"/api/templates/{tid}/bulk-print-profiles", dict(replacement, replace=True))
+check("and replaced when asked to", status == 200 and again["id"] == saved["id"], again)
+status, listed = js("GET", f"/api/templates/{tid}/bulk-print-profiles")
+check("the profile comes back with its file path and matching", status == 200 and len(listed) == 1
+      and listed[0]["settings"]["filePath"] == "/home/demo/kisten.csv" and listed[0]["settings"]["columns"][0]["header"] == "Name"
+      and listed[0]["settings"]["quantityColumn"] is None, listed)
+check("delete the profile", js("DELETE", f"/api/bulk-print-profiles/{saved['id']}")[0] == 204
+      and js("GET", f"/api/templates/{tid}/bulk-print-profiles")[1] == [])
+js("PUT", f"/api/templates/{tid}/bulk-print-profiles", {"name": "Kisten", "settings": profile})
 
 # ---- statistics ---------------------------------------------------------------------------------
 check("statistics count the labels", js("GET", "/api/stats")[1]["labelsPrinted"] >= 3)

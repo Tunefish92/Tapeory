@@ -12,6 +12,8 @@ interface LabelCanvasProps {
   selectedId: string | null;
   previewMode: boolean;
   zoom: number;
+  /** Margins in mm the printer can't print on; drawn as a dashed line around what it can. */
+  unprintable?: { topMm: number; rightMm: number; bottomMm: number; leftMm: number } | null;
   onSelect: (id: string | null) => void;
   onChange: (id: string, changes: LabelObjectPatch) => void;
 }
@@ -21,6 +23,7 @@ export function LabelCanvas({
   selectedId,
   previewMode,
   zoom,
+  unprintable,
   onSelect,
   onChange,
 }: LabelCanvasProps) {
@@ -85,6 +88,24 @@ export function LabelCanvas({
             }}
           />
         ))}
+        {/* The printable area: content outside the dashed line is cut off. Over the objects, and
+            never in the way of the pointer. */}
+        {!previewMode &&
+          unprintable &&
+          unprintable.topMm + unprintable.rightMm + unprintable.bottomMm + unprintable.leftMm > 0 && (
+            <Rect
+              name="printable-area"
+              x={unprintable.leftMm}
+              y={unprintable.topMm}
+              width={Math.max(0, labelDocument.widthMm - unprintable.leftMm - unprintable.rightMm)}
+              height={Math.max(0, labelDocument.heightMm - unprintable.topMm - unprintable.bottomMm)}
+              stroke="#dc2626"
+              opacity={0.45}
+              strokeWidth={0.18}
+              dash={[1.2, 0.8]}
+              listening={false}
+            />
+          )}
         {showTransformer && (
           <Transformer
             ref={transformerRef}

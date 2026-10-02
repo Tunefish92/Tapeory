@@ -339,11 +339,13 @@ function TemplateCard({ template, index, onChangeGroup, deleting, onDelete, dupl
                 {t("common.edit")}
               </Link>
             )}
-            <Link className="btn btn-primary btn-sm" to={`/templates/${template.id}/print`}>
-              {t("templates.print")}
-            </Link>
           </div>
         </div>
+
+        <Link className="btn btn-primary template-card__print" to={`/templates/${template.id}/print`}>
+          <PrinterIcon />
+          {t("templates.print")}
+        </Link>
       </div>
     </article>
   );
@@ -547,6 +549,10 @@ function TemplatesTable({
             </td>
             <td className="data-grid__actions-cell">
               <span className="data-grid__actions">
+                <Link to={`/templates/${template.id}/print`} className="btn btn-primary btn-sm data-grid__print">
+                  <PrinterIcon />
+                  {t("templates.print")}
+                </Link>
                 {canEdit(template) && (
                   <Link
                     to={editUrl}
@@ -557,14 +563,6 @@ function TemplatesTable({
                     <PencilIcon />
                   </Link>
                 )}
-                <Link
-                  to={`/templates/${template.id}/print`}
-                  className="icon-link icon-link--primary"
-                  aria-label={t("templates.print")}
-                  title={t("templates.print")}
-                >
-                  <PrinterIcon />
-                </Link>
                 <DuplicateTemplateButton
                   template={template}
                   duplicating={duplicatingId === template.id}

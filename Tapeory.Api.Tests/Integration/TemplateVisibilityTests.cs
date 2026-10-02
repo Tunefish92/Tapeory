@@ -347,4 +347,27 @@ public sealed class TemplateVisibilityTests(TapeoryWebApplicationFactory factory
         await SetPublicAsync(ada, created!.Id, true);
         Assert.Equal(HttpStatusCode.OK, (await grace.GetAsync(image.Url)).StatusCode);
     }
+
+    [Fact]
+    public async Task BulkPrintProfiles_BelongToTheAccountThatSavedThem()
+    {
+        var admin = await CreateAdminAsync();
+        var ada = await CreateUserAsync(admin, "Ada");
+        var template = await CreateTemplateAsync(admin);
+        await admin.PutAsJsonAsync($"/api/templates/{template.Id}/visibility", new SetVisibilityRequest(true), JsonOptions);
+        var settings = new Tapeory.Api.PrintData.BulkPrintProfileSettings("a.csv", null, ",", null, true, [], null, null, null, null, null, null);
+        var path = $"/api/templates/{template.Id}/bulk-print-profiles";
+
+        var saved = await (await admin.PutAsJsonAsync(path, new Tapeory.Api.PrintData.SaveBulkPrintProfileRequest("Mine", settings), JsonOptions))
+            .Content.ReadFromJsonAsync<Tapeory.Api.PrintData.BulkPrintProfileResponse>(JsonOptions);
+        await ada.PutAsJsonAsync(path, new Tapeory.Api.PrintData.SaveBulkPrintProfileRequest("Mine", settings), JsonOptions);
+
+        var adminsProfiles = await admin.GetFromJsonAsync<List<Tapeory.Api.PrintData.BulkPrintProfileResponse>>(path, JsonOptions);
+        var adasProfiles = await ada.GetFromJsonAsync<List<Tapeory.Api.PrintData.BulkPrintProfileResponse>>(path, JsonOptions);
+        var adaDeletesAdmins = await ada.DeleteAsync($"/api/bulk-print-profiles/{saved!.Id}");
+
+        Assert.Equal(saved.Id, Assert.Single(adminsProfiles!).Id);
+        Assert.NotEqual(saved.Id, Assert.Single(adasProfiles!).Id);
+        Assert.Equal(HttpStatusCode.NotFound, adaDeletesAdmins.StatusCode);
+    }
 }

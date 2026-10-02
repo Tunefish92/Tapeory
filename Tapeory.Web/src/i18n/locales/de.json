@@ -7,7 +7,8 @@
     "templates": "Vorlagen",
     "printJobs": "Druckaufträge",
     "printers": "Drucker",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "about": "Über"
   },
   "common": {
     "loading": "Wird geladen…",
@@ -272,7 +273,22 @@
     "visibility": "Sichtbarkeit",
     "readOnlyOwned": "Das ist eine Vorlage von {{name}}. Du kannst sie drucken oder eine eigene Kopie anlegen; ändern können sie nur {{name}} oder ein Administrator.",
     "readOnlyShared": "Diese geteilte Vorlage kann nur ein Administrator ändern. Du kannst sie drucken oder eine eigene Kopie anlegen.",
-    "duplicateToEdit": "Zum Bearbeiten duplizieren"
+    "duplicateToEdit": "Zum Bearbeiten duplizieren",
+    "printArea": "Gestrichelte Linie: was auf diesem Band gedruckt werden kann. Etwa {{vertical}} mm oben und unten bleiben frei.",
+    "printAreaEnds": "Dazu etwa {{horizontal}} mm an jedem Ende.",
+    "objects": {
+      "heading": "Elemente",
+      "empty": "Auf dem Etikett ist noch nichts.",
+      "text": "Text: {{text}}",
+      "field": "Feld: {{name}}",
+      "barcode": "Barcode ({{type}}): {{value}}",
+      "image": "Bild",
+      "rect": "Rechteck",
+      "ellipse": "Ellipse",
+      "line": "Linie",
+      "hidden": "ausgeblendet",
+      "delete": "„{{name}}“ löschen"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -343,7 +359,17 @@
       "loading": "Druckauftrag wird geladen…",
       "loadErrorFallback": "Druckauftrag konnte nicht geladen werden.",
       "itemPreviewAlt": "Vorschau von Druckauftragsposition {{id}}",
-      "printedBy": "Gedruckt von"
+      "printedBy": "Gedruckt von",
+      "progress": "{{done}} von {{total}} Zeilen erledigt",
+      "stop": "Druck anhalten",
+      "stopping": "Wird angehalten…",
+      "stopHint": "Etiketten, die schon beim Drucker sind, werden noch gedruckt.",
+      "stopErrorFallback": "Der Auftrag konnte nicht angehalten werden.",
+      "reprintHint": "Legt einen neuen Druckauftrag mit den nicht gedruckten Zeilen an, für denselben Drucker.",
+      "reprintErrorFallback": "Die Zeilen konnten nicht erneut gedruckt werden.",
+      "reprintUnprinted_one": "Die {{count}} fehlende Zeile drucken",
+      "reprintUnprinted_other": "Die {{count}} fehlenden Zeilen drucken",
+      "pageInfo": "Zeilen {{from}}–{{to}} von {{total}}"
     },
     "status": {
       "queued": "In Warteschlange",
@@ -351,7 +377,8 @@
       "completed": "Abgeschlossen",
       "failed": "Fehlgeschlagen",
       "sending": "Wird gesendet",
-      "printing": "Wird gedruckt"
+      "printing": "Wird gedruckt",
+      "cancelled": "Nicht gedruckt"
     },
     "quality": {
       "label": "Druckqualität",
@@ -371,6 +398,140 @@
       "ChainPrintingHint": "Schneidet zwischen den Etiketten, behält das letzte aber im Drucker, bis zum nächsten Druck oder zur Vorschubtaste. Spart das leere Band, das der Drucker zu Beginn jedes Auftrags vorschiebt.",
       "CutMarks": "Schnittmarken",
       "CutMarksHint": "Kein Schneiden: Alle Etiketten werden als ein Streifen gedruckt, mit einer gestrichelten Linie an jeder Schnittstelle zum Schneiden von Hand."
+    },
+    "bulk": {
+      "title": "Seriendruck: {{name}}",
+      "stepsLabel": "Schritte",
+      "steps": {
+        "file": "Daten",
+        "match": "Spalten",
+        "check": "Prüfen",
+        "print": "Drucken"
+      },
+      "file": {
+        "heading": "Daten auswählen",
+        "intro": "Für jede Zeile wird ein Etikett gedruckt. Wenn die Spalten wie die Felder des Etiketts heißen ({{fields}}), werden sie automatisch zugeordnet.",
+        "drop": "Excel-, CSV-, Text- oder JSON-Datei hier ablegen",
+        "choose": "Datei auswählen…",
+        "formats": ".xlsx, .csv, .txt oder .json · bis 100 MB und 5.000 Zeilen",
+        "uploading": "Wird hochgeladen… {{percent}} %",
+        "reading": "Datei wird gelesen…",
+        "errorFallback": "Die Datei konnte nicht gelesen werden.",
+        "tooLarge": "Die Datei ist größer als {{size}} MB.",
+        "dropNow": "Datei loslassen, um sie zu laden"
+      },
+      "separator": {
+        "comma": "Komma ( , )",
+        "semicolon": "Semikolon ( ; )",
+        "tab": "Tabulator",
+        "pipe": "Senkrechter Strich ( | )",
+        "space": "Leerzeichen",
+        "none": "Keines (ein Wert pro Zeile)",
+        "other": "Anderes:"
+      },
+      "match": {
+        "heading": "Spalten den Feldern des Etiketts zuordnen",
+        "file_one": "{{name}} · {{count}} Zeile",
+        "file_other": "{{name}} · {{count}} Zeilen",
+        "separatorQuestion": "Welches Trennzeichen verwendet die Datei?",
+        "separatorHelp": "Tapeory konnte es der Datei nicht entnehmen. Wähle das Zeichen, das die Zeilen unten in die richtigen Spalten teilt.",
+        "separatorLabel": "Trennzeichen",
+        "sheet": "Tabellenblatt",
+        "sampleHeading": "Die ersten Zeilen der Datei",
+        "headerFound": "Spalten und Felder",
+        "columnQuestion": "Es wurde keine Kopfzeile gefunden. Welche Spalte gehört zu welchem Feld?",
+        "headerSwitch": "Die erste Zeile ist eine Kopfzeile (nicht drucken)",
+        "column": "Spalte {{letter}}",
+        "columnWithHeader": "{{header}} (Spalte {{letter}})",
+        "chooseColumn": "Spalte auswählen…",
+        "useDefault": "Keine Spalte („{{value}}“ drucken)",
+        "leaveEmpty": "Keine Spalte (leer lassen)",
+        "quantity": "Exemplare pro Zeile",
+        "quantityNone": "Keine Spalte (je eines)",
+        "missing": "Fehlt noch: eine Spalte für {{fields}}.",
+        "continue": "Etiketten prüfen"
+      },
+      "check": {
+        "readingRows_one": "{{count}} Zeile gelesen",
+        "readingRows_other": "{{count}} Zeilen gelesen",
+        "checking": "Etiketten werden geprüft und erzeugt… {{done}} von {{total}}",
+        "errorFallback": "Die Etiketten konnten nicht geprüft werden.",
+        "quantityInvalid": "Die Anzahl der Exemplare muss eine ganze Zahl von 1 bis 999 sein.",
+        "labelOf": "Etikett {{current}} von {{total}}",
+        "label": "Etikett",
+        "ofTotal": "von {{total}}",
+        "previous": "Zurück",
+        "next": "Weiter",
+        "onlyProblems": "Nur Zeilen mit Problemen ({{count}})",
+        "columnPrint": "Drucken",
+        "columnRow": "Zeile",
+        "columnCopies": "Exemplare",
+        "columnProblem": "Prüfung",
+        "printRow": "Zeile {{row}} drucken",
+        "ok": "OK",
+        "summary_one": "{{count}} Etikett wird gedruckt",
+        "summary_other": "{{count}} Etiketten werden gedruckt",
+        "tape": "etwa {{length}} Band mit {{width}} mm",
+        "summaryErrors_one": "{{count}} Zeile hat einen Fehler und wird ausgelassen.",
+        "summaryErrors_other": "{{count}} Zeilen haben Fehler und werden ausgelassen.",
+        "nothingToPrint": "Keine Zeile kann gedruckt werden.",
+        "continue": "Weiter zum Drucken",
+        "pageInfo": "Zeilen {{from}}–{{to}} von {{total}}",
+        "copies": "Exemplare je Etikett",
+        "copiesHint": "Die eigene Anzahl einer Zeile wird damit multipliziert."
+      },
+      "print": {
+        "heading_one": "{{count}} Etikett drucken",
+        "heading_other": "{{count}} Etiketten drucken",
+        "note": "Die Etiketten werden als ein Druckauftrag gedruckt, in der Reihenfolge der Datei.",
+        "submit_one": "{{count}} Etikett drucken",
+        "submit_other": "{{count}} Etiketten drucken"
+      },
+      "profiles": {
+        "heading": "Gespeicherte Profile",
+        "intro": "Ein Profil lädt seine Daten und alle Einstellungen mit einem Klick.",
+        "load": "„{{name}}“ laden",
+        "delete": "Profil „{{name}}“ löschen",
+        "confirmDelete": "Profil „{{name}}“ löschen?",
+        "loadErrorFallback": "Die Profile konnten nicht geladen werden.",
+        "chooseFile": "Wähle die Datei für das Profil „{{name}}“ ({{file}}). Alles andere wird aus dem Profil übernommen.",
+        "fileMissing": "Die Datei {{path}} wurde nicht gefunden. Wähle die Datei für das Profil „{{name}}“.",
+        "cancel": "Profil nicht verwenden",
+        "saveHeading": "Als Profil speichern",
+        "saveHint": "Merkt sich die Datei, die Spaltenzuordnung und die Druckeinstellungen, um sie beim nächsten Mal mit einem Klick zu laden.",
+        "name": "Profilname",
+        "save": "Profil speichern",
+        "saving": "Wird gespeichert…",
+        "saved": "Profil „{{name}}“ gespeichert.",
+        "savedNoFile": "Profil „{{name}}“ gespeichert. Beim Laden fragt es nach der Datei.",
+        "saveErrorFallback": "Das Profil konnte nicht gespeichert werden.",
+        "confirmReplace": "Ein Profil mit dem Namen „{{name}}“ gibt es schon. Ersetzen?",
+        "replace": "Ersetzen",
+        "empty": "Hier gibt es noch keine Profile. Speichere eines im Schritt Prüfen oder Drucken.",
+        "headingFor": "Gespeicherte Profile: {{tab}}"
+      },
+      "url": {
+        "heading": "Daten von einer Webadresse holen",
+        "hint": "Für eine REST-Schnittstelle oder eine Datei auf einem Webserver. Der Tapeory-Server ruft die Adresse auf (GET) und liest JSON, CSV, Text oder Excel aus der Antwort; die Adresse muss also vom Server aus erreichbar sein.",
+        "address": "Webadresse",
+        "load": "Daten laden",
+        "headerToggle": "Einen Request-Header mitsenden (zum Beispiel einen API-Schlüssel)",
+        "headerName": "Header-Name, z. B. Authorization",
+        "headerValue": "Header-Wert"
+      },
+      "tabs": {
+        "label": "Importieren aus",
+        "file": "Datei",
+        "api": "API"
+      }
+    },
+    "mode": {
+      "label": "Druckart",
+      "single": "Einzelnes Etikett",
+      "singleHint": "Werte für ein Etikett eingeben",
+      "bulk": "Seriendruck",
+      "bulkHint": "Ein Etikett je Zeile einer Datei oder API",
+      "bulkNeedsFields": "Der Seriendruck braucht eine Vorlage mit Feldern."
     }
   },
   "printers": {
@@ -629,5 +790,11 @@
     "menuEntryAdded": "Tapeory ist jetzt im Anwendungsmenü.",
     "menuEntryRemoved": "Tapeory wurde aus dem Anwendungsmenü entfernt.",
     "menuEntryFailed": "Das Anwendungsmenü konnte nicht geändert werden: {{message}}"
+  },
+  "about": {
+    "source": "Quellcode auf GitHub",
+    "issues": "Bekannte Probleme und Wünsche",
+    "newIssue": "Problem melden",
+    "links": "Projekt"
   }
 }

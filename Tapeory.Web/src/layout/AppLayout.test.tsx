@@ -37,7 +37,7 @@ describe("AppLayout", () => {
   it("renders every primary navigation item", () => {
     renderWithRouter(<AppLayout />);
 
-    for (const item of ["Dashboard", "Templates", "Print Jobs", "Printers", "Settings"]) {
+    for (const item of ["Dashboard", "Templates", "Print Jobs", "Printers", "Settings", "About"]) {
       expect(screen.getByText(item)).toBeInTheDocument();
     }
   });

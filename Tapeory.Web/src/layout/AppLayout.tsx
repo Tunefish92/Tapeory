@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { key: "printJobs", to: "/print-jobs", adminOnly: false },
   { key: "printers", to: "/printers", adminOnly: true },
   { key: "settings", to: "/settings", adminOnly: false },
+  { key: "about", to: "/about", adminOnly: false },
 ] as const;
 
 export function AppLayout({ children }: PropsWithChildren) {

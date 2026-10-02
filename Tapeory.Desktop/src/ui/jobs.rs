@@ -261,16 +261,23 @@ impl JobsPage {
     }
 }
 
+/// Above this many rows, a job's rows are a compact list instead of cards with images.
+const ROWS_AS_CARDS: usize = 12;
+
 pub struct JobPage {
     id: i64,
     job: Option<PrintJob>,
     load: Pending<ApiResult<PrintJob>>,
     error: Option<String>,
+    /// Stop was asked for; the job answers once the labels at the printer are through.
+    stop: Pending<ApiResult<PrintJob>>,
+    stopping: bool,
+    reprint: Pending<ApiResult<PrintJob>>,
 }
 
 impl JobPage {
     pub fn new(id: i64) -> JobPage {
-        JobPage { id, job: None, load: None, error: None }
+        JobPage { id, job: None, load: None, error: None, stop: None, stopping: false, reprint: None }
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, c: &mut Ctx) {
@@ -290,6 +297,23 @@ impl JobPage {
             match result {
                 Ok(job) => self.job = Some(job),
                 Err(error) => self.error = Some(c.message(&error)),
+            }
+        }
+
+        if let Some(result) = finished(&mut self.stop) {
+            match result {
+                Ok(job) => self.job = Some(job),
+                Err(error) => {
+                    self.stopping = false;
+                    c.failed(&error);
+                }
+            }
+        }
+
+        if let Some(result) = finished(&mut self.reprint) {
+            match result {
+                Ok(job) => c.go(Route::Job(job.id)),
+                Err(error) => c.failed(&error),
             }
         }
 
@@ -362,6 +386,95 @@ impl JobPage {
                 }
             });
             ui.add_space(18.0);
+
+            // A running job: how far it is, and a way to stop it.
+            if job.in_progress() {
+                theme::card(ui).show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    if job.items.len() > 1 {
+                        let done = job.finished_rows();
+                        crate::ui::bulk_print::progress(
+                            ui,
+                            Some(done as f32 / job.items.len() as f32),
+                            &tf(
+                                "printing.printJobDetail.progress",
+                                &[("done", &done.to_string()), ("total", &job.items.len().to_string())],
+                            ),
+                        );
+                        ui.add_space(8.0);
+                    }
+                    ui.horizontal(|ui| {
+                        let label = if self.stopping { t("printing.printJobDetail.stopping") } else { t("printing.printJobDetail.stop") };
+                        if ui.add(PillButton::new(&label, Kind::Danger).enabled(!self.stopping)).clicked() {
+                            self.stopping = true;
+                            let (api, id) = (c.api.clone(), self.id);
+                            self.stop = Some(Task::spawn(c.egui, move || api.cancel_print_job(id)));
+                        }
+                        widgets::muted_small(ui, &t("printing.printJobDetail.stopHint"));
+                    });
+                });
+                ui.add_space(18.0);
+            } else if job.unprinted_rows() > 0 && !job.template_deleted {
+                theme::card(ui).show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    ui.horizontal(|ui| {
+                        let label = tf("printing.printJobDetail.reprintUnprinted", &[("count", &job.unprinted_rows().to_string())]);
+                        if widgets::primary_button_enabled(ui, self.reprint.is_none(), &label).clicked() {
+                            let (api, id) = (c.api.clone(), self.id);
+                            self.reprint = Some(Task::spawn(c.egui, move || api.reprint_unprinted(id)));
+                        }
+                        widgets::muted_small(ui, &t("printing.printJobDetail.reprintHint"));
+                    });
+                });
+                ui.add_space(18.0);
+            }
+
+            // Many rows: one line each, drawn only where visible, without the label images.
+            if job.items.len() > ROWS_AS_CARDS {
+                theme::card(ui).inner_margin(egui::Margin::symmetric(18, 10)).show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    let row_height = 34.0;
+                    egui::ScrollArea::vertical().id_salt("job-rows").max_height(520.0).auto_shrink([false, true]).show_rows(
+                        ui,
+                        row_height,
+                        job.items.len(),
+                        |ui, range| {
+                            for (index, item) in job.items.iter().enumerate().skip(range.start).take(range.len()) {
+                                ui.horizontal(|ui| {
+                                    ui.set_height(row_height);
+                                    ui.allocate_ui_with_layout(
+                                        egui::vec2(44.0, row_height),
+                                        egui::Layout::left_to_right(egui::Align::Center),
+                                        |ui| {
+                                            ui.set_width(44.0);
+                                            ui.label(egui::RichText::new((index + 1).to_string()).color(palette.muted));
+                                        },
+                                    );
+                                    ui.allocate_ui_with_layout(
+                                        egui::vec2(150.0, row_height),
+                                        egui::Layout::left_to_right(egui::Align::Center),
+                                        |ui| {
+                                            ui.set_width(150.0);
+                                            widgets::pill(ui, &widgets::status_text(&item.status), widgets::status_tone(&item.status));
+                                        },
+                                    );
+                                    let values: Vec<&str> = item.field_values.values().map(String::as_str).collect();
+                                    let mut text = values.join(" · ");
+                                    if item.quantity > 1 {
+                                        text = format!("{} × {text}", item.quantity);
+                                    }
+                                    if let Some(message) = item.error_message.as_deref().filter(|_| item.status != "Completed") {
+                                        text = format!("{text} — {message}");
+                                    }
+                                    let color = if item.status == "Failed" { palette.danger } else { palette.text };
+                                    ui.add(egui::Label::new(egui::RichText::new(&text).color(color)).truncate()).on_hover_text(&text);
+                                });
+                            }
+                        },
+                    );
+                });
+                return;
+            }
 
             let width = ui.available_width().min(700.0);
             for item in &job.items {

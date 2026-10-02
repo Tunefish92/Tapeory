@@ -35,6 +35,8 @@ public class AppDbContext : DbContext
 
     public DbSet<PrintJobItem> PrintJobItems => Set<PrintJobItem>();
 
+    public DbSet<BulkPrintProfile> BulkPrintProfiles => Set<BulkPrintProfile>();
+
     public DbSet<Printer> Printers => Set<Printer>();
 
     public DbSet<User> Users => Set<User>();
@@ -125,6 +127,24 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(file => file.OwnerUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<BulkPrintProfile>(entity =>
+        {
+            entity.Property(profile => profile.Name).HasMaxLength(100);
+            entity.Property(profile => profile.SettingsJson).HasColumnType("text");
+            entity.HasIndex(profile => new { profile.TemplateId, profile.OwnerUserId });
+
+            entity.HasOne(profile => profile.Template)
+                .WithMany()
+                .HasForeignKey(profile => profile.TemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // A profile is personal: it goes with its account.
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(profile => profile.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PrintJob>(entity =>

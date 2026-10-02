@@ -58,6 +58,11 @@ upload, and print job stays with you.
 
 **Templates**
 - Draft, published, and archived states, with an immutable version history
+- The editor marks the printable area with a dashed line: every tape and roll has its own limits
+  (about 1 mm at the top and bottom of a 9 or 12 mm tape stays blank, about 2 mm on 36 mm, about
+  3 mm on 24 mm), taken from Brother's Raster Command References
+- The editor lists the label's elements by name, to select or delete them, and zooms with the
+  mouse wheel
 - Duplicate a template from the card or list view
 - Groups (case- and accent-insensitive) with bulk rename, plus thumbnails
 - **`.tapeory` files:** download a template as one readable text file (JSON) and import it into
@@ -71,6 +76,8 @@ upload, and print job stays with you.
 **Printing**
 - Print form with values for each field, quantity, printer choice, print quality, cutting
   (auto cut, half cut, cut at end, chain printing, cut marks), and a preview that updates as you type
+- **Bulk printing:** one label per row of an Excel, CSV or text file, checked and previewed
+  before it prints (see [Bulk printing](#bulk-printing))
 - Server-side rendering to PNG (300 DPI) and PDF with SkiaSharp
 - Background print queue, with a job history and per-label previews
 - Printing on Brother P-touch (PT, 180 and 360 dpi) and QL printers (300 dpi) in Brother's raster
@@ -93,7 +100,8 @@ upload, and print job stays with you.
   print history
 - Database and label backups created and restored from the Settings page, stored on the server
 - Dashboard with usage statistics
-- Update check: Settings shows when a newer release is out on GitHub
+- Update check: the About page shows when a newer release is out on GitHub, and links to the
+  project and its issues
 - 5 UI languages: English, German, French, Italian, and Spanish
 - Light, dark, or system theme; millimetres or inches
 - Runs on `linux/amd64` and `linux/arm64`, with an Unraid Community Applications template
@@ -130,11 +138,11 @@ with the same font files the printed label is rendered with, so what you see is 
 Tested on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
 
 The AppImage and the tar.gz have no installer. To get Tapeory into your desktop's application
-menu, choose **Settings → About → Add to application menu**: it adds a menu entry and an icon
+menu, open **About** and choose **Add to application menu**: it adds a menu entry and an icon
 for the file you started, in your own user folders (and takes them out again the same way).
 Keep the AppImage in a folder of your own, e.g. `~/Applications`, so it can update itself.
 
-Updates: **Settings → About** shows when a new release is out. The AppImage updates itself with
+Updates: the **About** page shows when a new release is out. The AppImage updates itself with
 **Update now**: the new version is downloaded, checked against the release's SHA-256, installed,
 and started. The tar.gz copy links to the release page instead. Your data stays where it is when
 updating.
@@ -151,7 +159,7 @@ Good to know:
   which tape is loaded and reports each label as it comes out, as it does over the network.
 - With a shared database, each USB printer belongs to the computer it's plugged into: other
   computers see it but can't print to it, and their print jobs never end up on it.
-- Logs are in the data folder under `logs/` (Settings → About shows the path).
+- Logs are in the data folder under `logs/` (the About page shows the path).
 
 ## Quick start (Docker)
 
@@ -301,6 +309,70 @@ a small label centred on the tape; its size can be set in the printer's settings
 
 <img src="docs/screenshots/printers.png" alt="Printers page with a PT-P750W, a QL-820NWB and a PT-P950NW behind a CUPS server" width="720">
 
+## Bulk printing
+
+The print page of a template has a switch at the top: **Single label** or **Bulk print**. Bulk
+print prints one label for each row of your data, in the web app and the desktop app:
+
+1. **Data:** an Excel file (`.xlsx`), a CSV, text or JSON file, up to 100 MB and 5,000 rows. Choose
+   it, or drop it onto the page or the window. The **API** tab takes a **web address** instead,
+   and Tapeory gets the data from there (see below). Saved profiles are listed beside it, for
+   the tab that is open.
+2. **Columns:** if the first row names the columns like the label's fields (by field name or
+   label, ignoring case and accents), they're matched by themselves and this step is skipped.
+   Without such a header row, Tapeory asks which column belongs to which field. The separator of
+   CSV and text files (comma, semicolon, tab or pipe) is detected; if the file doesn't say
+   clearly, Tapeory asks and shows the first rows as a table. A column named Quantity, Qty,
+   Copies, Anzahl or Menge sets the copies per row.
+3. **Check:** every row is checked and rendered, with a progress bar. Step through the labels
+   with Previous/Next or the arrow keys, or click a row. Rows with an error (an empty required
+   field, a value the barcode can't encode) are left out; rows with a warning (text that doesn't
+   fit its box) can be unticked.
+   **Copies of each label** sets how many times every label is printed; a row's own number
+   from a copies column is multiplied by it.
+4. **Print:** all rows become one print job, printed in the file's order.
+
+The printer gets the labels in batches of 25, and the job page shows how far it is. **Stop
+printing** ends the job after the labels already at the printer. If the printer reports an error
+(no tape, cover open), the job stops there instead of sending the rest, and **Print the missing
+rows** continues with exactly the rows that didn't come out.
+
+**JSON.** A JSON file needs a list of records, such as `[{"name": "Box", "sku": "A-1"}, …]`. The
+property names are the column headers. The list may also sit inside the document
+(`{"data": {"items": [...]}}`), and nested objects become columns named like `address.city`.
+
+**From a web address (REST).** Instead of a file, enter an address such as
+`https://erp.example/api/items`. Tapeory's server (in the desktop app: the app itself) sends a
+GET request there and reads the answer like a file: JSON records, but also CSV, text or Excel.
+An optional request header carries an API key or token (for example `Authorization: Bearer …`).
+The address must be reachable from where Tapeory runs, answers within 30 seconds, and the same
+limits apply. Saved in a profile, one click gets the current data again; the header's value is
+stored with the profile.
+
+**Profiles.** On the check and print steps, **Save profile** keeps the whole setup under a name:
+the file, the separator or sheet, which column fills which field, the copies column, and the
+printer, quality and cutting. Next time, a click on the profile in the first step loads
+everything and goes straight to the check. Profiles belong to the account that saved them and to
+one template. If the name already exists, Tapeory asks before replacing that profile.
+
+- In the **desktop app**, a profile remembers the file's path and reads the file fresh from there.
+  If the file has moved, it asks for it and applies the rest.
+- A profile for a **web address** needs no file at all and loads the same way in both apps.
+- In the **web app**, a web page never learns a file's path. In Chrome and Edge on HTTPS or
+  localhost, the browser can keep the picked file for the profile and reopen it (it may ask for
+  permission once per visit). In other browsers, or over plain HTTP, the profile asks you to pick
+  the file and sets up everything else.
+- Columns are found again by their header text, so a file whose columns moved still fits; without
+  a header row they are found by position.
+
+On a Wayland desktop, the desktop app opens its window through XWayland, because that is what
+lets it take dropped files. `TAPEORY_WAYLAND=1` starts it as a native Wayland window instead
+(sharper with fractional scaling, but without drag and drop).
+
+Excel numbers and dates are printed as Excel shows them. A date in Excel's "short date" format
+follows the language of the browser or the desktop app (29.09.2026 in German, 9/29/2026 in US English). CSV and text files are
+read as UTF-8, or as Windows-1252 if they aren't (what Excel on Windows saves).
+
 ## Users
 
 The first account, created right after the database setup, is the **administrator**. Once it
@@ -347,7 +419,7 @@ Sign in with the printed password; Tapeory then asks for a new one. Sessions are
 ## Upgrading
 
 The desktop app updates itself (see [Desktop app](#desktop-app-linux)). For the
-server: **Settings → About** shows next to the version whether a newer release is out. To find out, the
+server: the **About** page shows next to the version whether a newer release is out. To find out, the
 server asks GitHub's API for the latest Tapeory release (at most every six hours, and only while
 the settings page is opened); nothing about your installation is sent.
 
@@ -445,7 +517,7 @@ for example with Compose.
 
 Ask questions and share ideas in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions),
 and report bugs as [issues](https://github.com/Tunefish92/Tapeory/issues). Please include your Tapeory
-version (Settings page), your printer model, and the container log.
+version (About page), your printer model, and the container log.
 
 ## Buy me a coffee
 
@@ -476,8 +548,7 @@ the third-party libraries shipped with them.
 
 Tapeory doesn't collect data and sends nothing to its authors. It contacts only:
 
-- **GitHub**, to check for a new release (`api.github.com`, when you open the Settings page or
-  Settings → About in the desktop app) and, when you choose **Update now**, to download it;
+- **GitHub**, to check for a new release (`api.github.com`, when you open the About page) and, when you choose **Update now**, to download it;
 - the printers, print servers and database server you set up yourself.
 
 ## License
@@ -602,7 +673,8 @@ it doesn't exist yet).
 
 ### Tech stack
 
-- **Backend:** ASP.NET Core (.NET 10), EF Core with Pomelo MySQL, SkiaSharp and Svg.Skia for rendering
+- **Backend:** ASP.NET Core (.NET 10), EF Core with Pomelo MySQL, SkiaSharp and Svg.Skia for rendering,
+  ExcelDataReader for Excel files
 - **Frontend:** React 19, TypeScript, Vite, Konva / react-konva, react-i18next
 - **Desktop app:** Rust, eframe / egui, with the backend as its engine (SQLite or MySQL)
 - **Tests:** xUnit and Testcontainers (backend); Vitest and React Testing Library (frontend);

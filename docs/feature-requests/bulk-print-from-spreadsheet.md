@@ -1,7 +1,28 @@
 # Feature request: bulk printing from a data file (Excel, CSV, text)
 
-**Status:** planned, not started · **Requested:** 2026-09-29 by a user, flow specified 2026-10-02 ·
-**Target:** 0.6.0
+**Status:** implemented on the branch `feature/bulk-print` (2026-10-02), not yet tested on a real
+printer · **Requested:** 2026-09-29 by a user, flow specified 2026-10-02 · **Target:** 0.6.0
+
+## What was built differently from the plan below
+
+- Checking and rendering are one pass ("Checking and rendering the labels… 96 of 148"), in chunks
+  of 25 rows, not two separate stages.
+- A batch is 25 labels and holds whole rows, so the copies of one row stay together.
+- The endpoint for reprinting is `POST /api/print-jobs/{id}/reprint-unprinted`. Rows that weren't
+  sent get the new status `Cancelled` (shown as "Not printed").
+- The web app remembers the column matching per template (in the browser); the desktop app
+  doesn't yet.
+- The limits are 100 MB per file and 5,000 rows per job (the plan below says 5 MB and 1,000),
+  as decided on 2026-10-02. The web app shows long row lists a page at a time.
+- Saved profiles (asked for on 2026-10-02, not in the plan below): a new table
+  `BulkPrintProfiles` (migrations for MySQL and SQLite), `GET`/`PUT`
+  `/api/templates/{id}/bulk-print-profiles` and `DELETE /api/bulk-print-profiles/{id}`. This
+  replaces the plan's "remember the matching per template" for the desktop app.
+- JSON files and data from a web address (asked for on 2026-10-02): `JsonDataReader`, and
+  `POST /api/print-data/fetch` (`PrintDataFetcher`: GET with an optional header, 30 s, same size
+  limit). Profiles store the address and the header.
+- Not done: paging the rows of a job in the API (`GET /api/print-jobs` still returns every row
+  of every job), and the three open questions at the end.
 
 > "Can you, please, think about a feature to import some kind of .csv or .xls data import, to
 > achieve a bulk print job?"

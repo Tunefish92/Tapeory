@@ -31,8 +31,12 @@ import {
   type ReorderDirection,
 } from "./document";
 import { listFonts } from "../api/fonts";
+import { PrinterIcon } from "../components/icons";
+import { getPrintArea, type PrintArea } from "../api/printers";
 import { useHistory } from "./history";
+import { MAX_ZOOM, MIN_ZOOM, ZOOM_STEP } from "./constants";
 import { LabelCanvas } from "./LabelCanvas";
+import { ObjectList } from "./ObjectList";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { Toolbar } from "./Toolbar";
 import { createEmptyDocument, type LabelDocument, type LabelObjectPatch, type LabelObjectType } from "./types";
@@ -63,6 +67,26 @@ export function EditorPage() {
 
   const [loading, setLoading] = useState(templateId !== null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const canvasAreaRef = useRef<HTMLDivElement>(null);
+
+  // The mouse wheel over the canvas zooms, one step per notch, like the − and + buttons. The
+  // listener is added by hand because React's own wheel handler can't stop the page from scrolling.
+  // It is attached once the editor is shown (the area isn't there while the template loads).
+  const canvasShown = !loading && !loadError;
+  useEffect(() => {
+    const area = canvasAreaRef.current;
+    if (!area) return;
+
+    function onWheel(event: WheelEvent) {
+      if (event.deltaY === 0) return;
+      event.preventDefault();
+      setZoom((value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP))));
+    }
+
+    area.addEventListener("wheel", onWheel, { passive: false });
+    return () => area.removeEventListener("wheel", onWheel);
+  }, [canvasShown]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -163,6 +187,34 @@ export function EditorPage() {
   }, [history.value, selectedId]);
 
   const selectedObject = history.value.objects.find((object) => object.id === selectedId) ?? null;
+
+  // Where the printer can't print on a label of this size, asked again when the size changes.
+  const [printArea, setPrintArea] = useState<PrintArea | null>(null);
+  const { widthMm: labelWidthMm, heightMm: labelHeightMm, media: labelMedia } = history.value;
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      getPrintArea(labelWidthMm, labelHeightMm, labelMedia)
+        .then((area) => {
+          if (!cancelled) setPrintArea(area);
+        })
+        .catch(() => {
+          // The overlay is a help; without it the editor works as before.
+          if (!cancelled) setPrintArea(null);
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [labelWidthMm, labelHeightMm, labelMedia]);
+
+  function handleDeleteObject(id: string) {
+    history.set(removeObject(history.value, id));
+    if (id === selectedId) setSelectedId(null);
+  }
 
   function handleAddObject(type: Exclude<LabelObjectType, "image">) {
     const factory = {
@@ -397,7 +449,8 @@ export function EditorPage() {
           </div>
         )}
         {templateId !== null && (
-          <Link className="btn" to={`/templates/${templateId}/print`}>
+          <Link className="btn btn-primary editor-print" to={`/templates/${templateId}/print`}>
+            <PrinterIcon />
             {t("editor.print")}
           </Link>
         )}
@@ -463,16 +516,30 @@ export function EditorPage() {
       {imageError && <p role="alert">{imageError}</p>}
 
       <div className="editor-body">
-        <div className="editor-canvas-scroll">
+        <div className="editor-canvas-scroll" ref={canvasAreaRef}>
           <LabelCanvas
             document={shownDocument}
             selectedId={readOnly ? null : selectedId}
             previewMode={previewMode}
             zoom={zoom}
+            unprintable={printArea}
             onSelect={readOnly ? () => {} : setSelectedId}
             onChange={readOnly ? () => {} : handleObjectChange}
           />
         </div>
+
+        {!previewMode && printArea && printArea.topMm + printArea.bottomMm + printArea.leftMm + printArea.rightMm > 0 && (
+          <p className="editor-print-area">
+            <span className="editor-print-area__line" aria-hidden="true" />
+            {t("editor.printArea", {
+              vertical: Math.max(printArea.topMm, printArea.bottomMm).toLocaleString(undefined, { maximumFractionDigits: 1 }),
+            })}
+            {Math.max(printArea.leftMm, printArea.rightMm) > 0 &&
+              ` ${t("editor.printAreaEnds", {
+                horizontal: Math.max(printArea.leftMm, printArea.rightMm).toLocaleString(undefined, { maximumFractionDigits: 1 }),
+              })}`}
+          </p>
+        )}
 
         {!previewMode && !readOnly && (
           <PropertiesPanel
@@ -482,6 +549,15 @@ export function EditorPage() {
             onDuplicate={handleDuplicateSelected}
             onReorder={handleReorder}
             fieldNames={extractFields(history.value).map((field) => field.name)}
+          />
+        )}
+
+        {!previewMode && !readOnly && (
+          <ObjectList
+            objects={history.value.objects}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onDelete={handleDeleteObject}
           />
         )}
       </div>

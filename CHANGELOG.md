@@ -17,12 +17,67 @@ versions may include breaking changes.
   themselves. An imported template gets its own copies of the images, which are checked like
   uploaded ones (type, size, scripts stripped from SVGs); if one is refused, nothing is created.
   The imported template is a private draft of the account that imported it.
+- Bulk printing: **Bulk print** on a template's print page prints one label per row of an Excel
+  (`.xlsx`), CSV, text or JSON file, in the web app and the desktop app.
+  - A header row that names the columns like the label's fields is matched automatically (by
+    field name or label, ignoring case and accents). Without one, Tapeory asks which column
+    belongs to which field, and remembers the answer per template in the web app.
+  - The separator of CSV and text files is detected (comma, semicolon, tab, pipe); if the file
+    doesn't say clearly, Tapeory asks and shows the first rows as a table.
+  - Every row is checked and rendered before printing, with a progress bar: an empty required
+    field or a value a barcode can't encode leaves the row out, text that doesn't fit its box is
+    a warning. The labels can be stepped through one by one.
+  - **Profiles:** the whole setup (file, separator or sheet, column matching, copies column,
+    printer, quality, cutting) can be saved under a name and loaded again with one click. The
+    desktop app reads the file fresh from its saved path; the web app reopens it where the
+    browser allows (Chrome and Edge on HTTPS or localhost) and otherwise asks for the file.
+    Profiles are per account and template; saving under a name that exists asks before
+    replacing that profile.
+  - **Copies of each label** prints every label several times; an optional quantity column sets
+    the copies per row, and the two multiply.
+  - The file can be dropped onto the page (web) or the window (desktop). For that, the desktop
+    app now opens its window through XWayland on Wayland desktops; `TAPEORY_WAYLAND=1` keeps a
+    native Wayland window, without drag and drop.
+  - **JSON files** work as data too: a list of records, whose property names are the columns.
+  - **From a web address (REST):** instead of a file, Tapeory can get the data with a GET request
+    from an address (JSON, CSV, text or Excel in the answer), with an optional request header for
+    an API key. Saved in a profile, one click gets the current data again.
+  - Up to 5,000 rows and 100 MB per file.
+- Print jobs with many rows go to the printer in batches of 25 labels instead of one by one, and
+  the job page shows a progress bar. **Stop printing** ends a job after the labels already at the
+  printer, and **Print the missing rows** creates a new job from the rows that didn't come out.
+- The editor shows what can't be printed: a dashed line on the label marks the printable area,
+  with a short note of how much stays blank. Brother's print heads are narrower than the tape,
+  and each tape or roll has its own limits, taken from Brother's Raster Command References: a
+  9 or 12 mm TZe tape leaves about 1 mm at the top and at the bottom, a 24 mm tape about 3 mm,
+  a 36 mm tape about 2 mm, and die-cut DK labels also lose about 3 mm at each end. The limits
+  don't depend on which printer is set up; where printer series differ for the same tape, the
+  smaller printable area is shown.
+- The mouse wheel over the editor's canvas zooms in and out, in the same steps and limits as
+  the − and + buttons.
+- The editor has an **Elements** card: everything on the label by name, in alphabetical order.
+  A click selects the element; the bin deletes it.
 
 ### Changed
+- **About** is its own page in the navigation: the version with the update check, the storage
+  path and, in the desktop app, the log folder and the application menu entry moved there from
+  Settings. It also links to the project on GitHub, to its issues, and to the form for
+  reporting a problem.
+- Printing is easier to find: the print pages have a large **Single label / Bulk print** switch,
+  the buttons that send labels to the printer are large with a printer icon, the template
+  editor's **Print…** button and the template cards' **Print** button stand out, and the
+  template list has a labelled Print button in every row.
 - The templates page has one **Import template** button for `.tapeory` and `.lbx` files, in
   place of "Import .lbx".
 - The earlier export (`.tapeory.json`, which left the images out) is replaced by `.tapeory`;
   files in the old format can still be imported.
+- When the printer reports an error during a job with several rows, the job now stops there
+  and marks the remaining rows as not printed, instead of sending each of them to a printer that
+  needs attention.
+
+### Fixed
+- A round 24 mm DK label (DK-11218) was taken for the 23 × 23 mm square label when printing,
+  because both are within the size tolerance; the label closest in size is used now.
 
 ## [0.5.0] - 2026-10-01
 

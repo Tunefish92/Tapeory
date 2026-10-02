@@ -31,10 +31,12 @@ enum Screen {
     Templates(Box<ui::templates::TemplatesPage>),
     Editor(Box<EditorPage>),
     Print(ui::print::PrintPage),
+    BulkPrint(Box<ui::bulk_print::BulkPrintPage>),
     Jobs(ui::jobs::JobsPage),
     Job(ui::jobs::JobPage),
     Printers(ui::printers::PrintersPage),
     Settings(Box<ui::settings::SettingsPage>),
+    About(Box<ui::about::AboutPage>),
 }
 
 impl Screen {
@@ -44,10 +46,12 @@ impl Screen {
             Route::Templates => Screen::Templates(Default::default()),
             Route::Editor(id) => Screen::Editor(Box::new(EditorPage::new(*id))),
             Route::Print(id) => Screen::Print(ui::print::PrintPage::new(*id)),
+            Route::BulkPrint(id) => Screen::BulkPrint(Box::new(ui::bulk_print::BulkPrintPage::new(*id))),
             Route::Jobs => Screen::Jobs(Default::default()),
             Route::Job(id) => Screen::Job(ui::jobs::JobPage::new(*id)),
             Route::Printers => Screen::Printers(Default::default()),
             Route::Settings => Screen::Settings(Default::default()),
+            Route::About => Screen::About(Default::default()),
         }
     }
 }
@@ -261,6 +265,7 @@ impl App {
                             }
 
                             let items = [
+                                (Route::About, "nav.about", true),
                                 (Route::Settings, "nav.settings", true),
                                 (Route::Printers, "nav.printers", can_administer),
                                 (Route::Jobs, "nav.printJobs", true),
@@ -375,7 +380,7 @@ fn menu_item(ui: &mut egui::Ui, icon: Icon, text: &str) -> egui::Response {
 /// The editor and print form belong to Templates, a job to the print history.
 fn same_section(current: &Route, item: &Route) -> bool {
     match (current, item) {
-        (Route::Editor(_) | Route::Print(_), Route::Templates) => true,
+        (Route::Editor(_) | Route::Print(_) | Route::BulkPrint(_), Route::Templates) => true,
         (Route::Job(_), Route::Jobs) => true,
         _ => current == item,
     }
@@ -500,10 +505,12 @@ impl eframe::App for App {
                         Screen::Templates(page) => page.show(ui, &mut c),
                         Screen::Editor(page) => page.show(ui, &mut c),
                         Screen::Print(page) => page.show(ui, &mut c),
+                        Screen::BulkPrint(page) => page.show(ui, &mut c),
                         Screen::Jobs(page) => page.show(ui, &mut c),
                         Screen::Job(page) => page.show(ui, &mut c),
                         Screen::Printers(page) => page.show(ui, &mut c),
                         Screen::Settings(page) => page.show(ui, &mut c),
+                        Screen::About(page) => page.show(ui, &mut c),
                     }
                 })
             });

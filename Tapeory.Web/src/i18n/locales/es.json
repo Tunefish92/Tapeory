@@ -7,7 +7,8 @@
     "templates": "Plantillas",
     "printJobs": "Trabajos de impresión",
     "printers": "Impresoras",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "about": "Acerca de"
   },
   "common": {
     "loading": "Cargando…",
@@ -274,7 +275,22 @@
     "visibility": "Visibilidad",
     "readOnlyOwned": "Esta plantilla es de {{name}}. Puedes imprimirla o hacer tu propia copia; solo {{name}} o un administrador pueden cambiarla.",
     "readOnlyShared": "Solo un administrador puede cambiar esta plantilla compartida. Puedes imprimirla o hacer tu propia copia.",
-    "duplicateToEdit": "Duplicar para editar"
+    "duplicateToEdit": "Duplicar para editar",
+    "printArea": "Línea discontinua: lo que se puede imprimir en esta cinta. Unos {{vertical}} mm arriba y abajo quedan en blanco.",
+    "printAreaEnds": "También unos {{horizontal}} mm en cada extremo.",
+    "objects": {
+      "heading": "Elementos",
+      "empty": "Aún no hay nada en la etiqueta.",
+      "text": "Texto: {{text}}",
+      "field": "Campo: {{name}}",
+      "barcode": "Código de barras ({{type}}): {{value}}",
+      "image": "Imagen",
+      "rect": "Rectángulo",
+      "ellipse": "Elipse",
+      "line": "Línea",
+      "hidden": "oculto",
+      "delete": "Eliminar «{{name}}»"
+    }
   },
   "printing": {
     "printTemplate": {
@@ -350,7 +366,18 @@
       "loading": "Cargando trabajo de impresión…",
       "loadErrorFallback": "No se pudo cargar el trabajo de impresión.",
       "itemPreviewAlt": "Vista previa del elemento {{id}} del trabajo de impresión",
-      "printedBy": "Impreso por"
+      "printedBy": "Impreso por",
+      "progress": "{{done}} de {{total}} filas terminadas",
+      "stop": "Detener la impresión",
+      "stopping": "Deteniendo…",
+      "stopHint": "Las etiquetas que ya están en la impresora se imprimen igualmente.",
+      "stopErrorFallback": "No se pudo detener el trabajo.",
+      "reprintHint": "Crea un nuevo trabajo con las filas que no se imprimieron, para la misma impresora.",
+      "reprintErrorFallback": "No se pudieron imprimir las filas de nuevo.",
+      "reprintUnprinted_one": "Imprimir la {{count}} fila que falta",
+      "reprintUnprinted_other": "Imprimir las {{count}} filas que faltan",
+      "reprintUnprinted_many": "Imprimir las {{count}} filas que faltan",
+      "pageInfo": "Filas {{from}}–{{to}} de {{total}}"
     },
     "status": {
       "queued": "En cola",
@@ -358,7 +385,8 @@
       "completed": "Completado",
       "failed": "Fallido",
       "sending": "Enviando a la impresora",
-      "printing": "Imprimiendo"
+      "printing": "Imprimiendo",
+      "cancelled": "No impreso"
     },
     "quality": {
       "label": "Calidad de impresión",
@@ -378,6 +406,146 @@
       "ChainPrintingHint": "Corta entre etiquetas pero deja la última en la impresora hasta la siguiente impresión o el botón de avance. Ahorra la cinta en blanco que la impresora avanza al inicio de cada trabajo.",
       "CutMarks": "Marcas de corte",
       "CutMarksHint": "Sin corte: todas las etiquetas se imprimen en una tira, con una línea discontinua en cada corte, para cortar a mano."
+    },
+    "bulk": {
+      "title": "Impresión en serie: {{name}}",
+      "stepsLabel": "Pasos",
+      "steps": {
+        "file": "Datos",
+        "match": "Columnas",
+        "check": "Revisar",
+        "print": "Imprimir"
+      },
+      "file": {
+        "heading": "Elige los datos",
+        "intro": "Se imprime una etiqueta por cada fila. Si las columnas se llaman como los campos de la etiqueta ({{fields}}), se asignan automáticamente.",
+        "drop": "Suelta aquí un archivo de Excel, CSV, texto o JSON",
+        "choose": "Elegir archivo…",
+        "formats": ".xlsx, .csv, .txt o .json · hasta 100 MB y 5.000 filas",
+        "uploading": "Subiendo… {{percent}} %",
+        "reading": "Leyendo el archivo…",
+        "errorFallback": "No se pudo leer el archivo.",
+        "tooLarge": "El archivo supera los {{size}} MB.",
+        "dropNow": "Suelta el archivo para cargarlo"
+      },
+      "separator": {
+        "comma": "Coma ( , )",
+        "semicolon": "Punto y coma ( ; )",
+        "tab": "Tabulador",
+        "pipe": "Barra vertical ( | )",
+        "space": "Espacio",
+        "none": "Ninguno (un valor por línea)",
+        "other": "Otro:"
+      },
+      "match": {
+        "heading": "Asigna las columnas a los campos de la etiqueta",
+        "file_one": "{{name}} · {{count}} fila",
+        "file_other": "{{name}} · {{count}} filas",
+        "file_many": "{{name}} · {{count}} filas",
+        "separatorQuestion": "¿Qué separador usa el archivo?",
+        "separatorHelp": "Tapeory no pudo deducirlo del archivo. Elige el que divide las filas de abajo en las columnas correctas.",
+        "separatorLabel": "Separador",
+        "sheet": "Hoja",
+        "sampleHeading": "Las primeras filas del archivo",
+        "headerFound": "Columnas y campos",
+        "columnQuestion": "No se encontró una fila de encabezado. ¿Qué columna corresponde a cada campo?",
+        "headerSwitch": "La primera fila es un encabezado (no imprimirla)",
+        "column": "Columna {{letter}}",
+        "columnWithHeader": "{{header}} (columna {{letter}})",
+        "chooseColumn": "Elige una columna…",
+        "useDefault": "Sin columna (imprimir «{{value}}»)",
+        "leaveEmpty": "Sin columna (dejar vacío)",
+        "quantity": "Copias por fila",
+        "quantityNone": "Sin columna (una de cada)",
+        "missing": "Falta: una columna para {{fields}}.",
+        "continue": "Revisar las etiquetas"
+      },
+      "check": {
+        "readingRows_one": "{{count}} fila leída",
+        "readingRows_other": "{{count}} filas leídas",
+        "readingRows_many": "{{count}} filas leídas",
+        "checking": "Revisando y generando las etiquetas… {{done}} de {{total}}",
+        "errorFallback": "No se pudieron revisar las etiquetas.",
+        "quantityInvalid": "El número de copias debe ser un número entero de 1 a 999.",
+        "labelOf": "Etiqueta {{current}} de {{total}}",
+        "label": "Etiqueta",
+        "ofTotal": "de {{total}}",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "onlyProblems": "Solo filas con problemas ({{count}})",
+        "columnPrint": "Imprimir",
+        "columnRow": "Fila",
+        "columnCopies": "Copias",
+        "columnProblem": "Revisión",
+        "printRow": "Imprimir la fila {{row}}",
+        "ok": "Correcto",
+        "summary_one": "Se imprimirá {{count}} etiqueta",
+        "summary_other": "Se imprimirán {{count}} etiquetas",
+        "summary_many": "Se imprimirán {{count}} etiquetas",
+        "tape": "unos {{length}} de cinta de {{width}} mm",
+        "summaryErrors_one": "{{count}} fila tiene un error y se omite.",
+        "summaryErrors_other": "{{count}} filas tienen errores y se omiten.",
+        "summaryErrors_many": "{{count}} filas tienen errores y se omiten.",
+        "nothingToPrint": "No se puede imprimir ninguna fila.",
+        "continue": "Continuar a la impresión",
+        "pageInfo": "Filas {{from}}–{{to}} de {{total}}",
+        "copies": "Copias de cada etiqueta",
+        "copiesHint": "El número de copias propio de una fila se multiplica por este."
+      },
+      "print": {
+        "heading_one": "Imprimir {{count}} etiqueta",
+        "heading_other": "Imprimir {{count}} etiquetas",
+        "heading_many": "Imprimir {{count}} etiquetas",
+        "note": "Las etiquetas se imprimen como un solo trabajo, en el orden del archivo.",
+        "submit_one": "Imprimir {{count}} etiqueta",
+        "submit_other": "Imprimir {{count}} etiquetas",
+        "submit_many": "Imprimir {{count}} etiquetas"
+      },
+      "profiles": {
+        "heading": "Perfiles guardados",
+        "intro": "Un perfil carga sus datos y todos los ajustes con un clic.",
+        "load": "Cargar «{{name}}»",
+        "delete": "Eliminar el perfil «{{name}}»",
+        "confirmDelete": "¿Eliminar el perfil «{{name}}»?",
+        "loadErrorFallback": "No se pudieron cargar los perfiles.",
+        "chooseFile": "Elige el archivo para el perfil «{{name}}» ({{file}}). Todo lo demás se configura desde el perfil.",
+        "fileMissing": "No se encontró el archivo {{path}}. Elige el archivo para el perfil «{{name}}».",
+        "cancel": "No usar el perfil",
+        "saveHeading": "Guardar como perfil",
+        "saveHint": "Guarda el archivo, la asignación de columnas y los ajustes de impresión para cargarlos con un clic la próxima vez.",
+        "name": "Nombre del perfil",
+        "save": "Guardar perfil",
+        "saving": "Guardando…",
+        "saved": "Perfil «{{name}}» guardado.",
+        "savedNoFile": "Perfil «{{name}}» guardado. Al cargarlo pedirá el archivo.",
+        "saveErrorFallback": "No se pudo guardar el perfil.",
+        "confirmReplace": "Ya existe un perfil llamado «{{name}}». ¿Reemplazarlo?",
+        "replace": "Reemplazar",
+        "empty": "Aún no hay perfiles aquí. Guarda uno en el paso Revisar o Imprimir.",
+        "headingFor": "Perfiles guardados: {{tab}}"
+      },
+      "url": {
+        "heading": "Obtener los datos de una dirección web",
+        "hint": "Para una interfaz REST o un archivo en un servidor web. El servidor de Tapeory llama a la dirección (GET) y lee JSON, CSV, texto o Excel de la respuesta, así que la dirección debe ser accesible desde el servidor.",
+        "address": "Dirección web",
+        "load": "Cargar datos",
+        "headerToggle": "Enviar una cabecera de solicitud (por ejemplo, una clave de API)",
+        "headerName": "Nombre de la cabecera, p. ej. Authorization",
+        "headerValue": "Valor de la cabecera"
+      },
+      "tabs": {
+        "label": "Importar desde",
+        "file": "Archivo",
+        "api": "API"
+      }
+    },
+    "mode": {
+      "label": "Modo de impresión",
+      "single": "Una sola etiqueta",
+      "singleHint": "Escribe los valores de una etiqueta",
+      "bulk": "Impresión en serie",
+      "bulkHint": "Una etiqueta por fila de un archivo o una API",
+      "bulkNeedsFields": "La impresión en serie necesita una plantilla con campos."
     }
   },
   "printers": {
@@ -639,5 +807,11 @@
     "menuEntryAdded": "Tapeory ya está en el menú de aplicaciones.",
     "menuEntryRemoved": "Tapeory se ha quitado del menú de aplicaciones.",
     "menuEntryFailed": "No se pudo cambiar el menú de aplicaciones: {{message}}"
+  },
+  "about": {
+    "source": "Código fuente en GitHub",
+    "issues": "Problemas conocidos y peticiones",
+    "newIssue": "Informar de un problema",
+    "links": "Proyecto"
   }
 }

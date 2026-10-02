@@ -37,6 +37,20 @@ public sealed class PrintersController(
     [HttpGet("usb")]
     public IActionResult ListUsbPrinters() => Ok(usb.List());
 
+    /// <summary>The margins of a label of this size that can't be printed on, for the editor's
+    /// overlay. They belong to the tape or roll (<paramref name="media"/>, or the one of this
+    /// height), whichever printer prints it.</summary>
+    [HttpGet("print-area")]
+    public IActionResult GetPrintArea([FromQuery] decimal widthMm, [FromQuery] decimal heightMm, [FromQuery] string? media)
+    {
+        if (widthMm <= 0 || heightMm <= 0 || widthMm > 2000 || heightMm > 2000)
+        {
+            return Problem("The label size isn't valid.", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return Ok(PrintArea.For(widthMm, heightMm, media));
+    }
+
     [HttpGet("models")]
     public IActionResult GetModels() => Ok(BrotherCatalog.Models.Select(model => new PrinterModelResponse(
         model.Name,

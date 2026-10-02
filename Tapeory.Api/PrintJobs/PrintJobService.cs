@@ -16,6 +16,7 @@ public sealed class PrintJobService(
     FileStorageService fileStorage,
     ILogger<PrintJobService> logger,
     TapeoryInstance instance,
+    PrintJobCancellations cancellations,
     IHttpContextAccessor? http = null)
 {
     /// <summary>The signed-in account. Outside a request (background work) it sees everything.</summary>
@@ -172,6 +173,86 @@ public sealed class PrintJobService(
         await db.SaveChangesAsync(cancellationToken);
 
         return CreatePrintJobResult.Created(job.Id);
+    }
+
+    /// <summary>Stops a job: one that is still waiting is cancelled at once, one that is being
+    /// printed stops after the batch at the printer. A finished job is left as it is.</summary>
+    /// <returns>False when the job doesn't exist (or isn't the viewer's).</returns>
+    public async Task<bool> CancelAsync(int id, CancellationToken cancellationToken)
+    {
+        var job = await VisibleJobs().Include(j => j.Items).SingleOrDefaultAsync(j => j.Id == id, cancellationToken);
+
+        if (job is null)
+        {
+            return false;
+        }
+
+        if (!IsInProgress(job))
+        {
+            return true;
+        }
+
+        // Taking a waiting job out of the queue uses the same conditional update the processor
+        // claims it with, so only one of the two gets it.
+        var dequeued = await db.PrintJobs
+            .Where(j => j.Id == id && j.Status == PrintJobStatus.Queued)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(j => j.Status, PrintJobStatus.Cancelled), cancellationToken);
+
+        if (dequeued == 0)
+        {
+            cancellations.Request(id);
+            return true;
+        }
+
+        await db.Entry(job).ReloadAsync(cancellationToken);
+        job.ErrorMessage = "The job was stopped before it was printed.";
+        job.CompletedAt = DateTimeOffset.UtcNow;
+
+        foreach (var item in job.Items)
+        {
+            item.Status = PrintJobStatus.Cancelled;
+            item.ErrorMessage = "Not printed: the job was stopped.";
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    /// <summary>A new job with the rows of a finished job that weren't printed (failed, or left
+    /// out after a failure or a stop), for the same printer and settings.</summary>
+    /// <returns>Null when the job doesn't exist (or isn't the viewer's).</returns>
+    public async Task<CreatePrintJobResult?> ReprintUnprintedAsync(int id, CancellationToken cancellationToken, PrintAuthor? author = null)
+    {
+        var job = await VisibleJobs().Include(j => j.Items).SingleOrDefaultAsync(j => j.Id == id, cancellationToken);
+
+        if (job is null)
+        {
+            return null;
+        }
+
+        if (IsInProgress(job))
+        {
+            return CreatePrintJobResult.Invalid(["This print job is still printing."]);
+        }
+
+        var unprinted = job.Items
+            .Where(item => item.Status is PrintJobStatus.Failed or PrintJobStatus.Cancelled)
+            .OrderBy(item => item.Id)
+            .Select(item => new PrintJobItemRequest(
+                JsonSerializer.Deserialize<Dictionary<string, string>>(item.FieldValuesJson) ?? [], item.Quantity))
+            .ToList();
+
+        if (unprinted.Count == 0)
+        {
+            return CreatePrintJobResult.Invalid(["Every row of this print job was printed."]);
+        }
+
+        return await CreateAsync(
+            new CreatePrintJobRequest(
+                job.TemplateId, job.PrinterId, job.PrinterId is null ? job.PrinterName : null, unprinted,
+                job.Quality.ToString(), job.CutMode.ToString()),
+            cancellationToken,
+            author);
     }
 
     public Task<PrintJob?> GetByIdAsync(int id, CancellationToken cancellationToken) =>

@@ -66,10 +66,14 @@ public static class TapeoryApp
         builder.Services.AddScoped<TemplateService>();
         builder.Services.AddScoped<ImageStore>();
         builder.Services.AddScoped<TemplateFileService>();
+        builder.Services.AddScoped<Tapeory.Api.PrintData.BulkPrintProfileService>();
+        builder.Services.AddSingleton(new Tapeory.Api.PrintData.PrintDataFetcher(
+            new HttpClient(new SocketsHttpHandler { MaxAutomaticRedirections = 5 }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan }));
         builder.Services.AddScoped<LbxImportService>();
         builder.Services.AddSingleton<LabelRenderer>();
         builder.Services.AddScoped<UploadedFileImageResolver>();
         builder.Services.AddScoped<PrintJobService>();
+        builder.Services.AddSingleton<PrintJobCancellations>();
         builder.Services.AddHostedService<PrintJobProcessor>();
         builder.Services.AddScoped<PrinterService>();
         builder.Services.AddScoped<StatsService>();
