@@ -33,6 +33,7 @@ export function AboutPage() {
         <h2>{t("nav.about")}</h2>
       </div>
 
+      <div className="about-grid">
       <div className="card settings-section about-card">
         <div className="settings-section__head">
           <SectionIcon>
@@ -69,28 +70,29 @@ export function AboutPage() {
       <div className="card settings-section about-card about-links">
         <div className="settings-section__head">
           <SectionIcon>
-            <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
-            <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
           </SectionIcon>
           <h3>{t("about.links")}</h3>
         </div>
         <ul>
           <li>
-            <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
+            <a className="btn" href={REPOSITORY_URL} target="_blank" rel="noreferrer">
               {t("about.source")}
             </a>
           </li>
           <li>
-            <a href={`${REPOSITORY_URL}/issues`} target="_blank" rel="noreferrer">
+            <a className="btn" href={`${REPOSITORY_URL}/issues`} target="_blank" rel="noreferrer">
               {t("about.issues")}
             </a>
           </li>
           <li>
-            <a className="btn btn-sm" href={`${REPOSITORY_URL}/issues/new`} target="_blank" rel="noreferrer">
+            <a className="btn btn-primary" href={`${REPOSITORY_URL}/issues/new`} target="_blank" rel="noreferrer">
               {t("about.newIssue")}
             </a>
           </li>
         </ul>
+      </div>
       </div>
     </section>
   );

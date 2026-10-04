@@ -10,7 +10,6 @@ use crate::models::{Health, UpdateCheck};
 use crate::task::{Pending, Task, finished};
 use crate::theme;
 use crate::ui::Ctx;
-use crate::ui::settings::row;
 use crate::ui::setup::notice;
 use crate::ui::widgets::{self, Kind, PillButton, Tone, button};
 
@@ -127,9 +126,9 @@ impl AboutPage {
             self.update_status(ui);
             ui.separator();
             if let Some(health) = &self.health {
-                row(ui, &t("settings.storagePath"), &health.storage_path);
+                path_row(ui, &t("settings.storagePath"), &health.storage_path);
             }
-            row(ui, &t("desktop.logs"), &crate::engine::data_folder().join("logs").display().to_string());
+            path_row(ui, &t("desktop.logs"), &crate::engine::data_folder().join("logs").display().to_string());
             #[cfg(target_os = "linux")]
             menu_entry_row(ui, c);
         });
@@ -222,4 +221,15 @@ fn links_card(ui: &mut egui::Ui, fill: bool) {
             }
         }
     });
+}
+
+/// A folder's path under its label. Paths can be long, so the value gets a line of its own and
+/// wraps inside the card instead of pushing it wider.
+fn path_row(ui: &mut egui::Ui, label: &str, value: &str) {
+    ui.vertical(|ui| {
+        ui.spacing_mut().item_spacing.y = 3.0;
+        widgets::muted(ui, label);
+        ui.add(egui::Label::new(widgets::bold(value)).wrap());
+    });
+    ui.add_space(4.0);
 }

@@ -8,6 +8,16 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.6.0-beta.2] - 2026-10-04
+
+### Fixed
+- Desktop app: a long storage or log path on the About page pushed its card wider than the
+  window and overlapped the labels. Each path now has its own line and wraps inside the card.
+
+### Changed
+- The About page looks the same in the web app and the desktop app: the app's card beside the
+  project's card, whose links are three buttons one below the other.
+
 ## [0.6.0-beta.1] - 2026-10-04
 
 A beta for testing: bulk printing from a file or a web address, saved profiles, and the
@@ -387,7 +397,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.1...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.2...HEAD
+[0.6.0-beta.2]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.1...v0.6.0-beta.2
 [0.6.0-beta.1]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0-beta.1
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0

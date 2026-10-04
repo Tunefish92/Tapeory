@@ -351,21 +351,33 @@
   gap: 0.45rem;
 }
 
-/* The About page's one card. */
-.about-card {
-  max-width: 720px;
+/* The About page: the app's card beside the project's links, as in the desktop app. */
+.about-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
 }
 
-.about-links {
-  margin-top: 1.25rem;
+.about-grid > .card {
+  min-width: 0;
 }
 
 .about-links ul {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1.5rem;
+  flex-direction: column;
+  gap: 0.6rem;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.about-links .btn {
+  width: 100%;
+}
+
+@media (max-width: 820px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
 }
