@@ -294,13 +294,17 @@ jobs:
           path: dist
 
       # Adds the files to the tag's release (creating it if it doesn't exist yet). GitHub records
-      # each file's SHA-256, which the app checks after downloading an update.
+      # each file's SHA-256, which the app checks after downloading an update. A tag with a
+      # hyphen (v1.3.0-beta.1) becomes a pre-release: GitHub's "latest release" stays the last
+      # full one, so installed versions aren't offered a beta as an update.
       - name: Upload
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          prerelease=""
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease="--prerelease"; fi
           gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md."
+            || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md." $prerelease
           gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
 
   docker-build:

@@ -50,18 +50,25 @@ impl AboutPage {
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             widgets::page_header(ui, &t("nav.about"), |_| {});
-            let width = ui.available_width().min(760.0);
-            ui.allocate_ui_with_layout(egui::vec2(width, 0.0), egui::Layout::top_down(egui::Align::Min), |ui| {
-                self.about_card(ui, c);
+            // As wide as the other pages: the two cards side by side and equally tall, or one
+            // below the other in a narrow window.
+            if ui.available_width() >= 820.0 {
+                widgets::columns(ui, "about", &[2.0, 1.0], |index, ui| match index {
+                    0 => self.about_card(ui, c, true),
+                    _ => links_card(ui, true),
+                });
+            } else {
+                self.about_card(ui, c, false);
                 ui.add_space(18.0);
-                links_card(ui);
-            });
+                links_card(ui, false);
+            }
         });
     }
 
-    fn about_card(&mut self, ui: &mut egui::Ui, c: &mut Ctx) {
+    fn about_card(&mut self, ui: &mut egui::Ui, c: &mut Ctx, fill: bool) {
         let mut check = false;
-        theme::card(ui).show(ui, |ui| {
+        let card = if fill { theme::card(ui).fill_height() } else { theme::card(ui) };
+        card.show(ui, |ui| {
             widgets::section(ui, Icon::Info, &t("app.name"));
 
             ui.horizontal(|ui| {
@@ -197,21 +204,22 @@ fn menu_entry_row(ui: &mut egui::Ui, c: &mut Ctx) {
 const REPOSITORY_URL: &str = "https://github.com/Tunefish92/Tapeory";
 
 /// The project on GitHub: the source, the issues, and the form for a new one.
-fn links_card(ui: &mut egui::Ui) {
-    theme::card(ui).show(ui, |ui| {
-        ui.set_width(ui.available_width());
+fn links_card(ui: &mut egui::Ui, fill: bool) {
+    let card = if fill { theme::card(ui).fill_height() } else { theme::card(ui) };
+    card.show(ui, |ui| {
         widgets::section(ui, Icon::Globe, &t("about.links"));
-        ui.horizontal_wrapped(|ui| {
-            ui.spacing_mut().item_spacing.x = 10.0;
-            let links = [("about.source", String::new()), ("about.issues", "/issues".to_string())];
-            for (key, path) in links {
-                if button(ui, &t(key)).clicked() {
-                    ui.ctx().open_url(egui::OpenUrl::new_tab(format!("{REPOSITORY_URL}{path}")));
-                }
+        ui.spacing_mut().item_spacing.y = 10.0;
+        // One below the other, each as wide as the card.
+        let width = ui.available_width();
+        let links = [
+            ("about.source", "", Kind::Secondary),
+            ("about.issues", "/issues", Kind::Secondary),
+            ("about.newIssue", "/issues/new", Kind::Primary),
+        ];
+        for (key, path, kind) in links {
+            if ui.add(PillButton::new(&t(key), kind).min_width(width)).clicked() {
+                ui.ctx().open_url(egui::OpenUrl::new_tab(format!("{REPOSITORY_URL}{path}")));
             }
-            if ui.add(PillButton::new(&t("about.newIssue"), Kind::Primary)).clicked() {
-                ui.ctx().open_url(egui::OpenUrl::new_tab(format!("{REPOSITORY_URL}/issues/new")));
-            }
-        });
+        }
     });
 }

@@ -117,20 +117,23 @@ public sealed class UpdateChecker(HttpClient http, TimeProvider time, string? fe
     private static UpdateCheckResponse Failed(string message) =>
         new(CurrentVersion, null, false, null, null, message);
 
-    /// <summary>Whether <paramref name="latest"/> is a newer release than <paramref name="current"/>.</summary>
+    /// <summary>Whether <paramref name="latest"/> is a newer release than <paramref name="current"/>.
+    /// A pre-release ("0.6.0-beta.1") is older than the release it leads to ("0.6.0").</summary>
     public static bool IsNewer(string? latest, string current) =>
-        TryParse(latest, out var latestVersion)
-        && TryParse(current, out var currentVersion)
-        && latestVersion > currentVersion;
+        TryParse(latest, out var latestVersion, out var latestIsPreRelease)
+        && TryParse(current, out var currentVersion, out var currentIsPreRelease)
+        && (latestVersion > currentVersion || (latestVersion == currentVersion && currentIsPreRelease && !latestIsPreRelease));
 
-    // Ignores a pre-release or build suffix ("0.3.0-beta", "0.2.1+abc123").
-    private static bool TryParse(string? value, out Version version)
+    // Takes the numbers before a pre-release or build suffix ("0.3.0-beta", "0.2.1+abc123").
+    private static bool TryParse(string? value, out Version version, out bool preRelease)
     {
         version = new Version();
+        preRelease = false;
         if (string.IsNullOrWhiteSpace(value)) return false;
 
-        var core = value.TrimStart('v', 'V').Split('-', '+')[0];
-        return Version.TryParse(core, out version!);
+        var trimmed = value.TrimStart('v', 'V').Split('+')[0];
+        preRelease = trimmed.Contains('-');
+        return Version.TryParse(trimmed.Split('-')[0], out version!);
     }
 
     private static string ReadCurrentVersion()

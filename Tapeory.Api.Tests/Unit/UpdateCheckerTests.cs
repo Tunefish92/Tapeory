@@ -13,6 +13,10 @@ public class UpdateCheckerTests
     [InlineData("0.2.1", "0.2.1", false)]
     [InlineData("0.2.0", "0.2.1", false)]
     [InlineData("0.3.0-beta", "0.2.1", true)]
+    [InlineData("0.6.0", "0.6.0-beta.1", true)]
+    [InlineData("0.6.0-beta.2", "0.6.0-beta.1", false)]
+    [InlineData("0.5.0", "0.6.0-beta.1", false)]
+    [InlineData("0.6.0", "0.6.0", false)]
     [InlineData(null, "0.2.1", false)]
     [InlineData("nonsense", "0.2.1", false)]
     public void IsNewer_ComparesReleaseVersions(string? latest, string current, bool expected)

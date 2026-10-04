@@ -8,6 +8,12 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.6.0-beta.1] - 2026-10-04
+
+A beta for testing: bulk printing from a file or a web address, saved profiles, and the
+editor's printable-area line and elements list. Published as a pre-release; `latest` and the
+update check stay on 0.5.0.
+
 ### Added
 - Template files: every template has a **Download** button (cards, list rows and the desktop
   app) that saves it as a `.tapeory` file, and **Import template** takes such a file back in, in
@@ -381,7 +387,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.1...HEAD
+[0.6.0-beta.1]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0-beta.1
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...v0.3.0
