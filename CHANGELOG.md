@@ -26,6 +26,14 @@ versions may include breaking changes.
 - Docker Compose setup: the app could start while MySQL was still creating the database on
   its first start, and the setup then answered "Unable to connect". The health check now waits
   for the real server, and MySQL gets 90 seconds before it counts as unhealthy.
+- QL printers: a label made for a continuous roll was printed as a die-cut label when its size
+  happened to match one, for example a new template (62 × 29 mm on DK-22210), which was sent as
+  the die-cut DK-11209. It now stays on the roll that was chosen, and the editor's dashed line
+  no longer shows blank ends for it.
+- A print job that was stopped is now called **Stopped**; "Not printed" is only said of the
+  rows that didn't come out.
+- Desktop app: notifications appear at the bottom centre, where they no longer cover Save and
+  Publish in the editor.
 
 ## [0.6.0-beta.2] - 2026-10-04
 

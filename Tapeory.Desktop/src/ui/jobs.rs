@@ -195,7 +195,7 @@ impl JobsPage {
                         ui.label(widgets::heading(job.label_count().to_string()).size(15.0));
                     }
                     4 => {
-                        widgets::pill(ui, &widgets::status_text(&job.status), widgets::status_tone(&job.status));
+                        widgets::pill(ui, &widgets::job_status_text(&job.status), widgets::status_tone(&job.status));
                         if job.in_progress() {
                             ui.spinner();
                         }
@@ -372,7 +372,7 @@ impl JobPage {
                     row(ui, &t("printing.cutMode.label"), &mut value(t(&format!("printing.cutMode.{cut}"))));
                 }
                 row(ui, &t("printing.printJobDetail.status"), &mut |ui| {
-                    widgets::pill(ui, &widgets::status_text(&job.status), widgets::status_tone(&job.status));
+                    widgets::pill(ui, &widgets::job_status_text(&job.status), widgets::status_tone(&job.status));
                     if job.in_progress() {
                         ui.spinner();
                     }

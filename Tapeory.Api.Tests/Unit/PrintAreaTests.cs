@@ -103,6 +103,17 @@ public sealed class PrintAreaTests
         Assert.Equal("dk-d12", BrotherCatalog.MediaForLabel(BrotherCatalog.Find("QL-820NWB"), 12, 12).Media.Id);
     }
 
+    [Fact]
+    public void ALabelOnAContinuousRoll_HasNoBlankEnds_AlsoAtADieCutSize()
+    {
+        var roll = PrintArea.For(62, 29, "DK-22210");
+        var dieCut = PrintArea.For(62, 29, "DK-11209");
+
+        Assert.Equal(("dk-29", 0m, 0m), (roll.MediaId, roll.LeftMm, roll.RightMm));
+        Assert.Equal("dk-62x29", dieCut.MediaId);
+        Assert.True(dieCut.TopMm > 0 && dieCut.LeftMm > 0);
+    }
+
     [Theory]
     // Every roll and die-cut label the editor offers, against the "Print area" tables of Brother's
     // QL-1100 reference: width offset 18 dots (1.5 mm), 23 for 54 mm, 12 for 103 mm; die-cut

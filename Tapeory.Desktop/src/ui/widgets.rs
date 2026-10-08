@@ -526,6 +526,13 @@ pub fn status_text(status: &str) -> String {
     if text == key { status.to_string() } else { text }
 }
 
+/// A whole job's status: a stopped job is "Stopped", while its unprinted rows say "Not printed".
+pub fn job_status_text(status: &str) -> String {
+    let key = format!("printing.jobStatus.{}", status.to_lowercase());
+    let text = t(&key);
+    if text == key { status_text(status) } else { text }
+}
+
 pub fn error_text(ui: &mut Ui, message: &str) {
     let p = palette(ui.ctx());
     ui.label(RichText::new(message).color(p.danger));

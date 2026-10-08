@@ -388,6 +388,9 @@
       "printing": "Impression",
       "cancelled": "Non imprimé"
     },
+    "jobStatus": {
+      "cancelled": "Arrêté"
+    },
     "quality": {
       "label": "Qualité d’impression",
       "standard": "Standard",

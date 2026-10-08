@@ -185,7 +185,7 @@ export function PrintJobsListPage() {
                 </td>
                 <td className="data-grid__col--status">
                   <span className={`status-badge status-badge--${status}`} title={job.errorMessage ?? undefined}>
-                    {t(`printing.status.${status}`, { defaultValue: job.status })}
+                    {t([`printing.jobStatus.${status}`, `printing.status.${status}`], { defaultValue: job.status })}
                   </span>
                 </td>
                 <td className="data-grid__col--created data-grid__end">

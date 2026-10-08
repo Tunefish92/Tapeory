@@ -380,6 +380,9 @@
       "printing": "Printing",
       "cancelled": "Not printed"
     },
+    "jobStatus": {
+      "cancelled": "Stopped"
+    },
     "quality": {
       "label": "Print quality",
       "standard": "Standard",

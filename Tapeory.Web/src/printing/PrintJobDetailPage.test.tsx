@@ -172,6 +172,16 @@ describe("PrintJobDetailPage", () => {
     expect(await screen.findByRole("button", { name: "Stopping…" })).toBeDisabled();
   });
 
+  it("calls a stopped job Stopped and its unprinted rows Not printed", async () => {
+    const stopped = job({ status: "Cancelled", items: [item(1, "Completed"), item(2, "Cancelled", "Not printed: the job was stopped.")] });
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(stopped)));
+
+    renderPage();
+
+    expect(await screen.findByText("Stopped")).toBeInTheDocument();
+    expect(screen.getByText("Not printed")).toBeInTheDocument();
+  });
+
   it("offers to print the rows of a stopped job that didn't come out", async () => {
     const stopped = job({
       status: "Failed",

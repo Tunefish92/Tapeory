@@ -137,7 +137,9 @@ export function PrintJobDetailPage() {
         <dt>{t("printing.printJobDetail.status")}</dt>
         <dd>
           <span className={`status-badge status-badge--${job.status.toLowerCase()}`}>
-            {t(`printing.status.${job.status.toLowerCase()}`, { defaultValue: job.status })}
+            {t([`printing.jobStatus.${job.status.toLowerCase()}`, `printing.status.${job.status.toLowerCase()}`], {
+              defaultValue: job.status,
+            })}
           </span>
           {!TERMINAL_STATUSES.has(job.status) && t("printing.printJobDetail.refreshing")}
         </dd>

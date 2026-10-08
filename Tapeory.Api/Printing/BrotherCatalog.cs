@@ -286,11 +286,18 @@ public static class BrotherCatalog
     private static string Normalize(string? value) =>
         new string((value ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
+    // Brother's continuous-length DK rolls, as the editor's size list names them.
+    private static readonly HashSet<string> ContinuousRolls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "DK-22214", "DK-22210", "DK-22225", "DK-22223", "DK-N55224", "DK-22205", "DK-22251", "DK-22243", "DK-22246"
+    };
+
     /// <summary>
     /// The media a label prints on: a die-cut label whose size matches the template (either way
     /// round), otherwise the tape or roll whose width is closest to the label's height. Templates
     /// made for an HSe heat-shrink tube get tube, and on two-colour printers a template made for
-    /// DK-22251 gets the black/red roll.
+    /// DK-22251 gets the black/red roll. A template made for a continuous DK roll stays on the
+    /// roll, also when its size happens to be that of a die-cut label (62 × 29 mm on DK-22210).
     /// </summary>
     public static (BrotherMedia Media, bool Rotated) MediaForLabel(
         BrotherModel model, decimal widthMm, decimal heightMm, string? mediaId = null)
@@ -300,7 +307,7 @@ public static class BrotherCatalog
         // The die-cut label closest in size, either way round. (The first one within the tolerance
         // isn't enough: a round 24 mm label is also within 1.5 mm of the 23 × 23 mm square one.)
         var dieCut = model.Media
-            .Where(media => media.IsDieCut)
+            .Where(media => media.IsDieCut && !ContinuousRolls.Contains(mediaId ?? ""))
             .SelectMany(media => new[]
             {
                 (Media: media, Rotated: false, Across: Math.Abs(media.WidthMm - heightMm), Along: Math.Abs(media.LengthMm - widthMm)),

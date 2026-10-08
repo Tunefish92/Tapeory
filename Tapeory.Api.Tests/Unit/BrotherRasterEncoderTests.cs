@@ -352,6 +352,22 @@ public sealed class BrotherRasterEncoderTests
     }
 
     [Fact]
+    public void MediaForLabel_KeepsATemplateMadeForAContinuousRollOnTheRoll()
+    {
+        var ql820 = BrotherCatalog.Find("QL-820NWB");
+
+        // A new template: 62 × 29 mm on DK-22210, which is also the size of the die-cut DK-11209.
+        Assert.Equal(("dk-29", false), Id(BrotherCatalog.MediaForLabel(ql820, 62, 29, "DK-22210")));
+        Assert.Equal(("dk-62-red", false), Id(BrotherCatalog.MediaForLabel(ql820, 100, 62, "dk-22251")));
+
+        // Without a roll, or made for the die-cut label, the size decides as before.
+        Assert.Equal(("dk-62x29", true), Id(BrotherCatalog.MediaForLabel(ql820, 62, 29)));
+        Assert.Equal(("dk-62x29", true), Id(BrotherCatalog.MediaForLabel(ql820, 62, 29, "DK-11209")));
+
+        static (string, bool) Id((BrotherMedia Media, bool Rotated) match) => (match.Media.Id, match.Rotated);
+    }
+
+    [Fact]
     public void MediaForLabel_UsesTubeOnlyForHeatShrinkTemplates_AndRedTapeForDk22251()
     {
         var p750w = BrotherCatalog.Find("PT-P750W");

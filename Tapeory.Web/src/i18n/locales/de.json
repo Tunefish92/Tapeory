@@ -380,6 +380,9 @@
       "printing": "Wird gedruckt",
       "cancelled": "Nicht gedruckt"
     },
+    "jobStatus": {
+      "cancelled": "Gestoppt"
+    },
     "quality": {
       "label": "Druckqualität",
       "standard": "Standard",
