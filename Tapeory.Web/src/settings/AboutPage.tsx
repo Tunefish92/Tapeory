@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { checkForUpdates, fetchHealth, type HealthStatus, type UpdateCheck } from "../api/client";
+import { getSettings, updateSettings } from "../api/settings";
+import { useAuth } from "../auth/AuthContext";
 import { SectionIcon } from "./SettingsPage";
 import "./settings.css";
 
@@ -11,6 +13,20 @@ export function AboutPage() {
   const { t } = useTranslation();
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | "checking" | "failed">("checking");
+  const { canAdminister } = useAuth();
+  // Whether the update check also offers pre-releases; null until the setting is known.
+  const [preReleases, setPreReleases] = useState<boolean | null>(null);
+
+  async function changePreReleases(value: boolean) {
+    setPreReleases(value);
+    try {
+      await updateSettings({ preReleases: value });
+      // The answer depends on the setting: ask again.
+      runUpdateCheck(true);
+    } catch {
+      setPreReleases(!value);
+    }
+  }
 
   function runUpdateCheck(refresh: boolean) {
     setUpdate("checking");
@@ -25,6 +41,10 @@ export function AboutPage() {
       .catch(() => setHealth(null));
 
     runUpdateCheck(false);
+
+    getSettings()
+      .then((settings) => setPreReleases(settings.preReleases))
+      .catch(() => setPreReleases(null));
   }, []);
 
   return (
@@ -50,6 +70,15 @@ export function AboutPage() {
               <UpdateStatus update={update} onCheck={() => runUpdateCheck(true)} />
             </dd>
           </dl>
+          {canAdminister && preReleases !== null && (
+            <div className="settings-row about-prereleases">
+              <label>
+                <input type="checkbox" checked={preReleases} onChange={(event) => void changePreReleases(event.target.checked)} />
+                {t("about.preReleases")}
+              </label>
+              <span className="print-form__hint">{t("about.preReleasesHint")}</span>
+            </div>
+          )}
           <dl className="settings-row">
             <dt>{t("settings.apiConnection")}</dt>
             <dd>

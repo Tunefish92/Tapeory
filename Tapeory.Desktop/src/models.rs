@@ -528,6 +528,8 @@ pub struct AppSettings {
     pub language: Option<String>,
     pub theme: Option<String>,
     pub unit: Option<String>,
+    /// The update check also offers pre-releases (beta versions).
+    pub pre_releases: bool,
 }
 
 #[derive(Deserialize, Clone, Debug, Default)]

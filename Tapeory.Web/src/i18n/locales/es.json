@@ -812,6 +812,8 @@
     "source": "Código fuente en GitHub",
     "issues": "Problemas conocidos y peticiones",
     "newIssue": "Informar de un problema",
-    "links": "Proyecto"
+    "links": "Proyecto",
+    "preReleases": "Ofrecer también versiones preliminares (beta)",
+    "preReleasesHint": "Las versiones beta traen funciones nuevas antes y pueden tener fallos. Haz una copia de seguridad antes de instalar una."
   }
 }

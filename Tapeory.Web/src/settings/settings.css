@@ -381,3 +381,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* The pre-release switch under the version: the checkbox, and what it means below it. */
+.about-prereleases {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.about-prereleases label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.about-prereleases .print-form__hint {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}

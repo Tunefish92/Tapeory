@@ -14,7 +14,11 @@ public class UpdateCheckerTests
     [InlineData("0.2.0", "0.2.1", false)]
     [InlineData("0.3.0-beta", "0.2.1", true)]
     [InlineData("0.6.0", "0.6.0-beta.1", true)]
-    [InlineData("0.6.0-beta.2", "0.6.0-beta.1", false)]
+    [InlineData("0.6.0-beta.2", "0.6.0-beta.1", true)]
+    [InlineData("0.6.0-beta.10", "0.6.0-beta.2", true)]
+    [InlineData("0.6.0-beta.1", "0.6.0-beta.2", false)]
+    [InlineData("0.6.0-rc.1", "0.6.0-beta.9", true)]
+    [InlineData("0.6.0-beta.1", "0.6.0", false)]
     [InlineData("0.5.0", "0.6.0-beta.1", false)]
     [InlineData("0.6.0", "0.6.0", false)]
     [InlineData(null, "0.2.1", false)]
@@ -74,6 +78,46 @@ public class UpdateCheckerTests
             "https://github.com/Tunefish92/Tapeory/releases/download/v99.0.0/Tapeory-99.0.0-windows-x64-setup.exe", 1234, "ab12"),
             result.Assets[0]);
         Assert.Null(result.Assets[1].Sha256);
+    }
+
+    private const string Releases = """
+        [
+          {"tag_name":"v99.1.0-beta.2","prerelease":true,"html_url":"https://example.com/beta2","assets":[{"name":"b2.AppImage","size":1,"browser_download_url":"https://example.com/b2"}]},
+          {"tag_name":"v99.2.0-beta.1","prerelease":true,"draft":true,"html_url":"https://example.com/draft"},
+          {"tag_name":"v99.1.0-beta.10","prerelease":true,"html_url":"https://example.com/beta10"},
+          {"tag_name":"v99.0.0","prerelease":false,"html_url":"https://example.com/full"},
+          {"tag_name":"not-a-version","prerelease":false}
+        ]
+        """;
+
+    [Fact]
+    public async Task Check_WithPreReleases_TakesTheNewestOfAllReleases()
+    {
+        var handler = new StubHandler(HttpStatusCode.OK, Releases);
+        var checker = new UpdateChecker(new HttpClient(handler), TimeProvider.System);
+
+        var result = await checker.CheckAsync(refresh: false, CancellationToken.None, preReleases: true);
+
+        Assert.Equal(UpdateChecker.ReleasesUrl, handler.LastRequest!.RequestUri!.ToString());
+        Assert.Equal(("99.1.0-beta.10", true, true, "https://example.com/beta10"),
+            (result.LatestVersion, result.UpdateAvailable, result.PreRelease, result.ReleaseUrl));
+    }
+
+    [Fact]
+    public async Task Check_WithoutPreReleases_AsksForTheLatestFullRelease_AndKeepsTheTwoAnswersApart()
+    {
+        var handler = new StubHandler(HttpStatusCode.OK, Releases);
+        var checker = new UpdateChecker(new HttpClient(handler), TimeProvider.System);
+
+        // A list answered to the plain check (a custom feed): pre-releases in it are skipped.
+        var full = await checker.CheckAsync(refresh: false, CancellationToken.None);
+        var withBetas = await checker.CheckAsync(refresh: false, CancellationToken.None, preReleases: true);
+        await checker.CheckAsync(refresh: false, CancellationToken.None);
+        await checker.CheckAsync(refresh: false, CancellationToken.None, preReleases: true);
+
+        Assert.Equal(("99.0.0", false), (full.LatestVersion, full.PreRelease));
+        Assert.Equal("99.1.0-beta.10", withBetas.LatestVersion);
+        Assert.Equal(2, handler.Calls);
     }
 
     [Fact]

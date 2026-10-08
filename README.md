@@ -446,6 +446,10 @@ server: the **About** page shows next to the version whether a newer release is 
 server asks GitHub's API for the latest Tapeory release (at most every six hours, and only while
 the settings page is opened); nothing about your installation is sent.
 
+Pre-releases (beta versions) are left out unless an administrator ticks **Also offer
+pre-releases** on the About page. They bring new features early and may still have faults, so
+make a backup before installing one.
+
 ```bash
 git pull                                      # updates docker-compose.yml and the example files
 docker compose pull && docker compose up -d   # or: docker compose up -d --build

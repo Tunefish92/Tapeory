@@ -6,7 +6,7 @@ use eframe::egui::{self};
 use crate::api::ApiResult;
 use crate::i18n::{t, tf};
 use crate::icons::Icon;
-use crate::models::{Health, UpdateCheck};
+use crate::models::{AppSettings, Health, UpdateCheck};
 use crate::task::{Pending, Task, finished};
 use crate::theme;
 use crate::ui::Ctx;
@@ -23,6 +23,10 @@ pub struct AboutPage {
     update_download: Pending<Result<std::path::PathBuf, String>>,
     update_progress: std::sync::Arc<crate::updater::Progress>,
     update_error: Option<String>,
+    /// Whether the update check also offers pre-releases; None until the setting is known.
+    pre_releases: Option<bool>,
+    pre_releases_saving: bool,
+    settings_task: Pending<ApiResult<AppSettings>>,
 }
 
 impl AboutPage {
@@ -38,6 +42,29 @@ impl AboutPage {
             let api = c.api.clone();
             self.health_task = Some(Task::spawn(c.egui, move || api.health()));
             self.check_updates(c, false);
+            let api = c.api.clone();
+            self.settings_task = Some(Task::spawn(c.egui, move || api.settings()));
+        }
+
+        // The setting as loaded, or as just saved: then the answer may differ, so ask again.
+        if let Some(result) = finished(&mut self.settings_task) {
+            match result {
+                Ok(settings) => {
+                    let changed = self.pre_releases.is_some_and(|shown| shown != settings.pre_releases) || self.pre_releases_saving;
+                    self.pre_releases = Some(settings.pre_releases);
+                    if changed {
+                        self.pre_releases_saving = false;
+                        self.check_updates(c, true);
+                    }
+                }
+                Err(error) => {
+                    if self.pre_releases_saving {
+                        self.pre_releases_saving = false;
+                        self.pre_releases = self.pre_releases.map(|value| !value);
+                    }
+                    c.failed(&error);
+                }
+            }
         }
 
         if let Some(Ok(health)) = finished(&mut self.health_task) {
@@ -124,6 +151,18 @@ impl AboutPage {
                 });
             });
             self.update_status(ui);
+            if let Some(mut wanted) = self.pre_releases.filter(|_| c.can_administer()) {
+                ui.add_space(4.0);
+                let saving = self.pre_releases_saving;
+                if ui.add_enabled(!saving, egui::Checkbox::new(&mut wanted, t("about.preReleases"))).changed() {
+                    self.pre_releases = Some(wanted);
+                    self.pre_releases_saving = true;
+                    let api = c.api.clone();
+                    self.settings_task =
+                        Some(Task::spawn(c.egui, move || api.update_settings(&serde_json::json!({ "preReleases": wanted }))));
+                }
+                widgets::muted_small(ui, &t("about.preReleasesHint"));
+            }
             ui.separator();
             if let Some(health) = &self.health {
                 path_row(ui, &t("settings.storagePath"), &health.storage_path);

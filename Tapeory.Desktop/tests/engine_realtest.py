@@ -138,7 +138,10 @@ status, state = js("GET", "/api/auth/state")
 check("auth state: desktop, no accounts", status == 200 and state["desktop"] and not state["hasUsers"], state)
 status, settings = js("PUT", "/api/settings", {"language": "de", "theme": "dark", "unit": "inch"})
 check("save settings", status == 200 and settings["unit"] == "inch", settings)
-check("read settings back", js("GET", "/api/settings")[1] == {"language": "de", "theme": "dark", "unit": "inch"})
+check("read settings back", js("GET", "/api/settings")[1] == {"language": "de", "theme": "dark", "unit": "inch", "preReleases": False})
+check("switch pre-releases on for the update check", js("PUT", "/api/settings", {"preReleases": True})[1]["preReleases"] is True
+      and js("GET", "/api/settings")[1]["language"] == "de")
+js("PUT", "/api/settings", {"preReleases": False})
 js("PUT", "/api/settings", {"language": "en", "theme": "system", "unit": "mm"})
 
 # ---- fonts, barcodes, uploads -----------------------------------------------------------------

@@ -795,6 +795,8 @@
     "source": "Quellcode auf GitHub",
     "issues": "Bekannte Probleme und Wünsche",
     "newIssue": "Problem melden",
-    "links": "Projekt"
+    "links": "Projekt",
+    "preReleases": "Auch Vorabversionen (Betaversionen) anbieten",
+    "preReleasesHint": "Betaversionen bringen neue Funktionen früher und können noch Fehler haben. Lege vor der Installation eine Sicherung an."
   }
 }

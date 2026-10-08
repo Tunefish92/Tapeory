@@ -108,4 +108,40 @@ describe("AboutPage", () => {
     expect(screen.getByRole("link", { name: "Known problems and requests" })).toHaveAttribute("href", `${repository}/issues`);
     expect(screen.getByRole("link", { name: "Report a problem" })).toHaveAttribute("href", `${repository}/issues/new`);
   });
+
+  it("lets pre-releases be switched on, saves that, and checks for updates again", async () => {
+    let preReleases = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/settings")) {
+        if (init?.method === "PUT") preReleases = (JSON.parse(String(init.body)) as { preReleases: boolean }).preReleases;
+        return jsonResponse({ language: null, theme: null, unit: null, preReleases });
+      }
+      if (url.includes("/api/updates")) {
+        return jsonResponse({
+          currentVersion: "0.5.0",
+          latestVersion: preReleases ? "0.6.0-beta.2" : "0.5.0",
+          updateAvailable: preReleases,
+          preRelease: preReleases,
+          releaseUrl: "https://github.com/Tunefish92/Tapeory/releases/tag/v0.6.0-beta.2",
+          checkedAt: "2026-10-08T10:00:00Z",
+          errorMessage: null,
+        });
+      }
+      return jsonResponse({ status: "ok", storagePath: "/data", databaseConnected: true });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+
+    const box = await screen.findByLabelText("Also offer pre-releases (beta versions)");
+    expect(box).not.toBeChecked();
+    expect(await screen.findByText("Up to date")).toBeInTheDocument();
+
+    fireEvent.click(box);
+
+    expect(await screen.findByText("Version 0.6.0-beta.2 available")).toBeInTheDocument();
+    expect(box).toBeChecked();
+    expect(fetchMock).toHaveBeenCalledWith("/api/settings", expect.objectContaining({ method: "PUT", body: JSON.stringify({ preReleases: true }) }));
+  });
 });

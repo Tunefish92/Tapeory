@@ -8,6 +8,11 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+### Added
+- The About page has a checkbox **Also offer pre-releases (beta versions)**, off by default.
+  With it, the update check also finds beta versions, and the desktop app can update itself to
+  one. A beta is offered the next beta and the final release. Administrators can change it.
+
 ### Fixed
 - Docker Compose setup: a database password with a `$` (or `#`, or quotes) in `.env` reached
   MySQL shortened or changed, so the first-start setup answered "Access denied" for the password
