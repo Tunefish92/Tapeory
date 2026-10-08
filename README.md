@@ -163,15 +163,22 @@ Good to know:
 
 ## Quick start (Docker)
 
-Requirements: Docker and Docker Compose.
+Requirements: Docker and Docker Compose 2.30 or newer.
 
 ```bash
 git clone https://github.com/Tunefish92/Tapeory.git tapeory && cd tapeory
 cp .env.example .env
-# edit .env: set MYSQL_ROOT_PASSWORD and MYSQL_PASSWORD to real values
+cp mysql.env.example mysql.env
+# edit mysql.env: set MYSQL_ROOT_PASSWORD and MYSQL_PASSWORD to real values
 docker compose pull
 docker compose up -d
 ```
+
+> [!WARNING]
+> **Don't use a single quote (`'`) or a backslash (`\`) in the passwords in `mysql.env`.** Every
+> other character is fine (`$`, `#`, `&`, `%`, `"`, spaces, `ä`, `€`), written as it is, without
+> quotes around the password. With `'` or `\`, MySQL doesn't start; `docker compose logs mysql`
+> says why.
 
 This runs the prebuilt image `ghcr.io/tunefish92/tapeory` (for `amd64` and `arm64`) next to a
 MySQL 8.4 container. The same image is on Docker Hub as
@@ -245,7 +252,19 @@ On first start, Tapeory asks for its database connection in the browser. With th
 | Port | `3306` |
 | Database name | `MYSQL_DATABASE` from `.env` (default `tapeory`) |
 | Username | `MYSQL_USER` from `.env` (default `tapeory`) |
-| Password | `MYSQL_PASSWORD` from `.env` |
+| Password | `MYSQL_PASSWORD` from `mysql.env` |
+
+> [!WARNING]
+> **The passwords in `mysql.env` must not contain a single quote (`'`) or a backslash (`\`).**
+> The MySQL image can't create its accounts with them. On a first start with one of them, or
+> without a password, the MySQL container stops and `docker compose logs mysql` says why.
+
+Apart from those two characters, the passwords in `mysql.env` are taken exactly as written: `$`,
+`#`, `&`, `%`, `"`, spaces and letters like `ä` or `€` are all fine, and nothing needs quoting or
+escaping (quotes around a password would become part of it). The passwords have their own file
+for a reason: in `.env`, Docker Compose would read `$word` as a variable and hand MySQL a
+shortened password. MySQL takes the passwords on its first start only; to change them later,
+change them in MySQL too, or remove the `mysql-data` volume to start with an empty database.
 
 **Test connection** checks the details without saving them. **Save and continue** creates the
 tables and saves the connection to `config/database.json` in the storage folder (`/data` in the
@@ -261,14 +280,18 @@ administrator; from then on, everyone has to sign in. See [Users](#users).
 
 ### Configuration
 
-`docker-compose.yml` reads these environment variables from `.env`:
+`docker-compose.yml` reads the two passwords from `mysql.env` and everything else from `.env`:
+
+> [!WARNING]
+> **No single quote (`'`) and no backslash (`\`) in `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD`.**
+> Every other character is allowed, written as it is.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `MYSQL_ROOT_PASSWORD` | — (required) | MySQL root password |
+| `MYSQL_ROOT_PASSWORD` | — (required, in `mysql.env`) | MySQL root password |
 | `MYSQL_DATABASE` | `tapeory` | Database name |
 | `MYSQL_USER` | `tapeory` | Application database user |
-| `MYSQL_PASSWORD` | — (required) | Application database user's password |
+| `MYSQL_PASSWORD` | — (required, in `mysql.env`) | Application database user's password |
 | `TAPEORY_PORT` | `8080` | Host port the app is served on |
 | `TAPEORY_STORAGE_HOST_PATH` | `./tapeory-data` | Host folder mapped to the app's `/data`, which holds templates, uploads, and rendered print output |
 | `PUID` / `PGID` | `1000` / `1000` | User and group that own the storage folder; the app runs as this user |
@@ -424,9 +447,17 @@ server asks GitHub's API for the latest Tapeory release (at most every six hours
 the settings page is opened); nothing about your installation is sent.
 
 ```bash
-git pull                                      # updates docker-compose.yml and .env.example
+git pull                                      # updates docker-compose.yml and the example files
 docker compose pull && docker compose up -d   # or: docker compose up -d --build
 ```
+
+Installations from before 0.6.0 have the database passwords in `.env`. They keep working as they
+are; `mysql.env` is only needed for a new installation, or if you want to move the passwords
+there.
+
+> [!WARNING]
+> **When you move the passwords to `mysql.env` or set new ones: no single quote (`'`) and no
+> backslash (`\`).** Write the password exactly as MySQL has it, without quotes around it.
 
 Database migrations apply automatically on startup. To apply them yourself, set
 `TAPEORY_AUTO_MIGRATE=false`. Before starting the container, run the migrations from a
@@ -480,7 +511,11 @@ docker compose exec mysql sh -c 'exec mysqldump -u root -p"$MYSQL_ROOT_PASSWORD"
 tar -czf tapeory-storage-backup.tar.gz -C ./tapeory-data .
 ```
 
-**Restore** (onto a fresh install with the same `.env`):
+**Restore** (onto a fresh install with the same `.env` and `mysql.env`):
+
+> [!WARNING]
+> **A fresh install creates MySQL's accounts again, so the passwords in `mysql.env` must not
+> contain a single quote (`'`) or a backslash (`\`).**
 
 ```bash
 docker compose up -d mysql
@@ -557,6 +592,8 @@ Tapeory is released under the [MIT License](LICENSE).
 
 ## Known limitations
 
+- **Docker Compose: the database passwords can't contain a single quote (`'`) or a backslash
+  (`\`).** The MySQL image can't create its accounts with them. Every other character works.
 - **Only Brother PT and QL printers with a published raster protocol can print** (34 models, see
   [Supported printers](docs/printers.md)). Brother's TD, RJ and PJ series, and P-touch models
   without a published protocol (such as the PT-D610BT or PT-D800W), aren't supported.

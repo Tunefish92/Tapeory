@@ -8,6 +8,18 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+- Docker Compose setup: a database password with a `$` (or `#`, or quotes) in `.env` reached
+  MySQL shortened or changed, so the first-start setup answered "Access denied" for the password
+  that was meant. The passwords now have their own file, `mysql.env`, which is passed to MySQL
+  exactly as written. Only `'` and `\` remain unusable, a limit of the MySQL image; on a first
+  start with one of them, or without a password, MySQL now stops with a message that says so. Existing
+  installations with the passwords in `.env` keep working. This needs Docker Compose 2.30 or
+  newer.
+- Docker Compose setup: the app could start while MySQL was still creating the database on
+  its first start, and the setup then answered "Unable to connect". The health check now waits
+  for the real server, and MySQL gets 90 seconds before it counts as unhealthy.
+
 ## [0.6.0-beta.2] - 2026-10-04
 
 ### Fixed
