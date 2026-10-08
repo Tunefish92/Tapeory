@@ -1,6 +1,6 @@
 [package]
 name = "tapeory-desktop"
-version = "0.6.0-beta.2"
+version = "0.6.0-beta.3"
 edition = "2024"
 description = "Tapeory as a desktop app: an egui interface on top of Tapeory's engine."
 license = "MIT"

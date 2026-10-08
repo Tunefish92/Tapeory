@@ -8,6 +8,8 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.6.0-beta.3] - 2026-10-08
+
 ### Added
 - The About page has a checkbox **Also offer pre-releases (beta versions)**, off by default.
   With it, the update check also finds beta versions, and the desktop app can update itself to
@@ -414,7 +416,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.2...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.3...HEAD
+[0.6.0-beta.3]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.2...v0.6.0-beta.3
 [0.6.0-beta.2]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.1...v0.6.0-beta.2
 [0.6.0-beta.1]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0-beta.1
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
