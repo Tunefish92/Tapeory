@@ -552,6 +552,16 @@ opens the app. The image carries both as labels (`net.unraid.docker.icon` and
 `net.unraid.docker.webui`), so they also work for a container started without the template,
 for example with Compose.
 
+## A note about this project
+
+I'm a hobby programmer with an interest in coding and software development. I can read and write
+code, but for this project, I used Claude AI as a development assistant to help me turn my ideas
+into a working project.
+
+I believe AI is a useful tool for learning, experimenting, and bringing ideas to life. I want to be
+transparent about how this project was created and acknowledge the role AI played in its
+development.
+
 ## Support
 
 Ask questions and share ideas in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions),
