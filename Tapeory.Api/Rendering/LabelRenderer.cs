@@ -289,12 +289,25 @@ public sealed class LabelRenderer
         var lineHeight = fontSizeMm * TextFitter.LineHeightFactor;
         var lines = fitted.Lines;
 
+        var firstBaseline = BaselineInLine(font, lineHeight);
+
         for (var i = 0; i < lines.Count; i++)
         {
-            // Approximate baseline: text sits roughly 0.8x its size below the top of its line.
-            var baselineY = lineHeight * i + fontSizeMm * 0.8f;
-            canvas.DrawText(lines[i], originX, baselineY, textAlign, font, paint);
+            canvas.DrawText(lines[i], originX, lineHeight * i + firstBaseline, textAlign, font, paint);
         }
+    }
+
+    /// <summary>
+    /// Where the baseline sits below the top of a line, placed the way the editor (Konva) does it:
+    /// the font's ascent and descent are centred in the line. A fixed fraction of the font size
+    /// would put the text higher or lower than in the editor, depending on the font.
+    /// </summary>
+    private static float BaselineInLine(SKFont font, float lineHeight)
+    {
+        var metrics = font.Metrics;
+        var ascent = -metrics.Ascent;
+        var descent = metrics.Descent;
+        return (ascent - descent) / 2f + lineHeight / 2f;
     }
 
     private static void DrawRect(SKCanvas canvas, RenderableRect rect)
@@ -453,8 +466,9 @@ public sealed class LabelRenderer
             font.Size = fontSize * width / measured;
         }
 
+        // As the editor draws it: a line as tall as the font, starting a tenth into the text area.
         using var paint = new SKPaint { Color = ColorParser.Parse(fill, SKColors.Black), IsAntialias = true };
-        canvas.DrawText(text, width / 2f, top + height * 0.85f, SKTextAlign.Center, font, paint);
+        canvas.DrawText(text, width / 2f, top + height * 0.1f + BaselineInLine(font, font.Size), SKTextAlign.Center, font, paint);
     }
 
     private static void DrawBarcodePlaceholder(SKCanvas canvas, float width, float height)
