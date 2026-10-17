@@ -9,14 +9,18 @@ versions may include breaking changes.
 ## [Unreleased]
 
 ### Fixed
-- Printing: the **Quantity** field (and **Copies of each label** in bulk printing) jumped straight
-  back to 1 when emptied, so on a phone a quantity from 2 to 9 couldn't be entered. The field can
-  now be cleared while typing; leaving it empty puts back the last number.
+- Web app: number fields jumped back to 1 (or 0) as soon as they were emptied, so on a phone a
+  quantity from 2 to 9 couldn't be entered. This affected **Quantity**, the bulk print's **Copies
+  of each label** and **Label … of …**, the printer's port, the label width and the editor's
+  position, size, rotation and font size fields. They can now be cleared while typing; leaving
+  one empty puts back the last number.
 - Printed text sat higher on the label than in the editor, by about 0.15 × the font size (about
   1.3 mm at 24 pt). The print renderer guessed where a line's baseline goes; it now uses the
   font's own ascent and descent, as the editor does, so text prints where it was placed. The
   number under a 1D barcode is placed the same way. Templates don't need to be changed: their
   text now prints where the editor already showed it.
+- Desktop app: the label editor drew text slightly higher than the web editor and the print (by
+  half the font's line gap); it now places text lines the same way.
 
 ## [0.6.0-beta.3] - 2026-10-08
 

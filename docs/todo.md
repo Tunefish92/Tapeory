@@ -16,7 +16,7 @@ bulk print page's **Copies of each label** field (`BulkPrintPage.tsx`, `clampCop
 `onChange`) has the same problem.
 
 **Plan**
-- [x] A shared whole-number input (e.g. `Tapeory.Web/src/components/CountInput.tsx`) that keeps
+- [x] A shared number input (`Tapeory.Web/src/components/NumberInput.tsx`) that keeps
       the typed text as its own state, passes on only whole numbers within min…max, and puts back
       the last valid number when the field is left empty or invalid (on blur). `inputMode="numeric"`
       for the phone keypad.
@@ -24,9 +24,11 @@ bulk print page's **Copies of each label** field (`BulkPrintPage.tsx`, `clampCop
 - [x] Tests: the field can be emptied and retyped with one digit; empty or out-of-range input is
       restored on blur. CHANGELOG entry under Fixed.
 - [ ] Try it on a phone (iOS Safari and Android Chrome): clear the field, type 2…9, print.
-- [ ] Optional: the same per-keystroke pattern is in the printer port (`PrintersPage.tsx`), label
-      width (`LabelSizeFields.tsx`) and the number fields in `PropertiesPanel.tsx`; switch them
-      over if they show the same problem.
+- [x] The same pattern elsewhere in the web app, now `NumberInput` too: printer port
+      (`PrintersPage.tsx`), label width (`LabelSizeFields.tsx`), the editor's number fields
+      (`PropertiesPanel.tsx`) and the bulk print's "Label … of …" field.
+- [x] Desktop app (Linux/Windows): quantity and copies use egui's `DragValue`, which keeps the
+      typed text while editing and ignores an empty field, so it never had this problem.
 
 **Done when** any quantity from 1 to the maximum can be typed on a phone and is printed that
 many times.
@@ -82,6 +84,16 @@ many times.
       Roboto 36 pt, baseline within 0.15 mm; the old code was 1.8 mm high); CHANGELOG entry.
 - [ ] More such tests: text box top/centre positions within ~1 px at print dpi for
       several fonts and sizes; CHANGELOG entry.
+
+**Checked across the apps**
+- [x] Web editor (Konva): the reference. In Chromium, Roboto's ascent/descent come out as the
+      server reads them (baseline 0.945 vs 0.942 × size, rounding).
+- [x] Server preview and print (web and desktop app both print through the .NET engine):
+      `LabelRenderer` fixed.
+- [x] Desktop editor (egui, `canvas.rs`): it centred egui's text row in the line, and that row
+      also holds the font's line gap, so text sat half a line gap higher. It now centres ascent
+      plus descent, read from the font file (`fonts.rs`), and places barcode text like the
+      renderer.
 
 **Remaining difference:** the editor takes the ascent and descent from the browser. Chrome on
 Windows may use the font's Windows metrics, which for Roboto put the baseline ~0.05 × the size

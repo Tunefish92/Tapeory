@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useUnits } from "../settings/AppSettingsContext";
+import { NumberInput } from "../components/NumberInput";
 import { findMediaPreset, getMediaPreset, MEDIA_GROUPS, MEDIA_PRESETS, type MediaPreset } from "./brotherMedia";
 
 export interface LabelSizePatch {
@@ -70,14 +71,13 @@ export function LabelSizeFields({ widthMm, heightMm, media, onChange }: LabelSiz
 
       <label className="properties-field">
         {t("editor.metadataWidth", { unit: units.symbol })}
-        <input
-          type="number"
+        <NumberInput
           min={0}
           step={units.step}
           value={units.toDisplay(widthMm)}
           disabled={dieCut}
           title={dieCut ? t("editor.widthFixedByLabel") : undefined}
-          onChange={(e) => onChange({ widthMm: units.fromDisplay(Number(e.target.value)) })}
+          onChange={(display) => onChange({ widthMm: units.fromDisplay(display) })}
         />
       </label>
     </>

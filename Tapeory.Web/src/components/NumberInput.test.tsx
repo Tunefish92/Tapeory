@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CountInput } from "./CountInput";
+import { NumberInput } from "./NumberInput";
 
 function Harness({ max }: { max?: number }) {
   const [count, setCount] = useState(1);
@@ -9,14 +9,14 @@ function Harness({ max }: { max?: number }) {
     <>
       <label>
         Count
-        <CountInput value={count} max={max} onChange={setCount} />
+        <NumberInput integer min={1} value={count} max={max} onChange={setCount} />
       </label>
       <output>{count}</output>
     </>
   );
 }
 
-describe("CountInput", () => {
+describe("NumberInput", () => {
   it("can be emptied and retyped with a single digit", () => {
     render(<Harness />);
     const input = screen.getByLabelText("Count") as HTMLInputElement;
@@ -41,5 +41,28 @@ describe("CountInput", () => {
     expect(screen.getByRole("status")).toHaveTextContent("99");
     fireEvent.blur(input);
     expect(input.value).toBe("99");
+  });
+
+  it("takes decimals and negative numbers when not limited to whole numbers", () => {
+    function Decimal() {
+      const [mm, setMm] = useState(10);
+      return (
+        <>
+          <label>
+            X
+            <NumberInput value={mm} onChange={setMm} />
+          </label>
+          <output>{mm}</output>
+        </>
+      );
+    }
+    render(<Decimal />);
+    const input = screen.getByLabelText("X") as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: "" } });
+    expect(screen.getByRole("status")).toHaveTextContent("10");
+    fireEvent.change(input, { target: { value: "-2.5" } });
+    expect(screen.getByRole("status")).toHaveTextContent("-2.5");
+    expect(input.value).toBe("-2.5");
   });
 });
