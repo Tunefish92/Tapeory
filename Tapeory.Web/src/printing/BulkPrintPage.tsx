@@ -17,6 +17,7 @@ import {
   saveBulkPrintProfile,
   type BulkPrintProfile,
 } from "../api/bulkPrintProfiles";
+import { CountInput } from "../components/CountInput";
 import { PrinterIcon, TrashIcon } from "../components/icons";
 import { Pager } from "../components/Pager";
 import { ProgressBar } from "../components/ProgressBar";
@@ -1051,13 +1052,7 @@ export function BulkPrintPage() {
               {errorCount > 0 && <p className="print-form__hint">{t("printing.bulk.check.summaryErrors", { count: errorCount })}</p>}
               <label className="properties-field bulk-copies">
                 {t("printing.bulk.check.copies")}
-                <input
-                  type="number"
-                  min={1}
-                  max={MAX_COPIES}
-                  value={copies}
-                  onChange={(event) => setCopies(clampCopies(Number(event.target.value)))}
-                />
+                <CountInput max={MAX_COPIES} value={copies} onChange={setCopies} />
                 {quantityColumn !== null && <span className="print-form__hint">{t("printing.bulk.check.copiesHint")}</span>}
               </label>
               {saveProfileBlock}
