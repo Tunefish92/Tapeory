@@ -4,22 +4,26 @@ Open items, newest last. Each says what is wrong, what is known so far and what 
 
 ## 1. Quantity field can't be cleared on a phone
 
-**Status:** fix written on the branch `ccr-c7be2179-6ufzhu`, not yet tried on a phone, not merged
-· **Reported:** 2026-10-17
+**Status:** open, investigated only · **Reported:** 2026-10-17
 
 > Mobile: Quantity cannot be deleted. So it's not possible to print 2–9, only 1 or ≥ 10.
 
-**Cause:** the quantity field on the print page clamped its value on every keystroke
-(`Math.max(1, Number(""))` is 1), so emptying it put "1" straight back and the next digit made
-"12", "15", … The bulk print page's **Copies of each label** field had the same problem.
+**Cause (confirmed in code):** the quantity field on the print page
+(`Tapeory.Web/src/printing/PrintTemplatePage.tsx`) clamps its value on every keystroke:
+`onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}`. Emptying the field gives
+`Number("")` = 0, which is clamped back to 1 at once, so the next digit makes "12", "15", … The
+bulk print page's **Copies of each label** field (`BulkPrintPage.tsx`, `clampCopies` in
+`onChange`) has the same problem.
 
 **Plan**
-- [x] A shared `CountInput` (`Tapeory.Web/src/components/CountInput.tsx`) that keeps the typed
-      text, passes on whole numbers within min…max, and puts back the last number when left empty.
-- [x] Use it for the quantity (`PrintTemplatePage.tsx`) and the bulk copies (`BulkPrintPage.tsx`).
-- [x] Tests (`CountInput.test.tsx`), CHANGELOG entry.
+- [ ] A shared whole-number input (e.g. `Tapeory.Web/src/components/CountInput.tsx`) that keeps
+      the typed text as its own state, passes on only whole numbers within min…max, and puts back
+      the last valid number when the field is left empty or invalid (on blur). `inputMode="numeric"`
+      for the phone keypad.
+- [ ] Use it for the quantity (`PrintTemplatePage.tsx`) and the bulk copies (`BulkPrintPage.tsx`).
+- [ ] Tests: the field can be emptied and retyped with one digit; empty or out-of-range input is
+      restored on blur. CHANGELOG entry under Fixed.
 - [ ] Try it on a phone (iOS Safari and Android Chrome): clear the field, type 2…9, print.
-- [ ] Merge.
 - [ ] Optional: the same per-keystroke pattern is in the printer port (`PrintersPage.tsx`), label
       width (`LabelSizeFields.tsx`) and the number fields in `PropertiesPanel.tsx`; switch them
       over if they show the same problem.

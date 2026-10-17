@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getTemplate, type TemplateDetailResponse } from "../api/templates";
 import { createPrintJob, previewTemplate } from "../api/printJobs";
-import { CountInput } from "../components/CountInput";
 import { PrinterIcon } from "../components/icons";
 import { PrintModeSwitch } from "./PrintModeSwitch";
 import { PrintOptionsFields, usePrintOptions } from "./PrintOptions";
@@ -141,7 +140,12 @@ export function PrintTemplatePage() {
 
           <label className="properties-field">
             {t("printing.printTemplate.quantity")}
-            <CountInput value={quantity} onChange={setQuantity} />
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            />
           </label>
 
           <PrintOptionsFields options={options} />

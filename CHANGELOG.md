@@ -8,11 +8,6 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
-### Fixed
-- Printing: the **Quantity** field (and **Copies of each label** in bulk printing) jumped straight
-  back to 1 when emptied, so on a phone a quantity from 2 to 9 couldn't be entered. The field can
-  now be cleared while typing; leaving it empty puts back the last number.
-
 ## [0.6.0-beta.3] - 2026-10-08
 
 ### Added
