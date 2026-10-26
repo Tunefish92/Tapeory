@@ -808,6 +808,7 @@
     "intro": "Tapeory was updated. Here’s what’s new:",
     "whatsNew": "What’s new",
     "englishOnly": "The release notes are in English.",
+    "severalVersions": "Changes in {{count}} versions, newest first:",
     "allNotes": "Release notes on GitHub",
     "close": "Got it"
   }

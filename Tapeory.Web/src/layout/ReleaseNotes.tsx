@@ -77,7 +77,7 @@ export function ReleaseNotes({ markdown }: { markdown: string }) {
     <>
       {parseReleaseNotes(markdown).map((block, i) => (
         <Fragment key={i}>
-          {block.kind === "heading" && <h4>{renderInline(block.text)}</h4>}
+          {block.kind === "heading" && <h5>{renderInline(block.text)}</h5>}
           {block.kind === "paragraph" && <p>{renderInline(block.text)}</p>}
           {block.kind === "list" && (
             <ul>

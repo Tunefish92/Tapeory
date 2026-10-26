@@ -91,6 +91,9 @@ export interface InstalledVersion {
   updated: boolean;
   /** The version before the update; null when it isn't known. */
   previousVersion: string | null;
+  /** Show the changes of every version after this one (the previous version, or for an unknown
+   * one the oldest it can have been). */
+  changesSince: string | null;
   updatedAt: string | null;
 }
 

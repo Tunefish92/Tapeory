@@ -394,12 +394,29 @@
   line-height: 1.5;
 }
 
-.updated-dialog__notes h4 {
+.updated-dialog__notes h5 {
   margin: 0.9rem 0 0.35rem;
   font-size: var(--fs-sm);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
+}
+
+.updated-dialog__version {
+  margin: 1.1rem 0 0.2rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-base);
+}
+
+.updated-dialog__version span {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+
+.updated-dialog__release:first-of-type .updated-dialog__version {
+  margin-top: 0.6rem;
 }
 
 .updated-dialog__notes ul {
