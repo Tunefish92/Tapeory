@@ -218,7 +218,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.5.0`, `0.4.0`, … | One specific release (from Git tags such as `v0.5.0`) |
+| `0.6.0`, `0.5.0`, … | One specific release (from Git tags such as `v0.6.0`) |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
 `tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
@@ -454,6 +454,9 @@ make a backup before installing one.
 git pull                                      # updates docker-compose.yml and the example files
 docker compose pull && docker compose up -d   # or: docker compose up -d --build
 ```
+
+After an update, the web app shows once in each browser what the new version brings, with a link
+to the full release notes.
 
 Installations from before 0.6.0 have the database passwords in `.env`. They keep working as they
 are; `mysql.env` is only needed for a new installation, or if you want to move the passwords
@@ -718,7 +721,7 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.5.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.6.0 && git push --tags`.
 The tag's CI run attaches the desktop packages to the GitHub release (and creates the release if
 it doesn't exist yet).
 

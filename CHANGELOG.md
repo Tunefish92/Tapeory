@@ -8,48 +8,10 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
-## [0.6.0-beta.3] - 2026-10-08
+## [0.6.0] - 2026-10-26
 
-### Added
-- The About page has a checkbox **Also offer pre-releases (beta versions)**, off by default.
-  With it, the update check also finds beta versions, and the desktop app can update itself to
-  one. A beta is offered the next beta and the final release. Administrators can change it.
-
-### Fixed
-- Docker Compose setup: a database password with a `$` (or `#`, or quotes) in `.env` reached
-  MySQL shortened or changed, so the first-start setup answered "Access denied" for the password
-  that was meant. The passwords now have their own file, `mysql.env`, which is passed to MySQL
-  exactly as written. Only `'` and `\` remain unusable, a limit of the MySQL image; on a first
-  start with one of them, or without a password, MySQL now stops with a message that says so. Existing
-  installations with the passwords in `.env` keep working. This needs Docker Compose 2.30 or
-  newer.
-- Docker Compose setup: the app could start while MySQL was still creating the database on
-  its first start, and the setup then answered "Unable to connect". The health check now waits
-  for the real server, and MySQL gets 90 seconds before it counts as unhealthy.
-- QL printers: a label made for a continuous roll was printed as a die-cut label when its size
-  happened to match one, for example a new template (62 × 29 mm on DK-22210), which was sent as
-  the die-cut DK-11209. It now stays on the roll that was chosen, and the editor's dashed line
-  no longer shows blank ends for it.
-- A print job that was stopped is now called **Stopped**; "Not printed" is only said of the
-  rows that didn't come out.
-- Desktop app: notifications appear at the bottom centre, where they no longer cover Save and
-  Publish in the editor.
-
-## [0.6.0-beta.2] - 2026-10-04
-
-### Fixed
-- Desktop app: a long storage or log path on the About page pushed its card wider than the
-  window and overlapped the labels. Each path now has its own line and wraps inside the card.
-
-### Changed
-- The About page looks the same in the web app and the desktop app: the app's card beside the
-  project's card, whose links are three buttons one below the other.
-
-## [0.6.0-beta.1] - 2026-10-04
-
-A beta for testing: bulk printing from a file or a web address, saved profiles, and the
-editor's printable-area line and elements list. Published as a pre-release; `latest` and the
-update check stay on 0.5.0.
+Bulk printing from a file or a web address, saved profiles, template files with their images,
+and an editor that shows what can't be printed.
 
 ### Added
 - Template files: every template has a **Download** button (cards, list rows and the desktop
@@ -88,7 +50,8 @@ update check stay on 0.5.0.
   - Up to 5,000 rows and 100 MB per file.
 - Print jobs with many rows go to the printer in batches of 25 labels instead of one by one, and
   the job page shows a progress bar. **Stop printing** ends a job after the labels already at the
-  printer, and **Print the missing rows** creates a new job from the rows that didn't come out.
+  printer and shows it as **Stopped**, and **Print the missing rows** creates a new job from the
+  rows that didn't come out.
 - The editor shows what can't be printed: a dashed line on the label marks the printable area,
   with a short note of how much stays blank. Brother's print heads are narrower than the tape,
   and each tape or roll has its own limits, taken from Brother's Raster Command References: a
@@ -100,12 +63,18 @@ update check stay on 0.5.0.
   the − and + buttons.
 - The editor has an **Elements** card: everything on the label by name, in alphabetical order.
   A click selects the element; the bin deletes it.
+- The About page has a checkbox **Also offer pre-releases (beta versions)**, off by default.
+  With it, the update check also finds beta versions, and the desktop app can update itself to
+  one. A beta is offered the next beta and the final release. Administrators can change it.
+- After an update, the web app shows once what the new version brings: a dialog with this
+  version's release notes and a link to them on GitHub, the first time each browser opens
+  Tapeory after the update. New installations don't show it.
 
 ### Changed
 - **About** is its own page in the navigation: the version with the update check, the storage
   path and, in the desktop app, the log folder and the application menu entry moved there from
   Settings. It also links to the project on GitHub, to its issues, and to the form for
-  reporting a problem.
+  reporting a problem. It looks the same in the web app and the desktop app.
 - Printing is easier to find: the print pages have a large **Single label / Bulk print** switch,
   the buttons that send labels to the printer are large with a printer icon, the template
   editor's **Print…** button and the template cards' **Print** button stand out, and the
@@ -117,8 +86,24 @@ update check stay on 0.5.0.
 - When the printer reports an error during a job with several rows, the job now stops there
   and marks the remaining rows as not printed, instead of sending each of them to a printer that
   needs attention.
+- Desktop app: notifications appear at the bottom centre, where they no longer cover Save and
+  Publish in the editor.
 
 ### Fixed
+- Docker Compose setup: a database password with a `$` (or `#`, or quotes) in `.env` reached
+  MySQL shortened or changed, so the first-start setup answered "Access denied" for the password
+  that was meant. The passwords now have their own file, `mysql.env`, which is passed to MySQL
+  exactly as written. Only `'` and `\` remain unusable, a limit of the MySQL image; on a first
+  start with one of them, or without a password, MySQL now stops with a message that says so. Existing
+  installations with the passwords in `.env` keep working. This needs Docker Compose 2.30 or
+  newer.
+- Docker Compose setup: the app could start while MySQL was still creating the database on
+  its first start, and the setup then answered "Unable to connect". The health check now waits
+  for the real server, and MySQL gets 90 seconds before it counts as unhealthy.
+- QL printers: a label made for a continuous roll was printed as a die-cut label when its size
+  happened to match one, for example a new template (62 × 29 mm on DK-22210), which was sent as
+  the die-cut DK-11209. It now stays on the roll that was chosen, and the editor's dashed line
+  no longer shows blank ends for it.
 - A round 24 mm DK label (DK-11218) was taken for the 23 × 23 mm square label when printing,
   because both are within the size tolerance; the label closest in size is used now.
 
@@ -424,10 +409,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.3...HEAD
-[0.6.0-beta.3]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.2...v0.6.0-beta.3
-[0.6.0-beta.2]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0-beta.1...v0.6.0-beta.2
-[0.6.0-beta.1]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0-beta.1
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Tunefish92/Tapeory/compare/v0.2.1...v0.3.0
