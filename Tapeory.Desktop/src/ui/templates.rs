@@ -116,16 +116,18 @@ impl TemplatesPage {
                 c.go(Route::Editor(None));
             }
             let importing = self.import.is_some();
-            let label = if importing { t("templates.importing") } else { t("templates.importLbx") };
+            let label = if importing { t("templates.importing") } else { t("templates.import") };
             if widgets::button_enabled(ui, !importing, &label).clicked() {
                 let api = c.api.clone();
                 let filter = t("desktop.importFilter");
                 self.import = Some(Task::spawn(c.egui, move || {
-                    let path = crate::ui::pick_file((filter, &["lbx", "json"])).ok_or_else(ApiError::cancelled)?;
-                    if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("json")) {
-                        api.import_template(std::fs::read(&path).map_err(ApiError::io)?)
-                    } else {
+                    // A P-touch Editor label is converted; anything else is a Tapeory template file
+                    // (".tapeory", or ".tapeory.json" from before 0.6).
+                    let path = crate::ui::pick_file((filter, &["tapeory", "lbx", "json"])).ok_or_else(ApiError::cancelled)?;
+                    if path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("lbx")) {
                         api.import_lbx(&path)
+                    } else {
+                        api.import_template(std::fs::read(&path).map_err(ApiError::io)?)
                     }
                 }));
             }
@@ -372,24 +374,30 @@ impl TemplatesPage {
                     egui::Layout::right_to_left(egui::Align::Center),
                     |ui| {
                         ui.spacing_mut().item_spacing.x = 4.0;
-                        if ui.add(PillButton::new(&t("templates.print"), Kind::Primary).small()).clicked() {
-                            c.go(Route::Print(template.id));
-                        }
                         if template.can_edit && ui.add(PillButton::new(&t("common.edit"), Kind::Secondary).small()).clicked() {
                             c.go(Route::Editor(Some(template.id)));
                         }
                         self.icon_actions(ui, c, template);
                     },
                 );
+
+                // Printing is what a template is for: its button spans the card.
+                ui.add_space(8.0);
+                let (label, width) = (t("templates.print"), ui.available_width());
+                if ui.add(PillButton::new(&label, Kind::Primary).icon(Icon::Printer).min_width(width)).clicked() {
+                    c.go(Route::Print(template.id));
+                }
             });
         });
     }
 
     /// Export, duplicate and delete, as icons (right to left).
     fn icon_actions(&mut self, ui: &mut egui::Ui, c: &mut Ctx, template: &TemplateSummary) {
-        if widgets::icon_button(ui, Icon::Download, &t("desktop.exportTemplate")).clicked() {
+        if widgets::icon_button(ui, Icon::Download, &t("templates.download")).clicked() {
             let id = template.id;
-            c.save_file(format!("{}.tapeory.json", template.name), move |api| api.export_template(id));
+            // The whole template in one file, images included (see TemplateFile in the engine).
+            let name: String = template.name.chars().map(|c| if matches!(c, '/' | '\\') { '-' } else { c }).collect();
+            c.save_file(format!("{name}.tapeory"), move |api| api.export_template(id));
         }
         if widgets::icon_button(ui, Icon::Copy, &t("templates.duplicate")).clicked() {
             let api = c.api.clone();
@@ -413,7 +421,7 @@ impl TemplatesPage {
             Column::new(t("templates.columnSource"), 1.5).hide_below(900.0),
             Column::new(t("templates.columnSize"), 1.1).hide_below(720.0),
             Column::new(t("templates.columnUpdated"), 1.3).hide_below(800.0),
-            Column::fixed(196.0),
+            Column::fixed(270.0),
         ];
 
         let mut rows: Vec<&TemplateSummary> = templates.to_vec();
@@ -479,11 +487,11 @@ impl TemplatesPage {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.spacing_mut().item_spacing.x = 2.0;
                         self.icon_actions(ui, c, template);
-                        if widgets::icon_button(ui, Icon::Printer, &t("templates.print")).clicked() {
-                            c.go(Route::Print(template.id));
-                        }
                         if template.can_edit && widgets::icon_button(ui, Icon::Pencil, &t("common.edit")).clicked() {
                             c.go(Route::Editor(Some(template.id)));
+                        }
+                        if ui.add(PillButton::new(&t("templates.print"), Kind::Primary).small().icon(Icon::Printer)).clicked() {
+                            c.go(Route::Print(template.id));
                         }
                     });
                 }

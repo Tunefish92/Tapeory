@@ -14,6 +14,7 @@ using Tapeory.Api.Stats;
 using Tapeory.Api.Storage;
 using Tapeory.Api.Templates;
 using Tapeory.Api.Updates;
+using Tapeory.Api.Uploads;
 using Microsoft.EntityFrameworkCore;
 
 using Tapeory.Api.Desktop;
@@ -63,10 +64,16 @@ public static class TapeoryApp
         builder.Services.AddSingleton<TapeoryInstance>();
         builder.Services.AddSingleton<FileStorageService>();
         builder.Services.AddScoped<TemplateService>();
+        builder.Services.AddScoped<ImageStore>();
+        builder.Services.AddScoped<TemplateFileService>();
+        builder.Services.AddScoped<Tapeory.Api.PrintData.BulkPrintProfileService>();
+        builder.Services.AddSingleton(new Tapeory.Api.PrintData.PrintDataFetcher(
+            new HttpClient(new SocketsHttpHandler { MaxAutomaticRedirections = 5 }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan }));
         builder.Services.AddScoped<LbxImportService>();
         builder.Services.AddSingleton<LabelRenderer>();
         builder.Services.AddScoped<UploadedFileImageResolver>();
         builder.Services.AddScoped<PrintJobService>();
+        builder.Services.AddSingleton<PrintJobCancellations>();
         builder.Services.AddHostedService<PrintJobProcessor>();
         builder.Services.AddScoped<PrinterService>();
         builder.Services.AddScoped<StatsService>();
@@ -178,7 +185,7 @@ public static class TapeoryApp
         {
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.Migrate();
+            InstalledVersion.MigrateAsync(db, UpdateChecker.CurrentVersion, CancellationToken.None).GetAwaiter().GetResult();
 
             if (db is SqliteAppDbContext)
             {

@@ -68,6 +68,8 @@ export interface UpdateCheck {
   updateAvailable: boolean;
   releaseUrl: string | null;
   checkedAt: string | null;
+  /** The newest version is a pre-release (only with pre-releases switched on). */
+  preRelease?: boolean;
   /** Set when GitHub couldn't be asked. */
   errorMessage: string | null;
 }
@@ -81,4 +83,24 @@ export async function checkForUpdates(refresh = false): Promise<UpdateCheck> {
   }
 
   return (await response.json()) as UpdateCheck;
+}
+
+export interface InstalledVersion {
+  version: string;
+  /** This version was installed as an update (false on a new installation). */
+  updated: boolean;
+  /** The version before the update; null when it isn't known. */
+  previousVersion: string | null;
+  updatedAt: string | null;
+}
+
+/** The version that runs, and whether it came as an update. */
+export async function getInstalledVersion(): Promise<InstalledVersion> {
+  const response = await fetch(`${API_BASE_URL}/updates/installed`);
+
+  if (!response.ok) {
+    throw new Error(`Version check failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as InstalledVersion;
 }

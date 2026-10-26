@@ -58,9 +58,17 @@ upload, and print job stays with you.
 
 **Templates**
 - Draft, published, and archived states, with an immutable version history
+- The editor marks the printable area with a dashed line: every tape and roll has its own limits
+  (about 1 mm at the top and bottom of a 9 or 12 mm tape stays blank, about 2 mm on 36 mm, about
+  3 mm on 24 mm), taken from Brother's Raster Command References
+- The editor lists the label's elements by name, to select or delete them, and zooms with the
+  mouse wheel
 - Duplicate a template from the card or list view
 - Groups (case- and accent-insensitive) with bulk rename, plus thumbnails
-- Export and import in Tapeory's native JSON format
+- **`.tapeory` files:** download a template as one readable text file (JSON) and import it into
+  any Tapeory, web or desktop. The file holds the whole label (texts, barcodes, shapes, fields
+  with their names and defaults, group and tags) and its images, so the label comes out the same
+  on the other side
 - **`.lbx` import:** converts text objects, database-merge fields, images, barcodes, and shapes from P-touch Editor
   files. Anything it can't convert is listed as a warning, and the original file stays
   available for download.
@@ -68,6 +76,8 @@ upload, and print job stays with you.
 **Printing**
 - Print form with values for each field, quantity, printer choice, print quality, cutting
   (auto cut, half cut, cut at end, chain printing, cut marks), and a preview that updates as you type
+- **Bulk printing:** one label per row of an Excel, CSV or text file, checked and previewed
+  before it prints (see [Bulk printing](#bulk-printing))
 - Server-side rendering to PNG (300 DPI) and PDF with SkiaSharp
 - Background print queue, with a job history and per-label previews
 - Printing on Brother P-touch (PT, 180 and 360 dpi) and QL printers (300 dpi) in Brother's raster
@@ -90,7 +100,8 @@ upload, and print job stays with you.
   print history
 - Database and label backups created and restored from the Settings page, stored on the server
 - Dashboard with usage statistics
-- Update check: Settings shows when a newer release is out on GitHub
+- Update check: the About page shows when a newer release is out on GitHub, and links to the
+  project and its issues
 - 5 UI languages: English, German, French, Italian, and Spanish
 - Light, dark, or system theme; millimetres or inches
 - Runs on `linux/amd64` and `linux/arm64`, with an Unraid Community Applications template
@@ -127,11 +138,11 @@ with the same font files the printed label is rendered with, so what you see is 
 Tested on Ubuntu 22.04 and 24.04, Debian 12, Fedora, openSUSE Tumbleweed and Arch.
 
 The AppImage and the tar.gz have no installer. To get Tapeory into your desktop's application
-menu, choose **Settings → About → Add to application menu**: it adds a menu entry and an icon
+menu, open **About** and choose **Add to application menu**: it adds a menu entry and an icon
 for the file you started, in your own user folders (and takes them out again the same way).
 Keep the AppImage in a folder of your own, e.g. `~/Applications`, so it can update itself.
 
-Updates: **Settings → About** shows when a new release is out. The AppImage updates itself with
+Updates: the **About** page shows when a new release is out. The AppImage updates itself with
 **Update now**: the new version is downloaded, checked against the release's SHA-256, installed,
 and started. The tar.gz copy links to the release page instead. Your data stays where it is when
 updating.
@@ -148,19 +159,26 @@ Good to know:
   which tape is loaded and reports each label as it comes out, as it does over the network.
 - With a shared database, each USB printer belongs to the computer it's plugged into: other
   computers see it but can't print to it, and their print jobs never end up on it.
-- Logs are in the data folder under `logs/` (Settings → About shows the path).
+- Logs are in the data folder under `logs/` (the About page shows the path).
 
 ## Quick start (Docker)
 
-Requirements: Docker and Docker Compose.
+Requirements: Docker and Docker Compose 2.30 or newer.
 
 ```bash
 git clone https://github.com/Tunefish92/Tapeory.git tapeory && cd tapeory
 cp .env.example .env
-# edit .env: set MYSQL_ROOT_PASSWORD and MYSQL_PASSWORD to real values
+cp mysql.env.example mysql.env
+# edit mysql.env: set MYSQL_ROOT_PASSWORD and MYSQL_PASSWORD to real values
 docker compose pull
 docker compose up -d
 ```
+
+> [!WARNING]
+> **Don't use a single quote (`'`) or a backslash (`\`) in the passwords in `mysql.env`.** Every
+> other character is fine (`$`, `#`, `&`, `%`, `"`, spaces, `ä`, `€`), written as it is, without
+> quotes around the password. With `'` or `\`, MySQL doesn't start; `docker compose logs mysql`
+> says why.
 
 This runs the prebuilt image `ghcr.io/tunefish92/tapeory` (for `amd64` and `arm64`) next to a
 MySQL 8.4 container. The same image is on Docker Hub as
@@ -200,7 +218,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.5.0`, `0.4.0`, … | One specific release (from Git tags such as `v0.5.0`) |
+| `0.6.0`, `0.5.0`, … | One specific release (from Git tags such as `v0.6.0`) |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
 `tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
@@ -234,7 +252,19 @@ On first start, Tapeory asks for its database connection in the browser. With th
 | Port | `3306` |
 | Database name | `MYSQL_DATABASE` from `.env` (default `tapeory`) |
 | Username | `MYSQL_USER` from `.env` (default `tapeory`) |
-| Password | `MYSQL_PASSWORD` from `.env` |
+| Password | `MYSQL_PASSWORD` from `mysql.env` |
+
+> [!WARNING]
+> **The passwords in `mysql.env` must not contain a single quote (`'`) or a backslash (`\`).**
+> The MySQL image can't create its accounts with them. On a first start with one of them, or
+> without a password, the MySQL container stops and `docker compose logs mysql` says why.
+
+Apart from those two characters, the passwords in `mysql.env` are taken exactly as written: `$`,
+`#`, `&`, `%`, `"`, spaces and letters like `ä` or `€` are all fine, and nothing needs quoting or
+escaping (quotes around a password would become part of it). The passwords have their own file
+for a reason: in `.env`, Docker Compose would read `$word` as a variable and hand MySQL a
+shortened password. MySQL takes the passwords on its first start only; to change them later,
+change them in MySQL too, or remove the `mysql-data` volume to start with an empty database.
 
 **Test connection** checks the details without saving them. **Save and continue** creates the
 tables and saves the connection to `config/database.json` in the storage folder (`/data` in the
@@ -250,14 +280,18 @@ administrator; from then on, everyone has to sign in. See [Users](#users).
 
 ### Configuration
 
-`docker-compose.yml` reads these environment variables from `.env`:
+`docker-compose.yml` reads the two passwords from `mysql.env` and everything else from `.env`:
+
+> [!WARNING]
+> **No single quote (`'`) and no backslash (`\`) in `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD`.**
+> Every other character is allowed, written as it is.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `MYSQL_ROOT_PASSWORD` | — (required) | MySQL root password |
+| `MYSQL_ROOT_PASSWORD` | — (required, in `mysql.env`) | MySQL root password |
 | `MYSQL_DATABASE` | `tapeory` | Database name |
 | `MYSQL_USER` | `tapeory` | Application database user |
-| `MYSQL_PASSWORD` | — (required) | Application database user's password |
+| `MYSQL_PASSWORD` | — (required, in `mysql.env`) | Application database user's password |
 | `TAPEORY_PORT` | `8080` | Host port the app is served on |
 | `TAPEORY_STORAGE_HOST_PATH` | `./tapeory-data` | Host folder mapped to the app's `/data`, which holds templates, uploads, and rendered print output |
 | `PUID` / `PGID` | `1000` / `1000` | User and group that own the storage folder; the app runs as this user |
@@ -297,6 +331,70 @@ into (see below) or through a CUPS server.
 a small label centred on the tape; its size can be set in the printer's settings.
 
 <img src="docs/screenshots/printers.png" alt="Printers page with a PT-P750W, a QL-820NWB and a PT-P950NW behind a CUPS server" width="720">
+
+## Bulk printing
+
+The print page of a template has a switch at the top: **Single label** or **Bulk print**. Bulk
+print prints one label for each row of your data, in the web app and the desktop app:
+
+1. **Data:** an Excel file (`.xlsx`), a CSV, text or JSON file, up to 100 MB and 5,000 rows. Choose
+   it, or drop it onto the page or the window. The **API** tab takes a **web address** instead,
+   and Tapeory gets the data from there (see below). Saved profiles are listed beside it, for
+   the tab that is open.
+2. **Columns:** if the first row names the columns like the label's fields (by field name or
+   label, ignoring case and accents), they're matched by themselves and this step is skipped.
+   Without such a header row, Tapeory asks which column belongs to which field. The separator of
+   CSV and text files (comma, semicolon, tab or pipe) is detected; if the file doesn't say
+   clearly, Tapeory asks and shows the first rows as a table. A column named Quantity, Qty,
+   Copies, Anzahl or Menge sets the copies per row.
+3. **Check:** every row is checked and rendered, with a progress bar. Step through the labels
+   with Previous/Next or the arrow keys, or click a row. Rows with an error (an empty required
+   field, a value the barcode can't encode) are left out; rows with a warning (text that doesn't
+   fit its box) can be unticked.
+   **Copies of each label** sets how many times every label is printed; a row's own number
+   from a copies column is multiplied by it.
+4. **Print:** all rows become one print job, printed in the file's order.
+
+The printer gets the labels in batches of 25, and the job page shows how far it is. **Stop
+printing** ends the job after the labels already at the printer. If the printer reports an error
+(no tape, cover open), the job stops there instead of sending the rest, and **Print the missing
+rows** continues with exactly the rows that didn't come out.
+
+**JSON.** A JSON file needs a list of records, such as `[{"name": "Box", "sku": "A-1"}, …]`. The
+property names are the column headers. The list may also sit inside the document
+(`{"data": {"items": [...]}}`), and nested objects become columns named like `address.city`.
+
+**From a web address (REST).** Instead of a file, enter an address such as
+`https://erp.example/api/items`. Tapeory's server (in the desktop app: the app itself) sends a
+GET request there and reads the answer like a file: JSON records, but also CSV, text or Excel.
+An optional request header carries an API key or token (for example `Authorization: Bearer …`).
+The address must be reachable from where Tapeory runs, answers within 30 seconds, and the same
+limits apply. Saved in a profile, one click gets the current data again; the header's value is
+stored with the profile.
+
+**Profiles.** On the check and print steps, **Save profile** keeps the whole setup under a name:
+the file, the separator or sheet, which column fills which field, the copies column, and the
+printer, quality and cutting. Next time, a click on the profile in the first step loads
+everything and goes straight to the check. Profiles belong to the account that saved them and to
+one template. If the name already exists, Tapeory asks before replacing that profile.
+
+- In the **desktop app**, a profile remembers the file's path and reads the file fresh from there.
+  If the file has moved, it asks for it and applies the rest.
+- A profile for a **web address** needs no file at all and loads the same way in both apps.
+- In the **web app**, a web page never learns a file's path. In Chrome and Edge on HTTPS or
+  localhost, the browser can keep the picked file for the profile and reopen it (it may ask for
+  permission once per visit). In other browsers, or over plain HTTP, the profile asks you to pick
+  the file and sets up everything else.
+- Columns are found again by their header text, so a file whose columns moved still fits; without
+  a header row they are found by position.
+
+On a Wayland desktop, the desktop app opens its window through XWayland, because that is what
+lets it take dropped files. `TAPEORY_WAYLAND=1` starts it as a native Wayland window instead
+(sharper with fractional scaling, but without drag and drop).
+
+Excel numbers and dates are printed as Excel shows them. A date in Excel's "short date" format
+follows the language of the browser or the desktop app (29.09.2026 in German, 9/29/2026 in US English). CSV and text files are
+read as UTF-8, or as Windows-1252 if they aren't (what Excel on Windows saves).
 
 ## Users
 
@@ -344,14 +442,29 @@ Sign in with the printed password; Tapeory then asks for a new one. Sessions are
 ## Upgrading
 
 The desktop app updates itself (see [Desktop app](#desktop-app-linux)). For the
-server: **Settings → About** shows next to the version whether a newer release is out. To find out, the
+server: the **About** page shows next to the version whether a newer release is out. To find out, the
 server asks GitHub's API for the latest Tapeory release (at most every six hours, and only while
 the settings page is opened); nothing about your installation is sent.
 
+Pre-releases (beta versions) are left out unless an administrator ticks **Also offer
+pre-releases** on the About page. They bring new features early and may still have faults, so
+make a backup before installing one.
+
 ```bash
-git pull                                      # updates docker-compose.yml and .env.example
+git pull                                      # updates docker-compose.yml and the example files
 docker compose pull && docker compose up -d   # or: docker compose up -d --build
 ```
+
+After an update, the web app shows once in each browser what the new version brings, with a link
+to the full release notes.
+
+Installations from before 0.6.0 have the database passwords in `.env`. They keep working as they
+are; `mysql.env` is only needed for a new installation, or if you want to move the passwords
+there.
+
+> [!WARNING]
+> **When you move the passwords to `mysql.env` or set new ones: no single quote (`'`) and no
+> backslash (`\`).** Write the password exactly as MySQL has it, without quotes around it.
 
 Database migrations apply automatically on startup. To apply them yourself, set
 `TAPEORY_AUTO_MIGRATE=false`. Before starting the container, run the migrations from a
@@ -405,7 +518,11 @@ docker compose exec mysql sh -c 'exec mysqldump -u root -p"$MYSQL_ROOT_PASSWORD"
 tar -czf tapeory-storage-backup.tar.gz -C ./tapeory-data .
 ```
 
-**Restore** (onto a fresh install with the same `.env`):
+**Restore** (onto a fresh install with the same `.env` and `mysql.env`):
+
+> [!WARNING]
+> **A fresh install creates MySQL's accounts again, so the passwords in `mysql.env` must not
+> contain a single quote (`'`) or a backslash (`\`).**
 
 ```bash
 docker compose up -d mysql
@@ -438,11 +555,21 @@ opens the app. The image carries both as labels (`net.unraid.docker.icon` and
 `net.unraid.docker.webui`), so they also work for a container started without the template,
 for example with Compose.
 
+## A note about this project
+
+I'm a hobby programmer with an interest in coding and software development. I can read and write
+code, but for this project, I used Claude AI as a development assistant to help me turn my ideas
+into a working project.
+
+I believe AI is a useful tool for learning, experimenting, and bringing ideas to life. I want to be
+transparent about how this project was created and acknowledge the role AI played in its
+development.
+
 ## Support
 
 Ask questions and share ideas in [GitHub Discussions](https://github.com/Tunefish92/Tapeory/discussions),
 and report bugs as [issues](https://github.com/Tunefish92/Tapeory/issues). Please include your Tapeory
-version (Settings page), your printer model, and the container log.
+version (About page), your printer model, and the container log.
 
 ## Buy me a coffee
 
@@ -473,8 +600,7 @@ the third-party libraries shipped with them.
 
 Tapeory doesn't collect data and sends nothing to its authors. It contacts only:
 
-- **GitHub**, to check for a new release (`api.github.com`, when you open the Settings page or
-  Settings → About in the desktop app) and, when you choose **Update now**, to download it;
+- **GitHub**, to check for a new release (`api.github.com`, when you open the About page) and, when you choose **Update now**, to download it;
 - the printers, print servers and database server you set up yourself.
 
 ## License
@@ -483,6 +609,8 @@ Tapeory is released under the [MIT License](LICENSE).
 
 ## Known limitations
 
+- **Docker Compose: the database passwords can't contain a single quote (`'`) or a backslash
+  (`\`).** The MySQL image can't create its accounts with them. Every other character works.
 - **Only Brother PT and QL printers with a published raster protocol can print** (34 models, see
   [Supported printers](docs/printers.md)). Brother's TD, RJ and PJ series, and P-touch models
   without a published protocol (such as the PT-D610BT or PT-D800W), aren't supported.
@@ -593,13 +721,14 @@ overview is updated from [`docs/dockerhub.md`](docs/dockerhub.md). The token nee
 "Read, Write, Delete" scope, because editing a repository's description requires it. To republish `main` without a
 new commit, use **Run workflow** on the CI workflow in the Actions tab.
 
-To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.5.0 && git push --tags`.
+To release a version, update `CHANGELOG.md`, then push a tag: `git tag v0.6.0 && git push --tags`.
 The tag's CI run attaches the desktop packages to the GitHub release (and creates the release if
 it doesn't exist yet).
 
 ### Tech stack
 
-- **Backend:** ASP.NET Core (.NET 10), EF Core with Pomelo MySQL, SkiaSharp and Svg.Skia for rendering
+- **Backend:** ASP.NET Core (.NET 10), EF Core with Pomelo MySQL, SkiaSharp and Svg.Skia for rendering,
+  ExcelDataReader for Excel files
 - **Frontend:** React 19, TypeScript, Vite, Konva / react-konva, react-i18next
 - **Desktop app:** Rust, eframe / egui, with the backend as its engine (SQLite or MySQL)
 - **Tests:** xUnit and Testcontainers (backend); Vitest and React Testing Library (frontend);

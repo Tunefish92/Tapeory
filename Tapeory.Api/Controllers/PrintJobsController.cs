@@ -15,15 +15,41 @@ public sealed class PrintJobsController(PrintJobService printJobs, FileStorageSe
         [FromBody] CreatePrintJobRequest request,
         CancellationToken cancellationToken)
     {
-        var author = AuthClaims.UserId(User) is { } userId
+        return await CreatedAsync(await printJobs.CreateAsync(request, cancellationToken, Author()), cancellationToken);
+    }
+
+    /// <summary>Stops a job. A waiting job is cancelled at once; one that is printing stops after
+    /// the labels already at the printer. Answers with the job as it is now.</summary>
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> CancelPrintJob(int id, CancellationToken cancellationToken)
+    {
+        if (!await printJobs.CancelAsync(id, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        var job = await printJobs.GetByIdAsync(id, cancellationToken);
+        return job is null ? NotFound() : Ok(PrintJobMapper.ToResponse(job));
+    }
+
+    /// <summary>Creates a new job with the rows of this one that weren't printed.</summary>
+    [HttpPost("{id:int}/reprint-unprinted")]
+    public async Task<IActionResult> ReprintUnprinted(int id, CancellationToken cancellationToken)
+    {
+        var result = await printJobs.ReprintUnprintedAsync(id, cancellationToken, Author());
+        return result is null ? NotFound() : await CreatedAsync(result, cancellationToken);
+    }
+
+    private PrintAuthor? Author() =>
+        AuthClaims.UserId(User) is { } userId
             ? new PrintAuthor(userId, User.FindFirst(AuthClaims.DisplayName)?.Value ?? User.Identity!.Name!)
             : null;
-        var result = await printJobs.CreateAsync(request, cancellationToken, author);
 
+    private async Task<IActionResult> CreatedAsync(CreatePrintJobResult result, CancellationToken cancellationToken)
+    {
         if (result.TemplateNotFound)
         {
-            return Problem(
-                $"Template {request.TemplateId} was not found.", statusCode: StatusCodes.Status404NotFound);
+            return Problem("The template was not found.", statusCode: StatusCodes.Status404NotFound);
         }
 
         if (result.Errors.Count > 0)

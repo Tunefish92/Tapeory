@@ -11,7 +11,7 @@ use crate::models::{CreatePrintJobRequest, PrintJob, PrintJobItemRequest, Printe
 use crate::task::{Pending, Task, finished};
 use crate::theme;
 use crate::ui::setup::notice;
-use crate::ui::widgets::{self, Tone, field, primary_button_enabled};
+use crate::ui::widgets::{self, Tone, field};
 use crate::ui::{Ctx, Route};
 
 const PREVIEW_DELAY: Duration = Duration::from_millis(300);
@@ -26,189 +26,55 @@ pub fn tape_for_label_height(height: f64) -> f64 {
         .fold(TAPE_WIDTHS_MM[0], |best, width| if (width - height).abs() < (best - height).abs() { width } else { best })
 }
 
-pub struct PrintPage {
-    id: i64,
+/// A printer choice to take over: printer id (None = no printer), its name for a label printed
+/// by hand, quality and cutting.
+type WantedPrinter = (Option<i64>, Option<String>, Option<String>, Option<String>);
+
+/// Where and how to print: the printer (or none, for a label to print by hand), the quality and
+/// the cutting option, with a warning when the printer holds a different tape than the label
+/// needs. Shared by the single print and the bulk print.
+pub struct PrintOptions {
     started: bool,
-    template: Option<TemplateDetail>,
-    template_task: Pending<ApiResult<TemplateDetail>>,
     printers: Vec<Printer>,
     printers_task: Pending<ApiResult<Vec<Printer>>>,
-    values: BTreeMap<String, String>,
-    quantity: u32,
     printer: i64,
     printer_name: String,
     quality: String,
     cut_mode: String,
     status: Option<(i64, PrinterStatus)>,
     status_task: Pending<(i64, ApiResult<PrinterStatus>)>,
-    preview: Option<TextureHandle>,
-    preview_task: Pending<ApiResult<Vec<u8>>>,
-    preview_due: Option<Instant>,
-    preview_error: Option<String>,
-    submit: Pending<ApiResult<PrintJob>>,
-    error: Option<String>,
+    /// A printer choice to take over (from a saved profile), once the printers are known.
+    wanted: Option<WantedPrinter>,
 }
 
-impl PrintPage {
-    pub fn new(id: i64) -> PrintPage {
-        PrintPage {
-            id,
+impl Default for PrintOptions {
+    fn default() -> PrintOptions {
+        PrintOptions {
             started: false,
-            template: None,
-            template_task: None,
             printers: Vec::new(),
             printers_task: None,
-            values: BTreeMap::new(),
-            quantity: 1,
             printer: MANUAL,
             printer_name: String::new(),
             quality: "Standard".into(),
             cut_mode: "AutoCut".into(),
             status: None,
             status_task: None,
-            preview: None,
-            preview_task: None,
-            preview_due: None,
-            preview_error: None,
-            submit: None,
-            error: None,
+            wanted: None,
         }
     }
+}
 
+impl PrintOptions {
     fn selected_printer(&self) -> Option<&Printer> {
         self.printers.iter().find(|printer| printer.id == self.printer)
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, c: &mut Ctx) {
+    /// Loads the printers once and takes in what has arrived; call every frame.
+    pub fn poll(&mut self, c: &mut Ctx) {
         if !self.started {
             self.started = true;
-            let (api, id) = (c.api.clone(), self.id);
-            self.template_task = Some(Task::spawn(c.egui, move || api.template(id)));
             let api = c.api.clone();
             self.printers_task = Some(Task::spawn(c.egui, move || api.printers()));
-        }
-
-        self.poll(c);
-
-        let Some(template) = self.template.clone() else {
-            match &self.error {
-                Some(error) => widgets::error_text(ui, error),
-                None => widgets::loading(ui, &t("printing.printTemplate.loading")),
-            }
-            return;
-        };
-
-        widgets::page_header(ui, &tf("printing.printTemplate.title", &[("name", &template.name)]), |_| {});
-
-        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-            let narrow = ui.available_width() < 760.0;
-            let form_width = if narrow { ui.available_width() } else { 340.0 };
-
-            if narrow {
-                self.form_card(ui, c, &template, form_width);
-                ui.add_space(18.0);
-                self.preview_card(ui);
-            } else {
-                ui.horizontal_top(|ui| {
-                    ui.spacing_mut().item_spacing.x = 22.0;
-                    self.form_card(ui, c, &template, form_width);
-                    ui.vertical(|ui| self.preview_card(ui));
-                });
-            }
-        });
-    }
-
-    fn form_card(&mut self, ui: &mut egui::Ui, c: &mut Ctx, template: &TemplateDetail, width: f32) {
-        ui.allocate_ui_with_layout(egui::vec2(width, 0.0), egui::Layout::top_down(egui::Align::Min), |ui| {
-            theme::card(ui).show(ui, |ui| {
-                ui.set_width(width - 46.0);
-                self.form(ui, c, template);
-            });
-        });
-    }
-
-    /// The rendered label on a squared background, like a cutting mat (the web's preview).
-    fn preview_card(&mut self, ui: &mut egui::Ui) {
-        let palette = theme::palette(ui.ctx());
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 260.0), egui::Sense::hover());
-        ui.painter().rect(
-            rect,
-            egui::CornerRadius::same(18),
-            palette.subtle,
-            egui::Stroke::new(1.0_f32, palette.border),
-            egui::StrokeKind::Inside,
-        );
-        let grid = rect.shrink(1.0);
-        let step = 16.0;
-        let line = egui::Stroke::new(1.0_f32, palette.border.gamma_multiply(0.8));
-        let mut x = grid.left() + step;
-        while x < grid.right() {
-            ui.painter().vline(x, grid.y_range(), line);
-            x += step;
-        }
-        let mut y = grid.top() + step;
-        while y < grid.bottom() {
-            ui.painter().hline(grid.x_range(), y, line);
-            y += step;
-        }
-
-        let area = rect.shrink2(egui::vec2(48.0, 56.0));
-        match &self.preview {
-            Some(texture) => {
-                let size = texture.size_vec2();
-                let scale = (area.width() / size.x).min(area.height() / size.y).min(3.0);
-                let image = egui::Rect::from_center_size(area.center(), size * scale);
-                ui.painter().add(
-                    egui::Shadow { offset: [0, 12], blur: 28, spread: 0, color: palette.shadow }
-                        .as_shape(image, egui::CornerRadius::same(8)),
-                );
-                ui.painter().rect_filled(image, egui::CornerRadius::same(8), egui::Color32::WHITE);
-                let mesh_rect = image.shrink(4.0);
-                let mut image_ui = ui.new_child(egui::UiBuilder::new().max_rect(image));
-                image_ui.put(mesh_rect, egui::Image::new((texture.id(), mesh_rect.size())).corner_radius(4));
-            }
-            None if self.preview_error.is_some() => {
-                ui.painter().text(
-                    rect.center(),
-                    egui::Align2::CENTER_CENTER,
-                    self.preview_error.as_deref().unwrap_or_default(),
-                    egui::FontId::proportional(14.0),
-                    palette.danger,
-                );
-            }
-            None => {
-                ui.painter().text(
-                    rect.center(),
-                    egui::Align2::CENTER_CENTER,
-                    t("printing.printTemplate.rendering"),
-                    egui::FontId::proportional(14.0),
-                    palette.muted,
-                );
-            }
-        }
-        if self.preview_task.is_some() && self.preview.is_some() {
-            ui.painter().text(
-                rect.right_bottom() + egui::vec2(-16.0, -14.0),
-                egui::Align2::RIGHT_BOTTOM,
-                t("printing.printTemplate.rendering"),
-                egui::FontId::proportional(12.5),
-                palette.muted,
-            );
-        }
-    }
-
-    fn poll(&mut self, c: &mut Ctx) {
-        if let Some(result) = finished(&mut self.template_task) {
-            match result {
-                Ok(template) => {
-                    for field in &template.current_version.fields {
-                        self.values.insert(field.name.clone(), field.default_value.clone().unwrap_or_default());
-                    }
-                    self.template = Some(template);
-                    self.preview_due = Some(Instant::now());
-                }
-                Err(error) => self.error = Some(c.message(&error)),
-            }
         }
 
         if let Some(Ok(printers)) = finished(&mut self.printers_task) {
@@ -224,33 +90,27 @@ impl PrintPage {
             self.status = Some((id, status));
         }
 
-        // Re-render the preview once typing has paused.
-        if let Some(due) = self.preview_due {
-            if Instant::now() >= due && self.preview_task.is_none() {
-                self.preview_due = None;
-                let (api, id, values) = (c.api.clone(), self.id, self.values.clone());
-                self.preview_task = Some(Task::spawn(c.egui, move || api.preview(id, &values)));
-            } else {
-                c.egui.request_repaint_after(PREVIEW_DELAY);
-            }
-        }
-
-        if let Some(result) = finished(&mut self.preview_task) {
-            match result.map_err(|e| e.message).and_then(|bytes| crate::images::decode(&bytes)) {
-                Ok(image) => {
-                    self.preview = Some(c.egui.load_texture(format!("preview:{}", self.id), image, egui::TextureOptions::LINEAR));
-                    self.preview_error = None;
+        if self.printers_task.is_none()
+            && let Some((printer, name, quality, cut_mode)) = self.wanted.take()
+        {
+            match printer {
+                None => {
+                    self.printer = MANUAL;
+                    self.printer_name = name.unwrap_or_default();
                 }
-                Err(message) => self.preview_error = Some(message),
+                // A printer that is gone (or another computer's) leaves the current choice.
+                Some(id) if self.printers.iter().any(|p| p.id == id && p.on_this_computer) => self.printer = id,
+                Some(_) => return,
             }
+            self.quality = quality.unwrap_or(std::mem::take(&mut self.quality));
+            self.cut_mode = cut_mode.unwrap_or(std::mem::take(&mut self.cut_mode));
+            self.request_status(c);
         }
+    }
 
-        if let Some(result) = finished(&mut self.submit) {
-            match result {
-                Ok(job) => c.go(Route::Job(job.id)),
-                Err(error) => self.error = Some(c.message(&error)),
-            }
-        }
+    /// Takes over a printer choice, e.g. from a saved profile.
+    pub fn apply(&mut self, printer_id: Option<i64>, printer_name: Option<String>, quality: Option<String>, cut_mode: Option<String>) {
+        self.wanted = Some((printer_id, printer_name, quality, cut_mode));
     }
 
     fn request_status(&mut self, c: &Ctx) {
@@ -262,28 +122,21 @@ impl PrintPage {
         self.status_task = Some(Task::spawn(c.egui, move || (id, api.printer_status(id))));
     }
 
-    fn form(&mut self, ui: &mut egui::Ui, c: &mut Ctx, template: &TemplateDetail) {
-        let fields = &template.current_version.fields;
-        if fields.is_empty() {
-            widgets::muted(ui, &t("printing.printTemplate.noFields"));
+    /// A print job request for these options and the given rows.
+    pub fn request(&self, template_id: i64, items: Vec<PrintJobItemRequest>) -> CreatePrintJobRequest {
+        let manual = self.printer == MANUAL;
+        CreatePrintJobRequest {
+            template_id,
+            printer_id: (!manual).then_some(self.printer),
+            printer_name: if manual { Some(self.printer_name.trim().to_string()).filter(|n| !n.is_empty()) } else { None },
+            items,
+            quality: (!manual).then(|| self.quality.clone()),
+            cut_mode: (!manual).then(|| self.cut_mode.clone()),
         }
+    }
 
-        for field_def in fields {
-            let label = format!(
-                "{}{}",
-                field_def.label.clone().filter(|label| !label.is_empty()).unwrap_or_else(|| field_def.name.clone()),
-                if field_def.required { " *" } else { "" }
-            );
-            let value = self.values.entry(field_def.name.clone()).or_default();
-            if field(ui, &label, |ui| widgets::text_input(ui, value, f32::INFINITY)).changed() {
-                self.preview_due = Some(Instant::now() + PREVIEW_DELAY);
-            }
-        }
-
-        field(ui, &t("printing.printTemplate.quantity"), |ui| {
-            ui.add_sized(egui::vec2(ui.available_width(), 38.0), egui::DragValue::new(&mut self.quantity).range(1..=999))
-        });
-
+    /// The fields: printer, quality, cutting, and the tape warning for a label of this height.
+    pub fn show(&mut self, ui: &mut egui::Ui, c: &mut Ctx, label_height_mm: f64) {
         let previous = self.printer;
         field(ui, &t("printing.printTemplate.printer"), |ui| {
             let selected = self.selected_printer().map(printer_label).unwrap_or_else(|| t("printing.printTemplate.manualOption"));
@@ -351,7 +204,7 @@ impl PrintPage {
             widgets::muted_small(ui, &t(&format!("printing.cutMode.{}Hint", self.cut_mode)));
 
             // Warn before a label goes onto the wrong tape.
-            let needed = tape_for_label_height(template.current_version.height_mm);
+            let needed = tape_for_label_height(label_height_mm);
             if let Some((id, status)) = &self.status
                 && *id == printer.id
                 && let Some(loaded) = status.loaded_tape_mm
@@ -364,20 +217,172 @@ impl PrintPage {
                 );
             }
         }
+    }
+}
+
+pub struct PrintPage {
+    id: i64,
+    started: bool,
+    template: Option<TemplateDetail>,
+    template_task: Pending<ApiResult<TemplateDetail>>,
+    values: BTreeMap<String, String>,
+    quantity: u32,
+    options: PrintOptions,
+    preview: Option<TextureHandle>,
+    preview_task: Pending<ApiResult<Vec<u8>>>,
+    preview_due: Option<Instant>,
+    preview_error: Option<String>,
+    submit: Pending<ApiResult<PrintJob>>,
+    error: Option<String>,
+}
+
+impl PrintPage {
+    pub fn new(id: i64) -> PrintPage {
+        PrintPage {
+            id,
+            started: false,
+            template: None,
+            template_task: None,
+            values: BTreeMap::new(),
+            quantity: 1,
+            options: PrintOptions::default(),
+            preview: None,
+            preview_task: None,
+            preview_due: None,
+            preview_error: None,
+            submit: None,
+            error: None,
+        }
+    }
+
+    pub fn show(&mut self, ui: &mut egui::Ui, c: &mut Ctx) {
+        if !self.started {
+            self.started = true;
+            let (api, id) = (c.api.clone(), self.id);
+            self.template_task = Some(Task::spawn(c.egui, move || api.template(id)));
+        }
+
+        self.poll(c);
+
+        let Some(template) = self.template.clone() else {
+            match &self.error {
+                Some(error) => widgets::error_text(ui, error),
+                None => widgets::loading(ui, &t("printing.printTemplate.loading")),
+            }
+            return;
+        };
+
+        widgets::page_header(ui, &tf("printing.printTemplate.title", &[("name", &template.name)]), |_| {});
+        if widgets::print_mode_switch(ui, 0, !template.current_version.fields.is_empty()) == Some(1) {
+            c.go(Route::BulkPrint(self.id));
+        }
+
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            let narrow = ui.available_width() < 760.0;
+            let form_width = if narrow { ui.available_width() } else { 340.0 };
+
+            if narrow {
+                self.form_card(ui, c, &template, form_width);
+                ui.add_space(18.0);
+                self.preview_card(ui);
+            } else {
+                ui.horizontal_top(|ui| {
+                    ui.spacing_mut().item_spacing.x = 22.0;
+                    self.form_card(ui, c, &template, form_width);
+                    ui.vertical(|ui| self.preview_card(ui));
+                });
+            }
+        });
+    }
+
+    fn form_card(&mut self, ui: &mut egui::Ui, c: &mut Ctx, template: &TemplateDetail, width: f32) {
+        ui.allocate_ui_with_layout(egui::vec2(width, 0.0), egui::Layout::top_down(egui::Align::Min), |ui| {
+            theme::card(ui).show(ui, |ui| {
+                ui.set_width(width - 46.0);
+                self.form(ui, c, template);
+            });
+        });
+    }
+
+    fn preview_card(&mut self, ui: &mut egui::Ui) {
+        label_preview(ui, self.preview.as_ref(), self.preview_error.as_deref(), self.preview_task.is_some(), 260.0);
+    }
+
+    fn poll(&mut self, c: &mut Ctx) {
+        if let Some(result) = finished(&mut self.template_task) {
+            match result {
+                Ok(template) => {
+                    for field in &template.current_version.fields {
+                        self.values.insert(field.name.clone(), field.default_value.clone().unwrap_or_default());
+                    }
+                    self.template = Some(template);
+                    self.preview_due = Some(Instant::now());
+                }
+                Err(error) => self.error = Some(c.message(&error)),
+            }
+        }
+
+        self.options.poll(c);
+
+        // Re-render the preview once typing has paused.
+        if let Some(due) = self.preview_due {
+            if Instant::now() >= due && self.preview_task.is_none() {
+                self.preview_due = None;
+                let (api, id, values) = (c.api.clone(), self.id, self.values.clone());
+                self.preview_task = Some(Task::spawn(c.egui, move || api.preview(id, &values)));
+            } else {
+                c.egui.request_repaint_after(PREVIEW_DELAY);
+            }
+        }
+
+        if let Some(result) = finished(&mut self.preview_task) {
+            match result.map_err(|e| e.message).and_then(|bytes| crate::images::decode(&bytes)) {
+                Ok(image) => {
+                    self.preview = Some(c.egui.load_texture(format!("preview:{}", self.id), image, egui::TextureOptions::LINEAR));
+                    self.preview_error = None;
+                }
+                Err(message) => self.preview_error = Some(message),
+            }
+        }
+
+        if let Some(result) = finished(&mut self.submit) {
+            match result {
+                Ok(job) => c.go(Route::Job(job.id)),
+                Err(error) => self.error = Some(c.message(&error)),
+            }
+        }
+    }
+
+    fn form(&mut self, ui: &mut egui::Ui, c: &mut Ctx, template: &TemplateDetail) {
+        let fields = &template.current_version.fields;
+        if fields.is_empty() {
+            widgets::muted(ui, &t("printing.printTemplate.noFields"));
+        }
+
+        for field_def in fields {
+            let label = format!(
+                "{}{}",
+                field_def.label.clone().filter(|label| !label.is_empty()).unwrap_or_else(|| field_def.name.clone()),
+                if field_def.required { " *" } else { "" }
+            );
+            let value = self.values.entry(field_def.name.clone()).or_default();
+            if field(ui, &label, |ui| widgets::text_input(ui, value, f32::INFINITY)).changed() {
+                self.preview_due = Some(Instant::now() + PREVIEW_DELAY);
+            }
+        }
+
+        field(ui, &t("printing.printTemplate.quantity"), |ui| {
+            ui.add_sized(egui::vec2(ui.available_width(), 38.0), egui::DragValue::new(&mut self.quantity).range(1..=999))
+        });
+
+        self.options.show(ui, c, template.current_version.height_mm);
 
         ui.add_space(8.0);
         let submitting = self.submit.is_some();
         let label = if submitting { t("printing.printTemplate.submitting") } else { t("printing.printTemplate.submit") };
-        if primary_button_enabled(ui, !submitting, &label).clicked() {
-            let manual = self.printer == MANUAL;
-            let request = CreatePrintJobRequest {
-                template_id: self.id,
-                printer_id: (!manual).then_some(self.printer),
-                printer_name: if manual { Some(self.printer_name.trim().to_string()).filter(|n| !n.is_empty()) } else { None },
-                items: vec![PrintJobItemRequest { field_values: self.values.clone(), quantity: self.quantity }],
-                quality: (!manual).then(|| self.quality.clone()),
-                cut_mode: (!manual).then(|| self.cut_mode.clone()),
-            };
+        if widgets::print_button(ui, !submitting, &label).clicked() {
+            let request =
+                self.options.request(self.id, vec![PrintJobItemRequest { field_values: self.values.clone(), quantity: self.quantity }]);
             let api = c.api.clone();
             self.error = None;
             self.submit = Some(Task::spawn(c.egui, move || api.create_print_job(&request)));
@@ -386,6 +391,75 @@ impl PrintPage {
         if let Some(error) = &self.error {
             widgets::error_text(ui, error);
         }
+    }
+}
+
+/// The rendered label on a squared background, like a cutting mat (the web's preview).
+pub fn label_preview(ui: &mut egui::Ui, preview: Option<&TextureHandle>, error: Option<&str>, busy: bool, height: f32) {
+    let palette = theme::palette(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), height), egui::Sense::hover());
+    ui.painter().rect(
+        rect,
+        egui::CornerRadius::same(18),
+        palette.subtle,
+        egui::Stroke::new(1.0_f32, palette.border),
+        egui::StrokeKind::Inside,
+    );
+    let grid = rect.shrink(1.0);
+    let step = 16.0;
+    let line = egui::Stroke::new(1.0_f32, palette.border.gamma_multiply(0.8));
+    let mut x = grid.left() + step;
+    while x < grid.right() {
+        ui.painter().vline(x, grid.y_range(), line);
+        x += step;
+    }
+    let mut y = grid.top() + step;
+    while y < grid.bottom() {
+        ui.painter().hline(grid.x_range(), y, line);
+        y += step;
+    }
+
+    let area = rect.shrink2(egui::vec2(48.0, 56.0));
+    match preview {
+        Some(texture) => {
+            let size = texture.size_vec2();
+            let scale = (area.width() / size.x).min(area.height() / size.y).min(3.0);
+            let image = egui::Rect::from_center_size(area.center(), size * scale);
+            ui.painter().add(
+                egui::Shadow { offset: [0, 12], blur: 28, spread: 0, color: palette.shadow }.as_shape(image, egui::CornerRadius::same(8)),
+            );
+            ui.painter().rect_filled(image, egui::CornerRadius::same(8), egui::Color32::WHITE);
+            let mesh_rect = image.shrink(4.0);
+            let mut image_ui = ui.new_child(egui::UiBuilder::new().max_rect(image));
+            image_ui.put(mesh_rect, egui::Image::new((texture.id(), mesh_rect.size())).corner_radius(4));
+        }
+        None if error.is_some() => {
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                error.unwrap_or_default(),
+                egui::FontId::proportional(14.0),
+                palette.danger,
+            );
+        }
+        None => {
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                t("printing.printTemplate.rendering"),
+                egui::FontId::proportional(14.0),
+                palette.muted,
+            );
+        }
+    }
+    if busy && preview.is_some() {
+        ui.painter().text(
+            rect.right_bottom() + egui::vec2(-16.0, -14.0),
+            egui::Align2::RIGHT_BOTTOM,
+            t("printing.printTemplate.rendering"),
+            egui::FontId::proportional(12.5),
+            palette.muted,
+        );
     }
 }
 

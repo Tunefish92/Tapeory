@@ -9,3 +9,5 @@ interface ImportMeta {
 }
 
 declare const __APP_VERSION__: string;
+/** This version's section of CHANGELOG.md, in Markdown; empty if there is none. */
+declare const __RELEASE_NOTES__: string;

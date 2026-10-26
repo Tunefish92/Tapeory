@@ -3,20 +3,54 @@ services:
     image: mysql:8.4
     container_name: tapeory-mysql
     restart: unless-stopped
+    # The two passwords come from mysql.env, which is passed on exactly as written ("raw"), also
+    # "$", "#" and double quotes, which Compose would change in .env. Only "'" and "\" can't be
+    # used: the MySQL image doesn't escape them when it creates the accounts.
+    # Installations from before mysql.env existed have the passwords in .env; that still works.
+    # Needs Docker Compose 2.30 or newer.
+    env_file:
+      - path: .env
+        required: false
+        format: raw
+      - path: mysql.env
+        required: false
+        format: raw
     environment:
-      # Required: Compose stops with this message instead of starting MySQL without a password.
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?copy .env.example to .env and set MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-tapeory}
       MYSQL_USER: ${MYSQL_USER:-tapeory}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?copy .env.example to .env and set MYSQL_PASSWORD}
+    # Before MySQL creates the database on its first start, the passwords are checked: without
+    # one, or with a character the image can't handle, it stops here with a clear message
+    # (`docker compose logs mysql`) instead of setting up accounts nobody can sign in to.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if [ ! -d /var/lib/mysql/mysql ]; then
+          if [ -z "$$MYSQL_ROOT_PASSWORD" ] || [ -z "$$MYSQL_PASSWORD" ]; then
+            echo "Tapeory: MYSQL_ROOT_PASSWORD and MYSQL_PASSWORD must be set. Copy mysql.env.example to mysql.env and set both." >&2
+            exit 1
+          fi
+          case "$$MYSQL_ROOT_PASSWORD$$MYSQL_PASSWORD" in
+            *"'"*|*\\*)
+              echo "Tapeory: the passwords in mysql.env must not contain a single quote (') or a backslash (\\). Every other character is fine. Change them and start again." >&2
+              exit 1 ;;
+          esac
+        fi
+        exec docker-entrypoint.sh "$$@"
+      - --
+    command: ["mysqld"]
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      # $$ leaves the variable to the container's shell, which has it from `environment` above.
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\""]
+      # Over TCP: while MySQL sets up the database on its first start it only answers on its
+      # socket, and the app must not be started against that. $$ leaves the variable to the
+      # container's shell, which has it from the env files above.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --protocol=tcp -u root -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 10s
       timeout: 5s
       retries: 10
+      # Creating the database on the first start can take a while on a slow disk.
+      start_period: 90s
     networks:
       - tapeory
 
@@ -35,7 +69,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       # No connection string here: on first start the web UI asks for it (server "mysql",
-      # port 3306, and the MYSQL_* values from .env) and saves it to /data/config/database.json.
+      # port 3306, database and user from .env, password from mysql.env) and saves it to
+      # /data/config/database.json.
       TAPEORY_STORAGE_PATH: /data
       TAPEORY_AUTO_MIGRATE: ${TAPEORY_AUTO_MIGRATE:-true}
       # Owner of the storage folder on the host; the app runs as this user.

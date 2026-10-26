@@ -80,21 +80,4 @@ public static class TemplateMapper
             access?.CanEdit(template) ?? true,
             access?.UserId is { } userId && template.OwnerUserId == userId);
     }
-
-    public static NativeTemplateExport ToExport(Template template)
-    {
-        var current = template.CurrentVersion
-            ?? throw new InvalidOperationException($"Template {template.Id} has no current version loaded.");
-
-        return new NativeTemplateExport(
-            1,
-            template.Name,
-            template.Description,
-            template.Category,
-            ParseTags(template.TagsCsv),
-            current.WidthMm,
-            current.HeightMm,
-            current.EditorJson,
-            [.. current.Fields.Select(ToDto)]);
-    }
 }

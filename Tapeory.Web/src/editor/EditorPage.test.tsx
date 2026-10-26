@@ -115,6 +115,23 @@ describe("EditorPage", () => {
     expect(screen.queryByRole("button", { name: "Publish" })).not.toBeInTheDocument();
   });
 
+  it("zooms with the mouse wheel over the canvas, within the same limits as the buttons", async () => {
+    renderPage("/templates/new");
+    const canvas = await screen.findByTestId("label-canvas-stub");
+    const area = canvas.closest(".editor-canvas-scroll")!;
+
+    expect(screen.getByText("200%")).toBeInTheDocument();
+    fireEvent.wheel(area, { deltaY: -100 });
+    expect(screen.getByText("225%")).toBeInTheDocument();
+
+    fireEvent.wheel(area, { deltaY: 100 });
+    fireEvent.wheel(area, { deltaY: 100 });
+    expect(screen.getByText("175%")).toBeInTheDocument();
+
+    for (let i = 0; i < 20; i++) fireEvent.wheel(area, { deltaY: 100 });
+    expect(screen.getByText("50%")).toBeInTheDocument();
+  });
+
   it("requires a name before saving", async () => {
     vi.stubGlobal("fetch", vi.fn());
     renderPage("/templates/new");

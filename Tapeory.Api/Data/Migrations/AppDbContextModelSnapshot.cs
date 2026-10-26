@@ -17,7 +17,7 @@ namespace Tapeory.Api.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "9.0.20")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -47,6 +47,44 @@ namespace Tapeory.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ApplicationSettings");
+                });
+
+            modelBuilder.Entity("Tapeory.Api.Data.Entities.BulkPrintProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("OwnerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("TemplateId", "OwnerUserId");
+
+                    b.ToTable("BulkPrintProfiles");
                 });
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.PrintJob", b =>
@@ -482,6 +520,22 @@ namespace Tapeory.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Tapeory.Api.Data.Entities.BulkPrintProfile", b =>
+                {
+                    b.HasOne("Tapeory.Api.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Tapeory.Api.Data.Entities.Template", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.PrintJob", b =>

@@ -39,6 +39,8 @@ fn main() -> eframe::Result<()> {
     // HTTPS (the update check and downloads) uses ring for its crypto, see Cargo.toml.
     let _ = rustls::crypto::ring::default_provider().install_default();
 
+    prefer_x11();
+
     // Without a console on Windows, a crash would otherwise vanish without a word.
     std::panic::set_hook(Box::new(|info| {
         let message = format!("Tapeory stopped unexpectedly: {info}");
@@ -73,6 +75,24 @@ fn main() -> eframe::Result<()> {
         log_path().display()
     ));
     Err(error)
+}
+
+/// On a Wayland desktop, the window toolkit (winit 0.30) can't take files dropped onto the
+/// window; through XWayland it can. So when both are there, Tapeory uses X11, unless
+/// TAPEORY_WAYLAND=1 asks for a native Wayland window (sharper with fractional scaling, but
+/// without drag and drop).
+fn prefer_x11() {
+    #[cfg(target_os = "linux")]
+    {
+        let set = |name: &str| std::env::var_os(name).is_some_and(|value| !value.is_empty());
+        if set("WAYLAND_DISPLAY") && set("DISPLAY") && !set("TAPEORY_WAYLAND") {
+            // Safe here: nothing else runs yet, so no other thread reads the environment.
+            unsafe {
+                std::env::remove_var("WAYLAND_DISPLAY");
+                std::env::remove_var("WAYLAND_SOCKET");
+            }
+        }
+    }
 }
 
 /// Which renderers to try, in order. Direct3D (through wgpu) comes first on Windows: it works

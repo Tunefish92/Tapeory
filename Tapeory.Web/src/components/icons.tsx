@@ -36,6 +36,14 @@ export function CopyIcon() {
   );
 }
 
+export function DownloadIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+    </svg>
+  );
+}
+
 export function TrashIcon() {
   return (
     <svg {...ICON_PROPS}>

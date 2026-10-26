@@ -15,7 +15,7 @@ use crate::models::{CreateTemplateRequest, CreateVersionRequest, TemplateDetail,
 use crate::task::{Pending, Task, finished};
 use crate::theme;
 use crate::ui::setup::notice;
-use crate::ui::widgets::{self, Kind, PillButton, Tone, button, field};
+use crate::ui::widgets::{self, Kind, PillButton, Tone, field};
 use crate::ui::{Ctx, Route};
 use canvas::{Barcodes, Canvas, Services};
 use document::{LabelDocument, LabelObject};
@@ -54,6 +54,8 @@ pub struct EditorPage {
     zoom: f32,
     /// The zoom was fitted to the window once the label was there (not again, so − and + stay).
     zoom_fitted: bool,
+    /// Wheel movement over the canvas not yet turned into a zoom step.
+    wheel: f32,
     preview: bool,
     canvas: Canvas,
     barcodes: Barcodes,
@@ -63,6 +65,11 @@ pub struct EditorPage {
     duplicate: Pending<ApiResult<i64>>,
     upload: Pending<ApiResult<UploadedImage>>,
     save_error: Option<String>,
+
+    /// Where the printer can't print on a label of this size, and the size it was asked for.
+    print_area: Option<crate::models::PrintArea>,
+    print_area_for: Option<(f64, f64, Option<String>)>,
+    print_area_task: Pending<ApiResult<crate::models::PrintArea>>,
 }
 
 impl EditorPage {
@@ -94,6 +101,7 @@ impl EditorPage {
             selected: None,
             zoom: 2.0,
             zoom_fitted: false,
+            wheel: 0.0,
             preview: false,
             canvas: Canvas::default(),
             barcodes: Barcodes::default(),
@@ -102,6 +110,9 @@ impl EditorPage {
             duplicate: None,
             upload: None,
             save_error: None,
+            print_area: None,
+            print_area_for: None,
+            print_area_task: None,
         }
     }
 
@@ -128,6 +139,7 @@ impl EditorPage {
         }
 
         self.shortcuts(c);
+        self.refresh_print_area(c);
         if ui.available_height() >= 640.0 {
             // Tall enough: the details stay at the top, the tools on the right; the canvas takes
             // the height the properties leave, so editing needs no scrolling.
@@ -224,6 +236,21 @@ impl EditorPage {
     }
 
     /// Records a change for undo once an edit is finished (not in the middle of a drag).
+    /// Asks the engine again where the label can't be printed, whenever its size or tape changed.
+    fn refresh_print_area(&mut self, c: &Ctx) {
+        if let Some(result) = finished(&mut self.print_area_task) {
+            // The overlay is a help; without it the editor works as before.
+            self.print_area = result.ok();
+        }
+
+        let wanted = (self.document.width_mm, self.document.height_mm, self.document.media.clone());
+        if self.print_area_task.is_none() && self.print_area_for.as_ref() != Some(&wanted) {
+            self.print_area_for = Some(wanted.clone());
+            let api = c.api.clone();
+            self.print_area_task = Some(Task::spawn(c.egui, move || api.print_area(wanted.0, wanted.1, wanted.2.as_deref())));
+        }
+    }
+
     fn commit(&mut self) {
         if self.canvas.dragging() || self.document == self.committed {
             return;
@@ -448,7 +475,7 @@ impl EditorPage {
         if let Some(id) = self.id {
             ui.vertical(|ui| {
                 ui.add_space(22.0);
-                if button(ui, &t("editor.print")).clicked() {
+                if ui.add(PillButton::new(&t("editor.print"), Kind::Primary).icon(crate::icons::Icon::Printer)).clicked() {
                     c.go(Route::Print(id));
                 }
             });
@@ -684,6 +711,61 @@ impl EditorPage {
     }
 
     /// The canvas across the full width, the selected object's properties below it (as on the web).
+    /// Everything on the label, by name: click to select, or delete without finding it on the
+    /// canvas.
+    fn elements(&mut self, ui: &mut egui::Ui) {
+        let mut items: Vec<(String, String, bool)> =
+            self.document.objects.iter().map(|object| (object_label(object), object.id.clone(), object.hidden)).collect();
+        items.sort_by_key(|(label, _, _)| label.to_lowercase());
+
+        ui.horizontal(|ui| {
+            ui.label(widgets::heading(t("editor.objects.heading")).size(16.0));
+            widgets::count_bubble(ui, items.len());
+        });
+        ui.add_space(6.0);
+        if items.is_empty() {
+            widgets::muted(ui, &t("editor.objects.empty"));
+            return;
+        }
+
+        let mut delete = None;
+        ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing = egui::vec2(10.0, 8.0);
+            for (label, id, hidden) in &items {
+                let selected = self.selected.as_deref() == Some(id.as_str());
+                let palette = theme::palette(ui.ctx());
+                egui::Frame::new()
+                    .fill(if selected { palette.primary_soft } else { palette.elevated })
+                    .stroke(egui::Stroke::new(1.0_f32, if selected { palette.primary } else { palette.border }))
+                    .corner_radius(egui::CornerRadius::same(10))
+                    .inner_margin(egui::Margin { left: 12, right: 2, top: 0, bottom: 0 })
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing.x = 4.0;
+                            let name = if *hidden { format!("{label} ({})", t("editor.objects.hidden")) } else { label.clone() };
+                            let text = egui::RichText::new(name).color(palette.text);
+                            let response = ui.add(egui::Label::new(text).selectable(false).sense(egui::Sense::click()));
+                            if response.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                                self.selected = Some(id.clone());
+                            }
+                            if widgets::icon_button(ui, crate::icons::Icon::Trash, &tf("editor.objects.delete", &[("name", label)]))
+                                .clicked()
+                            {
+                                delete = Some(id.clone());
+                            }
+                        });
+                    });
+            }
+        });
+
+        if let Some(id) = delete {
+            self.document.remove(&id);
+            if self.selected.as_deref() == Some(id.as_str()) {
+                self.selected = None;
+            }
+        }
+    }
+
     fn body(&mut self, ui: &mut egui::Ui, c: &mut Ctx, fit: bool) {
         let read_only = self.read_only();
         let palette = theme::palette(ui.ctx());
@@ -702,8 +784,15 @@ impl EditorPage {
             let space = egui::vec2(ui.available_width() - 2.0, ui.available_height() - properties.max(380.0) - between);
             self.zoom = Canvas::fitting_zoom(&self.document, space, ZOOM_STEP, MIN_ZOOM, 2.0);
         }
-        let needed = Canvas::content_height(&self.document, self.zoom) + 2.0;
-        let height = if fit { needed.min(ui.available_height() - properties - between).max(140.0) } else { needed.clamp(200.0, 460.0) };
+        // Room under the label for the line that says what the dashed line means.
+        let shows_print_area =
+            !self.preview && self.print_area.as_ref().is_some_and(|area| area.top_mm + area.bottom_mm + area.left_mm + area.right_mm > 0.0);
+        let needed = Canvas::content_height(&self.document, self.zoom) + 2.0 + if shows_print_area { 24.0 } else { 0.0 };
+        let height = if fit {
+            needed.min(ui.available_height() - properties - between).max(if shows_print_area { 190.0 } else { 140.0 })
+        } else {
+            needed.clamp(200.0, 460.0)
+        };
 
         let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), height), egui::Sense::hover());
         ui.painter().rect(
@@ -713,12 +802,62 @@ impl EditorPage {
             egui::Stroke::new(1.0_f32, palette.border),
             egui::StrokeKind::Inside,
         );
+        // The mouse wheel over the canvas zooms, one step per notch, like the − and + buttons;
+        // the scrolling it would otherwise cause is taken away.
+        if ui.rect_contains_pointer(rect) {
+            // A wheel reports notches (lines), a touchpad many small movements (points).
+            let (notches, points) = ui.input_mut(|input| {
+                let mut moved = (0.0_f32, 0.0_f32);
+                for event in &input.events {
+                    if let egui::Event::MouseWheel { unit, delta, .. } = event {
+                        match unit {
+                            egui::MouseWheelUnit::Point => moved.1 += delta.y,
+                            _ => moved.0 += delta.y,
+                        }
+                    }
+                }
+                input.raw_scroll_delta = egui::Vec2::ZERO;
+                input.smooth_scroll_delta = egui::Vec2::ZERO;
+                moved
+            });
+            const NOTCH: f32 = 40.0;
+            // One step per frame for a wheel, however the system reports the notch (some send
+            // it as two events).
+            let scrolled = if notches != 0.0 { NOTCH.copysign(notches) } else { 0.0 } + points;
+            self.wheel += scrolled;
+            while self.wheel.abs() >= NOTCH {
+                let step = if self.wheel > 0.0 { ZOOM_STEP } else { -ZOOM_STEP };
+                self.zoom = (self.zoom + step).clamp(MIN_ZOOM, MAX_ZOOM);
+                self.wheel -= NOTCH.copysign(self.wheel);
+            }
+        } else {
+            self.wheel = 0.0;
+        }
+
         let mut canvas_ui = ui.new_child(egui::UiBuilder::new().max_rect(rect.shrink(1.0)));
         canvas_ui.set_clip_rect(rect.shrink(1.0).intersect(ui.clip_rect()));
         egui::ScrollArea::both().id_salt("canvas").auto_shrink([false, false]).show(&mut canvas_ui, |ui| {
             let mut services = Services { ctx: c.egui, api: c.api, fonts: c.fonts, images: c.images, barcodes: &mut self.barcodes };
-            self.canvas.show(ui, &mut self.document, &mut self.selected, self.zoom, self.preview, read_only, &mut services);
+            let area = self.print_area.as_ref();
+            self.canvas.show(ui, &mut self.document, &mut self.selected, self.zoom, self.preview, read_only, area, &mut services);
         });
+        // What the dashed line means, in the canvas's corner.
+        if let Some(area) =
+            self.print_area.as_ref().filter(|area| !self.preview && area.top_mm + area.bottom_mm + area.left_mm + area.right_mm > 0.0)
+        {
+            let mut text = tf("editor.printArea", &[("vertical", &format!("{:.1}", area.top_mm.max(area.bottom_mm)).replace(".0", ""))]);
+            if area.left_mm.max(area.right_mm) > 0.0 {
+                let horizontal = format!("{:.1}", area.left_mm.max(area.right_mm)).replace(".0", "");
+                text = format!("{text} {}", tf("editor.printAreaEnds", &[("horizontal", &horizontal)]));
+            }
+            ui.painter().with_clip_rect(rect.shrink(8.0)).text(
+                rect.left_bottom() + egui::vec2(16.0, -10.0),
+                egui::Align2::LEFT_BOTTOM,
+                text,
+                egui::FontId::proportional(12.0),
+                palette.muted,
+            );
+        }
         ui.add_space(18.0);
 
         if self.preview || read_only {
@@ -752,6 +891,9 @@ impl EditorPage {
             }
         });
 
+        ui.add_space(14.0);
+        // Below the properties; on a small window it is reached by scrolling.
+        theme::card(ui).inner_margin(egui::Margin::symmetric(22, 14)).show(ui, |ui| self.elements(ui));
         let measured = card.response.rect.height();
         if (measured - properties).abs() > 0.5 {
             ui.ctx().data_mut(|data| data.insert_temp(properties_id, measured));
@@ -761,6 +903,31 @@ impl EditorPage {
 }
 
 /// Saves an engine file (e.g. the original .lbx) wherever the user picks.
+/// What an object is called in the elements list: its kind and what it shows.
+fn object_label(object: &LabelObject) -> String {
+    let short = |text: &str| {
+        let line = text.split_whitespace().collect::<Vec<_>>().join(" ");
+        if line.chars().count() > 40 { format!("{}…", line.chars().take(39).collect::<String>()) } else { line }
+    };
+    let text = |value: &Option<String>| value.clone().unwrap_or_default();
+
+    match object.kind {
+        document::Kind::Text => tf("editor.objects.text", &[("text", &short(&text(&object.text)))]),
+        document::Kind::DynamicField => tf("editor.objects.field", &[("name", &text(&object.field_name))]),
+        document::Kind::Barcode => {
+            let field = text(&object.field_name);
+            let value = if field.is_empty() { short(&text(&object.data)) } else { field };
+            let symbology = text(&object.symbology);
+            tf("editor.objects.barcode", &[("type", &t(&format!("editor.barcode.{symbology}"))), ("value", &value)])
+        }
+        document::Kind::Image => t("editor.objects.image"),
+        document::Kind::Rect => t("editor.objects.rect"),
+        document::Kind::Ellipse => t("editor.objects.ellipse"),
+        document::Kind::Line => t("editor.objects.line"),
+        document::Kind::Unknown => "?".to_string(),
+    }
+}
+
 fn save_download(c: &mut Ctx, path: &str, suggested: &str) {
     let path = path.to_string();
     c.save_file(suggested.to_string(), move |api| api.download(&path));

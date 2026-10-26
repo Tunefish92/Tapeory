@@ -187,3 +187,22 @@ export async function testPrinterPrint(id: number): Promise<TestPrintResponse> {
   const response = await fetch(`${API_BASE_URL}/printers/${id}/test-print`, { method: "POST" });
   return parseJsonOrThrow(response);
 }
+
+/** The margins of a label (in mm) that the printer can't print on, and what they are for. */
+export interface PrintArea {
+  topMm: number;
+  rightMm: number;
+  bottomMm: number;
+  leftMm: number;
+  /** Blank tape the printer adds before and after the label; outside the label. */
+  feedMarginMm: number;
+  mediaId: string;
+}
+
+/** Where a label of this size can't be printed: the limits of its tape or roll, whichever printer prints it. */
+export async function getPrintArea(widthMm: number, heightMm: number, media?: string | null): Promise<PrintArea> {
+  const query = new URLSearchParams({ widthMm: String(widthMm), heightMm: String(heightMm) });
+  if (media) query.set("media", media);
+  const response = await fetch(`${API_BASE_URL}/printers/print-area?${query}`);
+  return parseJsonOrThrow(response);
+}

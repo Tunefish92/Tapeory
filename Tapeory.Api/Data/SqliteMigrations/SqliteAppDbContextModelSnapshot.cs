@@ -14,7 +14,7 @@ namespace Tapeory.Api.Data.SqliteMigrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.20");
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.ApplicationSetting", b =>
                 {
@@ -39,6 +39,42 @@ namespace Tapeory.Api.Data.SqliteMigrations
                         .IsUnique();
 
                     b.ToTable("ApplicationSettings");
+                });
+
+            modelBuilder.Entity("Tapeory.Api.Data.Entities.BulkPrintProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("OwnerUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("TemplateId", "OwnerUserId");
+
+                    b.ToTable("BulkPrintProfiles");
                 });
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.PrintJob", b =>
@@ -458,6 +494,22 @@ namespace Tapeory.Api.Data.SqliteMigrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Tapeory.Api.Data.Entities.BulkPrintProfile", b =>
+                {
+                    b.HasOne("Tapeory.Api.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Tapeory.Api.Data.Entities.Template", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("Tapeory.Api.Data.Entities.PrintJob", b =>

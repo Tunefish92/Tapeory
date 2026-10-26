@@ -136,7 +136,8 @@
   background: currentColor;
 }
 
-.status-badge--queued {
+.status-badge--queued,
+.status-badge--cancelled {
   background: var(--color-neutral-bg);
   color: var(--color-neutral-text);
 }
@@ -273,4 +274,98 @@
 /* "Back" points the way the page reads from. */
 .back-arrow {
   display: inline-block;
+}
+
+.print-job-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem 1.4rem;
+}
+
+.print-job-progress .print-form__actions {
+  align-items: center;
+  margin: 0;
+}
+
+/* Previous/next under a long list shown a page at a time. */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.pager__info {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Single label or bulk print: a large switch at the top of both print pages. */
+.print-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  max-width: 640px;
+}
+
+.print-mode__option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1.1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.print-mode__option strong {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+}
+
+.print-mode__option span {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+a.print-mode__option:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.print-mode__option--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.print-mode__option--selected strong {
+  color: var(--color-primary);
+}
+
+.print-mode__option--unavailable {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* The button that sends the labels to the printer: the largest thing in its card. */
+.btn.btn-print {
+  flex: 1 1 100%;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.4rem;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow-md);
+}
+
+.btn.btn-print svg {
+  width: 20px;
+  height: 20px;
 }

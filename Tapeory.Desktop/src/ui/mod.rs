@@ -1,6 +1,8 @@
 //! The screens, and what they share.
 
+pub mod about;
 pub mod auth;
+pub mod bulk_print;
 pub mod dashboard;
 pub mod grid;
 pub mod jobs;
@@ -30,10 +32,13 @@ pub enum Route {
     /// A template in the editor; None for a new one.
     Editor(Option<i64>),
     Print(i64),
+    /// Printing a template once per row of a data file.
+    BulkPrint(i64),
     Jobs,
     Job(i64),
     Printers,
     Settings,
+    About,
 }
 
 /// What every screen gets each frame.
@@ -112,7 +117,7 @@ pub enum ToastKind {
     Error,
 }
 
-/// Short notifications in the corner, like the web UI's.
+/// Short notifications at the bottom of the window, like the web UI's.
 #[derive(Default)]
 pub struct Toasts {
     items: Vec<(String, ToastKind, Instant)>,
@@ -138,8 +143,10 @@ impl Toasts {
         let palette = crate::theme::palette(ctx);
         let mut dismissed = None;
 
+        // At the bottom centre, over the footer: the bottom right corner is where the editor
+        // has Save and Publish, and a notification there covered them.
         egui::Area::new(egui::Id::new("toasts"))
-            .anchor(egui::Align2::RIGHT_BOTTOM, egui::vec2(-16.0, -16.0))
+            .anchor(egui::Align2::CENTER_BOTTOM, egui::vec2(0.0, -16.0))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 for (index, (message, kind, _)) in self.items.iter().enumerate() {

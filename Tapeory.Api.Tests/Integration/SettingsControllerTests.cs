@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Tapeory.Api.Settings;
+using Tapeory.Api.Updates;
 
 namespace Tapeory.Api.Tests.Integration;
 
@@ -20,6 +21,31 @@ public sealed class SettingsControllerTests(TapeoryWebApplicationFactory factory
 
         var stored = await _client.GetFromJsonAsync<AppSettingsResponse>("/api/settings", JsonOptions);
         Assert.Equal(new AppSettingsResponse("de", "dark", "inch"), stored);
+    }
+
+    [Fact]
+    public async Task PreReleases_AreOffUntilSwitchedOn_AndTheUpdateCheckStillAnswers()
+    {
+        await _client.PutAsJsonAsync("/api/settings", new { preReleases = false });
+        var before = await _client.GetFromJsonAsync<AppSettingsResponse>("/api/settings", JsonOptions);
+
+        var response = await _client.PutAsJsonAsync("/api/settings", new { preReleases = true });
+        var after = await response.Content.ReadFromJsonAsync<AppSettingsResponse>(JsonOptions);
+        var check = await _client.GetAsync("/api/updates");
+        await _client.PutAsJsonAsync("/api/settings", new { preReleases = false });
+
+        Assert.False(before!.PreReleases);
+        Assert.True(after!.PreReleases);
+        Assert.Equal(HttpStatusCode.OK, check.StatusCode);
+    }
+
+    [Fact]
+    public async Task Installed_OnANewDatabase_IsNotAnUpdate()
+    {
+        var installed = await _client.GetFromJsonAsync<InstalledVersionResponse>("/api/updates/installed", JsonOptions);
+
+        Assert.Equal(UpdateChecker.CurrentVersion, installed!.Version);
+        Assert.False(installed.Updated);
     }
 
     [Fact]
