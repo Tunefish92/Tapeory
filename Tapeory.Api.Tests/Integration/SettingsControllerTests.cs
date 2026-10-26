@@ -23,6 +23,22 @@ public sealed class SettingsControllerTests(TapeoryWebApplicationFactory factory
     }
 
     [Fact]
+    public async Task PreReleases_AreOffUntilSwitchedOn_AndTheUpdateCheckStillAnswers()
+    {
+        await _client.PutAsJsonAsync("/api/settings", new { preReleases = false });
+        var before = await _client.GetFromJsonAsync<AppSettingsResponse>("/api/settings", JsonOptions);
+
+        var response = await _client.PutAsJsonAsync("/api/settings", new { preReleases = true });
+        var after = await response.Content.ReadFromJsonAsync<AppSettingsResponse>(JsonOptions);
+        var check = await _client.GetAsync("/api/updates");
+        await _client.PutAsJsonAsync("/api/settings", new { preReleases = false });
+
+        Assert.False(before!.PreReleases);
+        Assert.True(after!.PreReleases);
+        Assert.Equal(HttpStatusCode.OK, check.StatusCode);
+    }
+
+    [Fact]
     public async Task Update_IsPartial_LeavingOmittedValuesAlone()
     {
         await _client.PutAsJsonAsync("/api/settings", new { language = "it", theme = "light", unit = "mm" });

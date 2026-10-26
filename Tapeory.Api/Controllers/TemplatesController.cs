@@ -1,4 +1,5 @@
 using Tapeory.Api.Import;
+using Tapeory.Api.PrintData;
 using Tapeory.Api.Rendering;
 using Tapeory.Api.Storage;
 using Tapeory.Api.Templates;
@@ -356,6 +357,37 @@ public sealed class TemplatesController(
 
         var pngBytes = labelRenderer.RenderPng(document, resolvedValues, imageResolver.AsDelegate());
         return File(pngBytes, "image/png");
+    }
+
+    /// <summary>Checks rows of field values before a bulk print, a chunk at a time, so the
+    /// caller can show how far the check is.</summary>
+    [HttpPost("{id:int}/check-rows")]
+    public async Task<IActionResult> CheckRows(int id, [FromBody] CheckRowsRequest? request, CancellationToken cancellationToken)
+    {
+        var template = await templates.GetByIdAsync(id, cancellationToken);
+
+        if (template?.CurrentVersion is null)
+        {
+            return NotFound();
+        }
+
+        var rows = request?.Rows ?? [];
+
+        if (rows.Count > RowChecker.MaxRowsPerRequest)
+        {
+            return Problem($"At most {RowChecker.MaxRowsPerRequest} rows can be checked at once.", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var document = LabelDocumentParser.Parse(template.CurrentVersion.EditorJson) with
+        {
+            WidthMm = template.CurrentVersion.WidthMm,
+            HeightMm = template.CurrentVersion.HeightMm
+        };
+        var resolveImage = imageResolver.AsDelegate();
+
+        return Ok(new CheckRowsResponse(rows
+            .Select(row => RowChecker.Check(template.CurrentVersion.Fields, document, row ?? [], labelRenderer, resolveImage))
+            .ToList()));
     }
 
     /// <summary>A PNG of the current version for list/card previews. GET (unlike POST /preview) so

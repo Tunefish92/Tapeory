@@ -86,6 +86,71 @@ public sealed class LabelRenderer
         return stream.ToArray();
     }
 
+    /// <summary>The smallest font size (in points) a shrunk text is still considered readable at.</summary>
+    public const float SmallestReadablePt = 4f;
+
+    /// <summary>
+    /// Fields whose value doesn't sit well in its box: one message per field. Checked with the
+    /// fonts and the fitting the label is drawn with.
+    /// </summary>
+    public List<string> TextWarnings(RenderableDocument document, IReadOnlyDictionary<string, string> fieldValues)
+    {
+        var warnings = new List<string>();
+
+        foreach (var field in document.Objects.OfType<RenderableDynamicField>().Where(field => !field.Hidden))
+        {
+            var text = fieldValues.TryGetValue(field.FieldName, out var value) ? value : string.Empty;
+            var fontSizeMm = (float)field.FontSize * FontPtToMm;
+
+            if (text.Length == 0 || fontSizeMm <= 0 || field.Width <= 0)
+            {
+                continue;
+            }
+
+            using var typeface = FontResolver.Typeface(field.FontFamily, field.FontWeight == "bold");
+            const float referenceSize = 10f;
+            using var font = CreateFont(typeface, referenceSize);
+            float Measure(string line, float size) => font.MeasureText(line) * size / referenceSize;
+
+            var fitted = TextFitter.Fit(text, (float)field.Width, (float)field.Height, fontSizeMm, field.Fit, Measure);
+            var widest = fitted.Lines.Max(line => Measure(line, fitted.FontSize));
+            var tall = fitted.Lines.Count * fitted.FontSize * TextFitter.LineHeightFactor;
+
+            string? warning = null;
+
+            if (field.Fit == TextFitMode.None)
+            {
+                // Nothing holds the text back, so it only matters when it leaves the label.
+                var (left, right) = field.Align switch
+                {
+                    "center" => ((float)field.Width / 2 - widest / 2, (float)field.Width / 2 + widest / 2),
+                    "right" => ((float)field.Width - widest, (float)field.Width),
+                    _ => (0f, widest)
+                };
+
+                if (field.Rotation == 0 && ((float)field.X + right > (float)document.WidthMm + 0.05f || (float)field.X + left < -0.05f))
+                {
+                    warning = "is too long for the label and will be cut off";
+                }
+            }
+            else if (widest > (float)field.Width + 0.05f || tall > (float)field.Height + 0.05f)
+            {
+                warning = "doesn't fit its box and will be cut off";
+            }
+            else if (fitted.FontSize < fontSizeMm && fitted.FontSize / FontPtToMm < SmallestReadablePt)
+            {
+                warning = $"is shrunk to {fitted.FontSize / FontPtToMm:0.#} pt to fit and may be hard to read";
+            }
+
+            if (warning is not null && !warnings.Any(existing => existing.StartsWith($"Field \"{field.FieldName}\"", StringComparison.Ordinal)))
+            {
+                warnings.Add($"Field \"{field.FieldName}\" {warning}.");
+            }
+        }
+
+        return warnings;
+    }
+
     private void DrawObjects(
         SKCanvas canvas,
         RenderableDocument document,

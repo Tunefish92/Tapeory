@@ -81,6 +81,18 @@ export async function listPrintJobs(templateId?: number): Promise<PrintJobRespon
   return parseJsonOrThrow(response);
 }
 
+/** Stops a job: a waiting one at once, a printing one after the labels already at the printer. */
+export async function cancelPrintJob(id: number): Promise<PrintJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/print-jobs/${id}/cancel`, { method: "POST" });
+  return parseJsonOrThrow(response);
+}
+
+/** Creates a new job with the rows of a finished job that weren't printed. */
+export async function reprintUnprinted(id: number): Promise<PrintJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/print-jobs/${id}/reprint-unprinted`, { method: "POST" });
+  return parseJsonOrThrow(response);
+}
+
 /** Removes a job from the print history; it keeps counting in the statistics. */
 export async function deletePrintJob(id: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/print-jobs/${id}`, { method: "DELETE" });

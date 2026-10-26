@@ -5,9 +5,11 @@ export interface ServerSettings {
   language: string | null;
   theme: string | null;
   unit: string | null;
+  /** The update check also offers pre-releases (beta versions). */
+  preReleases: boolean;
 }
 
-export type SettingsPatch = Partial<Record<keyof ServerSettings, string>>;
+export type SettingsPatch = Partial<Record<"language" | "theme" | "unit", string>> & { preReleases?: boolean };
 
 async function parse(response: Response): Promise<ServerSettings> {
   if (!response.ok) {
@@ -16,7 +18,12 @@ async function parse(response: Response): Promise<ServerSettings> {
   }
 
   const body = (await response.json()) as Partial<ServerSettings> | null;
-  return { language: body?.language ?? null, theme: body?.theme ?? null, unit: body?.unit ?? null };
+  return {
+    language: body?.language ?? null,
+    theme: body?.theme ?? null,
+    unit: body?.unit ?? null,
+    preReleases: body?.preReleases === true,
+  };
 }
 
 export async function getSettings(): Promise<ServerSettings> {

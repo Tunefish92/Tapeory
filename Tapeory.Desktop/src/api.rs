@@ -299,6 +299,15 @@ impl Api {
         self.get(&format!("/printers/{id}/status"))
     }
 
+    /// Where a label of this size can't be printed: the limits of its tape or roll.
+    pub fn print_area(&self, width_mm: f64, height_mm: f64, media: Option<&str>) -> ApiResult<PrintArea> {
+        let mut path = format!("/printers/print-area?widthMm={width_mm}&heightMm={height_mm}");
+        if let Some(media) = media {
+            path.push_str(&format!("&media={}", urlencoding::encode(media)));
+        }
+        self.get(&path)
+    }
+
     pub fn create_print_job(&self, request: &CreatePrintJobRequest) -> ApiResult<PrintJob> {
         self.post("/print-jobs", request)
     }
@@ -309,6 +318,89 @@ impl Api {
 
     pub fn print_job(&self, id: i64) -> ApiResult<PrintJob> {
         self.get(&format!("/print-jobs/{id}"))
+    }
+
+    /// Stops a job: a waiting one at once, a printing one after the labels already at the printer.
+    pub fn cancel_print_job(&self, id: i64) -> ApiResult<PrintJob> {
+        self.post(&format!("/print-jobs/{id}/cancel"), &json!({}))
+    }
+
+    /// Creates a new job with the rows of a finished job that weren't printed.
+    pub fn reprint_unprinted(&self, id: i64) -> ApiResult<PrintJob> {
+        self.post(&format!("/print-jobs/{id}/reprint-unprinted"), &json!({}))
+    }
+
+    /// Reads a data file for bulk printing and matches its columns to the template's fields.
+    /// `separator` and `sheet` are the user's choices; left out, they are detected.
+    pub fn parse_print_data(&self, template_id: i64, file: &Path, separator: Option<&str>, sheet: Option<usize>) -> ApiResult<PrintData> {
+        let bytes = std::fs::read(file).map_err(ApiError::io)?;
+        let name = file.file_name().and_then(|n| n.to_str()).unwrap_or("file").to_string();
+        let part = multipart::Part::bytes(bytes)
+            .file_name(name)
+            .mime_str("application/octet-stream")
+            .map_err(|e| ApiError { status: None, message: e.to_string() })?;
+        let mut form =
+            multipart::Form::new().part("file", part).text("templateId", template_id.to_string()).text("locale", crate::i18n::language());
+        if let Some(separator) = separator {
+            form = form.text("separator", separator.to_string());
+        }
+        if let Some(sheet) = sheet {
+            form = form.text("sheet", sheet.to_string());
+        }
+        self.json(self.http.post(self.url("/print-data/parse")).multipart(form))
+    }
+
+    /// The signed-in account's saved bulk print setups for a template.
+    pub fn bulk_print_profiles(&self, template_id: i64) -> ApiResult<Vec<BulkPrintProfile>> {
+        self.get(&format!("/templates/{template_id}/bulk-print-profiles"))
+    }
+
+    /// Saves a profile. A name that is taken answers 409 unless `replace` is set.
+    pub fn save_bulk_print_profile(
+        &self,
+        template_id: i64,
+        name: &str,
+        settings: &BulkPrintProfileSettings,
+        replace: bool,
+    ) -> ApiResult<BulkPrintProfile> {
+        self.put(
+            &format!("/templates/{template_id}/bulk-print-profiles"),
+            &json!({ "name": name, "settings": settings, "replace": replace }),
+        )
+    }
+
+    pub fn delete_bulk_print_profile(&self, id: i64) -> ApiResult<()> {
+        self.call(reqwest::Method::DELETE, &format!("/bulk-print-profiles/{id}"), None)
+    }
+
+    /// Lets the engine get the data from a web address (a REST endpoint, or a file over HTTP)
+    /// and read it like a file.
+    pub fn fetch_print_data(
+        &self,
+        template_id: i64,
+        url: &str,
+        header_name: &str,
+        header_value: &str,
+        separator: Option<&str>,
+        sheet: Option<usize>,
+    ) -> ApiResult<PrintData> {
+        self.post(
+            "/print-data/fetch",
+            &json!({
+                "templateId": template_id,
+                "url": url,
+                "headerName": Some(header_name).filter(|name| !name.is_empty()),
+                "headerValue": Some(header_value).filter(|value| !value.is_empty()),
+                "separator": separator,
+                "sheet": sheet,
+                "locale": crate::i18n::language(),
+            }),
+        )
+    }
+
+    /// Checks rows the way a print job would: required fields, barcodes, and a trial render.
+    pub fn check_rows(&self, template_id: i64, rows: &[std::collections::BTreeMap<String, String>]) -> ApiResult<Vec<CheckedRow>> {
+        self.post::<CheckedRows>(&format!("/templates/{template_id}/check-rows"), &json!({ "rows": rows })).map(|checked| checked.rows)
     }
 
     pub fn delete_print_job(&self, id: i64) -> ApiResult<()> {

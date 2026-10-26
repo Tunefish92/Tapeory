@@ -6,10 +6,11 @@ namespace Tapeory.Api.Settings;
 
 /// <summary>User preferences for the whole installation. Null means "not chosen yet", so the
 /// browser can fall back to its own default (e.g. the OS color scheme) until someone picks.</summary>
-public sealed record AppSettingsResponse(string? Language, string? Theme, string? Unit);
+/// <param name="PreReleases">The update check also offers pre-releases (beta versions).</param>
+public sealed record AppSettingsResponse(string? Language, string? Theme, string? Unit, bool PreReleases = false);
 
 /// <summary>Partial update: only non-null properties are changed.</summary>
-public sealed record UpdateAppSettingsRequest(string? Language, string? Theme, string? Unit);
+public sealed record UpdateAppSettingsRequest(string? Language, string? Theme, string? Unit, bool? PreReleases = null);
 
 /// <summary>
 /// Stores the app-wide preferences (language, theme, measurement unit) as rows in the
@@ -20,6 +21,7 @@ public sealed class AppSettingsService(AppDbContext db)
     public const string LanguageKey = "ui.language";
     public const string ThemeKey = "ui.theme";
     public const string UnitKey = "ui.unit";
+    public const string PreReleasesKey = "updates.preReleases";
 
     public static readonly IReadOnlyList<string> Languages = ["en", "de", "it", "fr", "es"];
     public static readonly IReadOnlyList<string> Themes = ["light", "dark", "system"];
@@ -28,7 +30,7 @@ public sealed class AppSettingsService(AppDbContext db)
     public async Task<AppSettingsResponse> GetAsync(CancellationToken cancellationToken)
     {
         var values = await db.ApplicationSettings
-            .Where(s => s.Key == LanguageKey || s.Key == ThemeKey || s.Key == UnitKey)
+            .Where(s => s.Key == LanguageKey || s.Key == ThemeKey || s.Key == UnitKey || s.Key == PreReleasesKey)
             .ToDictionaryAsync(s => s.Key, s => s.Value, cancellationToken);
 
         // Anything unrecognized (hand-edited row, value from a future version) reads as unset
@@ -36,7 +38,8 @@ public sealed class AppSettingsService(AppDbContext db)
         return new AppSettingsResponse(
             Allowed(values.GetValueOrDefault(LanguageKey), Languages),
             Allowed(values.GetValueOrDefault(ThemeKey), Themes),
-            Allowed(values.GetValueOrDefault(UnitKey), Units));
+            Allowed(values.GetValueOrDefault(UnitKey), Units),
+            values.GetValueOrDefault(PreReleasesKey) == "true");
     }
 
     /// <summary>Returns the validation errors keyed by property name; empty when valid.</summary>
@@ -65,6 +68,7 @@ public sealed class AppSettingsService(AppDbContext db)
         if (request.Language is not null) changes[LanguageKey] = request.Language;
         if (request.Theme is not null) changes[ThemeKey] = request.Theme;
         if (request.Unit is not null) changes[UnitKey] = request.Unit;
+        if (request.PreReleases is { } preReleases) changes[PreReleasesKey] = preReleases ? "true" : "false";
 
         if (changes.Count > 0)
         {

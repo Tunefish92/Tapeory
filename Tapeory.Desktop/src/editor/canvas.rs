@@ -113,6 +113,7 @@ impl Canvas {
         zoom: f32,
         preview: bool,
         read_only: bool,
+        unprintable: Option<&crate::models::PrintArea>,
         services: &mut Services,
     ) {
         let scale = POINTS_PER_MM * zoom;
@@ -146,6 +147,19 @@ impl Canvas {
         let clipped = painter.with_clip_rect(label_rect.expand(1.0));
         for object in document.objects.iter().filter(|object| !object.hidden) {
             draw(&clipped, object, preview, scale, &to_screen, services);
+        }
+
+        // The printable area: what lies outside the dashed line is cut off when printing.
+        if let Some(area) = unprintable.filter(|area| !preview && area.top_mm + area.right_mm + area.bottom_mm + area.left_mm > 0.0) {
+            let inner = egui::Rect::from_min_max(
+                to_screen(pt(area.left_mm, area.top_mm)),
+                to_screen(pt(document.width_mm - area.right_mm, document.height_mm - area.bottom_mm)),
+            );
+            if inner.is_positive() {
+                let corners = [inner.left_top(), inner.right_top(), inner.right_bottom(), inner.left_bottom(), inner.left_top()];
+                let stroke = Stroke::new(1.2_f32, Color32::from_rgb(220, 38, 38).gamma_multiply(0.5));
+                painter.extend(egui::Shape::dashed_line(&corners, stroke, 6.0, 4.0));
+            }
         }
 
         let selectable = !preview && !read_only;

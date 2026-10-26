@@ -594,13 +594,14 @@ describe("TemplatesListPage", () => {
       expect(screen.getByRole("link", { name: "Edit: Gamma" })).toHaveAttribute("href", "/templates/3/edit");
     });
 
-    it("offers printing as an icon link", async () => {
+    it("offers printing as a labelled button, the first action of a row", async () => {
       renderPage();
       await screen.findByRole("link", { name: "Gamma" });
 
       const printLinks = screen.getAllByRole("link", { name: "Print" });
       expect(printLinks[0]).toHaveAttribute("href", "/templates/1/print");
-      expect(printLinks[0]).not.toHaveTextContent("Print");
+      expect(printLinks[0]).toHaveTextContent("Print");
+      expect(printLinks[0]).toHaveClass("btn-primary");
     });
   });
 

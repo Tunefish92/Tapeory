@@ -68,6 +68,8 @@ export interface UpdateCheck {
   updateAvailable: boolean;
   releaseUrl: string | null;
   checkedAt: string | null;
+  /** The newest version is a pre-release (only with pre-releases switched on). */
+  preRelease?: boolean;
   /** Set when GitHub couldn't be asked. */
   errorMessage: string | null;
 }
