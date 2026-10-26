@@ -825,6 +825,7 @@
     "intro": "Tapeory a été mis à jour. Voici les nouveautés :",
     "whatsNew": "Nouveautés",
     "englishOnly": "Les notes de version sont en anglais.",
+    "severalVersions": "Changements de {{count}} versions, la plus récente d’abord :",
     "allNotes": "Notes de version sur GitHub",
     "close": "Compris"
   }
