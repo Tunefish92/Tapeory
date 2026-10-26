@@ -801,5 +801,14 @@
     "links": "Projekt",
     "preReleases": "Auch Vorabversionen (Betaversionen) anbieten",
     "preReleasesHint": "Betaversionen bringen neue Funktionen früher und können noch Fehler haben. Lege vor der Installation eine Sicherung an."
+  },
+  "updated": {
+    "title": "Tapeory {{version}} ist da",
+    "fromVersion": "Aktualisiert von {{previous}}. Das ist neu:",
+    "intro": "Tapeory wurde aktualisiert. Das ist neu:",
+    "whatsNew": "Neuigkeiten",
+    "englishOnly": "Die Versionshinweise gibt es nur auf Englisch.",
+    "allNotes": "Versionshinweise auf GitHub",
+    "close": "Alles klar"
   }
 }

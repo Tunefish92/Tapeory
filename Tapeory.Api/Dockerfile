@@ -11,6 +11,8 @@ COPY Tapeory.Web/package.json Tapeory.Web/package-lock.json ./
 RUN npm ci
 
 COPY Tapeory.Web/ ./
+# Vite reads ../CHANGELOG.md for the "what's new" dialog after an update.
+COPY CHANGELOG.md /CHANGELOG.md
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build

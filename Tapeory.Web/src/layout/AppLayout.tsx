@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthContext";
 import { AccountMenu, OpenAccessBanner } from "./AccountMenu";
 import { Footer } from "./Footer";
+import { UpdatedDialog } from "./UpdatedDialog";
 import "./AppLayout.css";
 
 const NAV_ITEMS = [
@@ -62,6 +63,7 @@ export function AppLayout({ children }: PropsWithChildren) {
         {children}
       </main>
       <Footer />
+      <UpdatedDialog />
     </div>
   );
 }

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Tapeory.Api.Settings;
+using Tapeory.Api.Updates;
 
 namespace Tapeory.Api.Tests.Integration;
 
@@ -36,6 +37,15 @@ public sealed class SettingsControllerTests(TapeoryWebApplicationFactory factory
         Assert.False(before!.PreReleases);
         Assert.True(after!.PreReleases);
         Assert.Equal(HttpStatusCode.OK, check.StatusCode);
+    }
+
+    [Fact]
+    public async Task Installed_OnANewDatabase_IsNotAnUpdate()
+    {
+        var installed = await _client.GetFromJsonAsync<InstalledVersionResponse>("/api/updates/installed", JsonOptions);
+
+        Assert.Equal(UpdateChecker.CurrentVersion, installed!.Version);
+        Assert.False(installed.Updated);
     }
 
     [Fact]

@@ -818,5 +818,14 @@
     "links": "Progetto",
     "preReleases": "Proponi anche le versioni preliminari (beta)",
     "preReleasesHint": "Le versioni beta portano prima le novità e possono avere ancora difetti. Fai un backup prima di installarne una."
+  },
+  "updated": {
+    "title": "Tapeory {{version}} è arrivato",
+    "fromVersion": "Aggiornato da {{previous}}. Ecco le novità:",
+    "intro": "Tapeory è stato aggiornato. Ecco le novità:",
+    "whatsNew": "Novità",
+    "englishOnly": "Le note di rilascio sono in inglese.",
+    "allNotes": "Note di rilascio su GitHub",
+    "close": "Ho capito"
   }
 }

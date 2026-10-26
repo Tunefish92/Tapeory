@@ -185,7 +185,7 @@ public static class TapeoryApp
         {
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.Migrate();
+            InstalledVersion.MigrateAsync(db, UpdateChecker.CurrentVersion, CancellationToken.None).GetAwaiter().GetResult();
 
             if (db is SqliteAppDbContext)
             {

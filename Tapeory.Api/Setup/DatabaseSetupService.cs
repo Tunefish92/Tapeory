@@ -1,4 +1,5 @@
 using Tapeory.Api.Data;
+using Tapeory.Api.Updates;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 
@@ -96,7 +97,7 @@ public sealed class DatabaseSetupService(
                     .Options;
 
                 await using var db = new SqliteAppDbContext(options);
-                await db.Database.MigrateAsync(CancellationToken.None);
+                await InstalledVersion.MigrateAsync(db, UpdateChecker.CurrentVersion, CancellationToken.None);
                 await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", CancellationToken.None);
             }
             catch (Exception ex)
@@ -147,7 +148,7 @@ public sealed class DatabaseSetupService(
 
                     await using var db = new AppDbContext(options);
                     // Not cancellable: a half-applied migration is worse than a slow request.
-                    await db.Database.MigrateAsync(CancellationToken.None);
+                    await InstalledVersion.MigrateAsync(db, UpdateChecker.CurrentVersion, CancellationToken.None);
                 }
                 catch (Exception ex)
                 {

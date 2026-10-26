@@ -25,6 +25,8 @@ unraid/
 docs/
 docker-compose*.yml
 *.md
+# The web app shows this version's section after an update.
+!CHANGELOG.md
 .gitignore
 .gitattributes
 .dockerignore
