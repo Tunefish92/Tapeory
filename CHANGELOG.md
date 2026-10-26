@@ -8,6 +8,8 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-26
+
 ### Fixed
 - Web app: number fields jumped back to 1 (or 0) as soon as they were emptied, so on a phone a
   quantity from 2 to 9 couldn't be entered. This affected **Quantity**, the bulk print's **Copies
@@ -423,7 +425,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0

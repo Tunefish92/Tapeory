@@ -218,7 +218,7 @@ user.
 | Tag | Contents |
 | --- | --- |
 | `latest` | The newest release |
-| `0.6.0`, `0.5.0`, … | One specific release (from Git tags such as `v0.6.0`) |
+| `0.6.1`, `0.6.0`, … | One specific release (from Git tags such as `v0.6.1`) |
 
 Both registries get the same tags: `ghcr.io/tunefish92/tapeory` (GitHub Container Registry) and
 `tunefish92/tapeory` (Docker Hub). For a stable install, pin a release tag with `TAPEORY_IMAGE`
