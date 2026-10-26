@@ -8,6 +8,15 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-26
+
+### Fixed
+- The "what's new" dialog after an update showed only the newest version's changes. After a jump
+  over several versions it now shows the changes of each of them, newest first: from the
+  version that ran before, or from the version a browser last showed, if that one is older. For
+  an update from 0.5.0 or older, which didn't record their version, the version is worked out
+  from the database.
+
 ## [0.6.1] - 2026-10-26
 
 ### Fixed
@@ -425,7 +434,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/Tunefish92/Tapeory/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
