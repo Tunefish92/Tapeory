@@ -16,6 +16,7 @@ import {
   type PrinterModelResponse,
   type UsbPrinterInfo,
 } from "../api/printers";
+import { NumberInput } from "../components/NumberInput";
 import { useNotifications } from "../notifications/NotificationsContext";
 import { useAuth } from "../auth/AuthContext";
 import "./printers.css";
@@ -500,12 +501,12 @@ export function PrintersPage() {
                 <div className="printer-form__field">
                   <label className="properties-field">
                     {t("printers.port")}
-                    <input
-                      type="number"
+                    <NumberInput
+                      integer
                       min={1}
                       max={65535}
                       value={form.port ?? 9100}
-                      onChange={(e) => setForm((prev) => ({ ...prev, port: Number(e.target.value) }))}
+                      onChange={(port) => setForm((prev) => ({ ...prev, port }))}
                       aria-describedby="printer-port-hint"
                     />
                   </label>

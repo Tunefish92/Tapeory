@@ -2,7 +2,7 @@
 //! label editor loads each font a label uses from the engine, the same files the printed label is
 //! rendered with, so the canvas shows what prints.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use eframe::egui::{self, FontData, FontDefinitions, FontFamily};
@@ -41,6 +41,9 @@ pub struct Fonts {
     definitions: Option<FontDefinitions>,
     /// Family names (with " Bold" for bold faces) registered with egui.
     registered: HashSet<String>,
+    /// Each loaded face's ascent plus descent, per unit of font size, to place text lines the
+    /// way the web editor and the printed label do.
+    content_heights: HashMap<String, f64>,
     /// Asked for, and loading or failed: not asked again.
     requested: HashSet<String>,
     loading: Vec<Task<(String, Option<Vec<u8>>)>>,
@@ -60,6 +63,9 @@ impl Fonts {
 
         for (name, bytes) in INTERFACE_FACES {
             definitions.font_data.insert(name.into(), Arc::new(FontData::from_static(bytes)));
+            if let Some(height) = content_height(bytes) {
+                self.content_heights.insert(name.into(), height);
+            }
             let mut faces = definitions.families.get(&FontFamily::Proportional).cloned().unwrap_or_default();
             faces.insert(0, name.into());
             definitions.families.insert(FontFamily::Name(name.into()), faces);
@@ -119,6 +125,9 @@ impl Fonts {
 
         for (name, bytes) in arrived {
             let Some(bytes) = bytes else { continue };
+            if let Some(height) = content_height(&bytes) {
+                self.content_heights.insert(name.clone(), height);
+            }
             definitions.font_data.insert(name.clone(), Arc::new(FontData::from_owned(bytes)));
 
             // The face itself, then egui's own fonts for characters it lacks.
@@ -149,6 +158,15 @@ impl Fonts {
         if self.registered.contains(&regular) { FontFamily::Name(regular.into()) } else { FontFamily::Proportional }
     }
 
+    /// The family's ascent plus descent per unit of font size (without the line gap), once its
+    /// face is loaded.
+    pub fn content_height(&self, family: &FontFamily) -> Option<f64> {
+        match family {
+            FontFamily::Name(name) => self.content_heights.get(name.as_ref()).copied(),
+            _ => None,
+        }
+    }
+
     fn request(&mut self, ctx: &egui::Context, api: &Api, family: &str, bold: bool) {
         let name = face_name(family, bold);
         if !self.requested.insert(name.clone()) {
@@ -168,6 +186,14 @@ fn face_name(family: &str, bold: bool) -> String {
     if bold { format!("{family} Bold") } else { family.to_string() }
 }
 
+/// Ascent plus descent per unit of font size, as egui reads them (descent is negative there).
+fn content_height(bytes: &[u8]) -> Option<f64> {
+    use ab_glyph::Font;
+    let font = ab_glyph::FontRef::try_from_slice_and_index(bytes, 0).ok()?;
+    let units_per_em = font.units_per_em()?;
+    Some(((font.ascent_unscaled() - font.descent_unscaled()) / units_per_em) as f64)
+}
+
 /// Whether egui can draw with the font: it parses and has a usable size (egui panics otherwise).
 fn egui_can_use(bytes: &[u8]) -> bool {
     use ab_glyph::Font;
@@ -177,4 +203,17 @@ fn egui_can_use(bytes: &[u8]) -> bool {
 /// TrueType, OpenType or TrueType collection data (egui can't read WOFF).
 fn is_font(bytes: &[u8]) -> bool {
     matches!(bytes.get(..4), Some([0, 1, 0, 0]) | Some(b"OTTO") | Some(b"true") | Some(b"ttcf"))
+}
+
+#[cfg(test)]
+mod metrics_tests {
+    use super::content_height;
+
+    #[test]
+    fn reads_ascent_plus_descent_per_unit_of_size() {
+        // Roboto: hhea ascent 1900, descent -500, 2048 units per em.
+        let roboto = include_bytes!("../../Tapeory.Api/Fonts/Roboto/Roboto-Regular.ttf");
+        let height = content_height(roboto).unwrap();
+        assert!((height - 2400.0 / 2048.0).abs() < 1e-6, "{height}");
+    }
 }

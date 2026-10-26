@@ -401,6 +401,7 @@ fn draw_text(painter: &egui::Painter, object: &LabelObject, text: &str, scale: f
     let size_mm = object.font_size.unwrap_or(12.0) * PT_TO_MM;
     let fit_mode = object.fit.clone().unwrap_or_else(|| "none".into());
 
+    let content_height = s.fonts.content_height(&family);
     let mut measure = measurer(s.ctx, &family);
     let fitted = fit(text, object.w(), object.h(), size_mm, &fit_mode, &mut measure);
     let line_height = fitted.font_size * LINE_HEIGHT;
@@ -416,7 +417,11 @@ fn draw_text(painter: &egui::Painter, object: &LabelObject, text: &str, scale: f
             Some("right") => object.w() - width,
             _ => 0.0,
         };
-        let y = index as f64 * line_height + (line_height - height) / 2.0;
+        // As the web editor and the printed label: the font's ascent and descent centred in the
+        // line. egui's row also holds the line gap below them, so centring the row would sit
+        // the text higher; its row height is only a stand-in until the face has loaded.
+        let content = content_height.map_or(height, |content| content * fitted.font_size);
+        let y = index as f64 * line_height + (line_height - content) / 2.0;
         let position = to_screen(to_label(object, pt(x, y)));
         painter.add(epaint::TextShape::new(position, galley, color).with_angle(angle));
     }
@@ -471,11 +476,16 @@ fn draw_barcode(painter: &egui::Painter, object: &LabelObject, scale: f32, to_sc
             }
 
             if text_height > 0.0 && !barcode.text.is_empty() {
-                let pixels = (text_height * 0.8) as f32 * scale;
+                let size = text_height * 0.8;
+                let pixels = size as f32 * scale;
                 let family = s.fonts.family(s.ctx, s.api, "Arial", false);
+                let content = s.fonts.content_height(&family);
                 let galley = painter.layout_no_wrap(barcode.text.clone(), FontId::new(pixels.max(1.0), family), color);
                 let width = galley.size().x as f64 / scale as f64;
-                let position = to_screen(to_label(object, pt((w - width) / 2.0, bars_height + text_height * 0.1)));
+                // A line as tall as the font, a tenth into the text area, as the renderer does.
+                let content = content.map_or(galley.size().y as f64 / scale as f64, |content| content * size);
+                let top = bars_height + text_height * 0.1 + (size - content) / 2.0;
+                let position = to_screen(to_label(object, pt((w - width) / 2.0, top)));
                 painter.add(epaint::TextShape::new(position, galley, color).with_angle(object.rotation.to_radians() as f32));
             }
         }

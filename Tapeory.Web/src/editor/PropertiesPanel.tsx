@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useUnits } from "../settings/AppSettingsContext";
+import { NumberInput } from "../components/NumberInput";
 import type { ReorderDirection } from "./document";
 import { FontFamilySelect } from "./FontFamilySelect";
 import { useBarcodeEncoding } from "./BarcodeShape";
@@ -38,12 +39,7 @@ function NumberField({
   return (
     <label className="properties-field">
       {label}
-      <input
-        type="number"
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
+      <NumberInput step={step} value={value} onChange={onChange} />
     </label>
   );
 }

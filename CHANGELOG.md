@@ -8,6 +8,22 @@ versions may include breaking changes.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-26
+
+### Fixed
+- Web app: number fields jumped back to 1 (or 0) as soon as they were emptied, so on a phone a
+  quantity from 2 to 9 couldn't be entered. This affected **Quantity**, the bulk print's **Copies
+  of each label** and **Label … of …**, the printer's port, the label width and the editor's
+  position, size, rotation and font size fields. They can now be cleared while typing; leaving
+  one empty puts back the last number.
+- Printed text sat higher on the label than in the editor, by about 0.15 × the font size (about
+  1.3 mm at 24 pt). The print renderer guessed where a line's baseline goes; it now uses the
+  font's own ascent and descent, as the editor does, so text prints where it was placed. The
+  number under a 1D barcode is placed the same way. Templates don't need to be changed: their
+  text now prints where the editor already showed it.
+- Desktop app: the label editor drew text slightly higher than the web editor and the print (by
+  half the font's line gap); it now places text lines the same way.
+
 ## [0.6.0] - 2026-10-26
 
 Bulk printing from a file or a web address, saved profiles, template files with their images,
@@ -409,7 +425,8 @@ breaking changes between minor versions until 1.0. Everything below is new.
 - There is no authentication. Run Tapeory on a trusted network or behind an authenticating
   reverse proxy.
 
-[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Tunefish92/Tapeory/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/Tunefish92/Tapeory/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Tunefish92/Tapeory/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Tunefish92/Tapeory/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Tunefish92/Tapeory/compare/v0.3.0...v0.4.0

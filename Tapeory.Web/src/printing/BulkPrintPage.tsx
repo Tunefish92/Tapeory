@@ -17,6 +17,7 @@ import {
   saveBulkPrintProfile,
   type BulkPrintProfile,
 } from "../api/bulkPrintProfiles";
+import { NumberInput } from "../components/NumberInput";
 import { PrinterIcon, TrashIcon } from "../components/icons";
 import { Pager } from "../components/Pager";
 import { ProgressBar } from "../components/ProgressBar";
@@ -949,13 +950,7 @@ export function BulkPrintPage() {
                   </button>
                   <label className="bulk-viewer__position">
                     {t("printing.bulk.check.label")}
-                    <input
-                      type="number"
-                      min={1}
-                      max={rows.length}
-                      value={current + 1}
-                      onChange={(event) => go(Number(event.target.value) - 1)}
-                    />
+                    <NumberInput integer min={1} max={rows.length} value={current + 1} onChange={(label) => go(label - 1)} />
                     {t("printing.bulk.check.ofTotal", { total: rows.length })}
                   </label>
                   <button type="button" className="btn" disabled={current >= rows.length - 1} onClick={() => go(current + 1)}>
@@ -1051,13 +1046,7 @@ export function BulkPrintPage() {
               {errorCount > 0 && <p className="print-form__hint">{t("printing.bulk.check.summaryErrors", { count: errorCount })}</p>}
               <label className="properties-field bulk-copies">
                 {t("printing.bulk.check.copies")}
-                <input
-                  type="number"
-                  min={1}
-                  max={MAX_COPIES}
-                  value={copies}
-                  onChange={(event) => setCopies(clampCopies(Number(event.target.value)))}
-                />
+                <NumberInput integer min={1} max={MAX_COPIES} value={copies} onChange={setCopies} />
                 {quantityColumn !== null && <span className="print-form__hint">{t("printing.bulk.check.copiesHint")}</span>}
               </label>
               {saveProfileBlock}
