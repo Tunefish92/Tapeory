@@ -242,4 +242,32 @@ public sealed class LabelRendererTests
             }
         }
     }
+
+    [Fact]
+    public void RenderPng_PutsTheTextBaselineWhereTheEditorShowsIt()
+    {
+        // The editor (Konva) centres the font's ascent and descent in each line. Roboto's are
+        // 1900 and 500 of 2048 units, so with line height 1.2 the baseline is 0.942 x the size
+        // below the top of the box; the old fixed 0.8 put printed text ~1.8 mm higher at 36pt.
+        var text = new RenderableText(5, 4, 0, false, false, "HHH", 40, 20, 36, "Roboto", "normal", "left", "#000000");
+        var bytes = Renderer.RenderPng(DocumentWith(50m, 25m, text), NoFieldValues, NoImages);
+        using var bitmap = DecodePng(bytes);
+
+        var lowestInk = -1;
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                if (bitmap.GetPixel(x, y).Red < 128)
+                {
+                    lowestInk = y;
+                    break;
+                }
+            }
+        }
+
+        var sizeMm = 36f * 25.4f / 72f;
+        var expectedBaselineMm = 4f + ((1900f - 500f) / 2048f / 2f + 0.6f) * sizeMm;
+        Assert.InRange((lowestInk + 1) / PxPerMmAt300Dpi, expectedBaselineMm - 0.15f, expectedBaselineMm + 0.15f);
+    }
 }
